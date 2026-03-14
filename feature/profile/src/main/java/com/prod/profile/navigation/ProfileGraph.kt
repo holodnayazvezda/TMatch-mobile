@@ -1,0 +1,34 @@
+package com.prod.profile.navigation
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.navigation3.runtime.EntryProviderScope
+import androidx.navigation3.runtime.NavKey
+import com.prod.ui.components.AppGradientBackground
+
+fun EntryProviderScope<NavKey>.profileGraph() {
+	entry<ProfileNavKey> {
+		ProfileScreen()
+	}
+}
+
+@Composable
+private fun ProfileScreen() {
+	AppGradientBackground {
+		Box(
+			modifier = Modifier.fillMaxSize(),
+			contentAlignment = Alignment.Center
+		) {
+			Text(
+				text = "Профиль",
+				style = MaterialTheme.typography.headlineMedium,
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		}
+	}
+}

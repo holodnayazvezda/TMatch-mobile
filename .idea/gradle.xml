@@ -11,6 +11,7 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/api" />
             <option value="$PROJECT_DIR$/api/auth" />
+            <option value="$PROJECT_DIR$/api/chats" />
             <option value="$PROJECT_DIR$/api/match" />
             <option value="$PROJECT_DIR$/api/profile" />
             <option value="$PROJECT_DIR$/app" />
@@ -20,6 +21,7 @@
             <option value="$PROJECT_DIR$/data/tmatch_api" />
             <option value="$PROJECT_DIR$/feature" />
             <option value="$PROJECT_DIR$/feature/auth" />
+            <option value="$PROJECT_DIR$/feature/chats" />
             <option value="$PROJECT_DIR$/feature/mathcing" />
             <option value="$PROJECT_DIR$/feature/profile" />
           </set>

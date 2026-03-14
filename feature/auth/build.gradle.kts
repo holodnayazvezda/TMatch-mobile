@@ -35,6 +35,7 @@ android {
 
 dependencies {
 	implementation(project(":api:auth"))
+	implementation(project(":api:profile"))
 	implementation(project(":common:ui"))
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.androidx.lifecycle.runtime.ktx)

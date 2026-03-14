@@ -1,13 +1,39 @@
 plugins {
-	id("java-library")
-	alias(libs.plugins.jetbrains.kotlin.jvm)
+	alias(libs.plugins.android.library)
+	alias(libs.plugins.kotlin.serialization)
 }
-java {
-	sourceCompatibility = JavaVersion.VERSION_11
-	targetCompatibility = JavaVersion.VERSION_11
-}
-kotlin {
-	compilerOptions {
-		jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+
+android {
+	namespace = "com.prod.profile.api"
+	compileSdk = 36
+
+	defaultConfig {
+		minSdk = 26
+
+		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+		consumerProguardFiles("consumer-rules.pro")
 	}
+
+	buildTypes {
+		release {
+			isMinifyEnabled = false
+			proguardFiles(
+				getDefaultProguardFile("proguard-android-optimize.txt"),
+				"proguard-rules.pro"
+			)
+		}
+	}
+
+	compileOptions {
+		sourceCompatibility = JavaVersion.VERSION_11
+		targetCompatibility = JavaVersion.VERSION_11
+	}
+}
+
+dependencies {
+	implementation(libs.androidx.navigation3.runtime)
+	implementation(libs.kotlinx.serialization.json)
+	testImplementation(libs.junit)
+	androidTestImplementation(libs.androidx.junit)
+	androidTestImplementation(libs.androidx.espresso.core)
 }

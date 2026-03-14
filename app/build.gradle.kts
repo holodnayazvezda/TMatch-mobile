@@ -40,9 +40,15 @@ android {
 
 dependencies {
 	implementation(project(":api:auth"))
+	implementation(project(":api:chats"))
+	implementation(project(":api:match"))
+	implementation(project(":api:profile"))
 	implementation(project(":common:ui"))
 	implementation(project(":data:tmatch_api"))
 	implementation(project(":feature:auth"))
+	implementation(project(":feature:chats"))
+	implementation(project(":feature:mathcing"))
+	implementation(project(":feature:profile"))
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.androidx.lifecycle.runtime.ktx)
 	implementation(libs.androidx.lifecycle.viewmodel)

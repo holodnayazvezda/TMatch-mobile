@@ -9,7 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
-import com.prod.ui.navigation.BlankNavKey
+import com.prod.profile.navigation.ProfileNavKey
 import com.prod.ui.navigation.NoInternetNavKey
 
 class AuthGraphState(
@@ -19,7 +19,7 @@ class AuthGraphState(
 ) {
 	fun onAuthSuccess() {
 		backStack.clear()
-		backStack.add(BlankNavKey(sessionStartedAtMillis = System.currentTimeMillis()))
+		backStack.add(ProfileNavKey())
 	}
 
 	fun onRequestNoInternet(retryAction: () -> Unit) = requestNoInternetInternal(retryAction)

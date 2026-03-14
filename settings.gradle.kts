@@ -25,10 +25,12 @@ dependencyResolutionManagement {
 rootProject.name = "T-match"
 include(":app")
 include(":feature:auth")
+include(":feature:chats")
 include(":feature:profile")
 include(":feature:mathcing")
 include(":common:ui")
 include(":api:auth")
+include(":api:chats")
 include(":api:profile")
 include(":api:match")
 include(":data:tmatch_api")
