@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.prod.auth.R
@@ -31,13 +33,18 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SignUpScreen(
 	onBack: () -> Unit,
-	onSwitchToSignIn: () -> Unit,
+	onSwitchToSignIn: (String) -> Unit,
 	onAuthSuccess: (AuthSession) -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	prefilledEmail: String = "",
 	modifier: Modifier = Modifier,
 	viewModel: SignUpViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
+
+	LaunchedEffect(prefilledEmail) {
+		viewModel.applyPrefilledEmail(prefilledEmail)
+	}
 
 	AppGradientBackground(modifier = modifier) {
 		Box(
@@ -45,20 +52,6 @@ fun SignUpScreen(
 				.fillMaxSize()
 				.safeDrawingPadding()
 		) {
-			// Shortcut закреплён отдельно от скролла, чтобы жюри не искало его внутри формы.
-			SignUpJuryShortcutButton(
-				onClick = {
-					viewModel.submitJuryRegistration(
-						onSuccess = onAuthSuccess,
-						onNoInternet = onRequestNoInternet
-					)
-				},
-				enabled = !uiState.isLoading,
-				modifier = Modifier
-					.align(Alignment.TopEnd)
-					.padding(horizontal = 24.dp, vertical = 16.dp)
-			)
-
 			Column(
 				modifier = Modifier
 					.fillMaxSize()
@@ -108,9 +101,25 @@ fun SignUpScreen(
 				AppMediumButton(
 					buttonText = stringResource(R.string.auth_switch_to_sign_in),
 					isLoading = false,
-					onClick = onSwitchToSignIn
+					onClick = {
+						onSwitchToSignIn(uiState.email)
+					}
 				)
 			}
+
+			SignUpJuryShortcutButton(
+				onClick = {
+					viewModel.submitJuryRegistration(
+						onSuccess = onAuthSuccess,
+						onNoInternet = onRequestNoInternet
+					)
+				},
+				enabled = !uiState.isLoading,
+				modifier = Modifier
+					.align(Alignment.TopEnd)
+					.zIndex(1f)
+					.padding(horizontal = 24.dp, vertical = 16.dp)
+			)
 		}
 	}
 }

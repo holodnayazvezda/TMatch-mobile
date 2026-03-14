@@ -32,11 +32,15 @@ import org.koin.androidx.compose.koinViewModel
 fun OnboardingScreen(
 	onCreateAccount: () -> Unit,
 	onLogin: () -> Unit,
+	initialPage: Int = 0,
 	modifier: Modifier = Modifier,
 	viewModel: OnboardingViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
-	val pagerState = rememberPagerState(pageCount = { uiState.pages.size })
+	val pagerState = rememberPagerState(
+		initialPage = initialPage.coerceIn(0, uiState.pages.lastIndex),
+		pageCount = { uiState.pages.size }
+	)
 	val scope = rememberCoroutineScope()
 	val isLastPage = pagerState.currentPage == uiState.pages.lastIndex
 
