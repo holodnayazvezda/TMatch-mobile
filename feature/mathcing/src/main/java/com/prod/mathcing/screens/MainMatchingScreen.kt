@@ -59,19 +59,25 @@ import com.prod.mathcing.model.MatchProfile
 import com.prod.mathcing.model.MatchingContentController
 import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 private enum class SwipeDirection {
 	Left,
-	Right
+	Right,
+	Up
 }
 
 private const val SwipeDismissThreshold = 240f
 private const val SwipeRotationDivisor = 45f
 private const val SwipeRotationLimit = 12f
 private const val SwipeDismissOffset = 1200f
+private const val SwipeVerticalDismissOffset = 1400f
 private const val NextCardMinAlpha = 0.1f
+private const val UpSwipeScaleDelta = 0.06f
+private const val UpSwipeAlphaDelta = 0.18f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,10 +168,15 @@ private fun SwipeCardDeck(
 ) {
 	val dim = LocalDimensions.current
 	val offsetX = remember(currentProfile.id) { Animatable(0f) }
+	val offsetY = remember(currentProfile.id) { Animatable(0f) }
 	val rotation = remember(currentProfile.id) { Animatable(0f) }
 	val scope = rememberCoroutineScope()
-	val swipeProgress = (abs(offsetX.value) / SwipeDismissOffset).coerceIn(0f, 1f)
+	val swipeDistance = maxOf(abs(offsetX.value), abs(offsetY.value))
+	val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
 	val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
+	val upSwipeProgress = (-offsetY.value / SwipeVerticalDismissOffset).coerceIn(0f, 1f)
+	val currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress
+	val currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
 
 	Box(
 		modifier = modifier.fillMaxWidth(),
@@ -176,7 +187,7 @@ private fun SwipeCardDeck(
 				profile = nextProfile,
 				modifier = Modifier
 					.fillMaxSize()
-					.padding(horizontal = dim.extraSmall / 2, vertical = dim.small)
+					.padding(horizontal = dim.extraSmall / 2)
 					.graphicsLayer {
 						alpha = nextCardAlpha
 					}
@@ -185,56 +196,105 @@ private fun SwipeCardDeck(
 		ProfileCard(
 			profile = currentProfile,
 			onMoreClick = onMoreClick,
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(horizontal = dim.extraSmall / 2)
-				.graphicsLayer {
-					translationX = offsetX.value
-					rotationZ = rotation.value
-				}
-				.pointerInput(currentProfile.id) {
-					detectDragGestures(
-						onDrag = { change, dragAmount ->
-							change.consume()
-							scope.launch {
-								offsetX.snapTo(offsetX.value + dragAmount.x)
-								rotation.snapTo(
-									(offsetX.value / SwipeRotationDivisor)
-										.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
-								)
-							}
-						},
-						onDragEnd = {
-							val target = offsetX.value
-							val shouldDismiss = abs(target) > SwipeDismissThreshold
-							scope.launch {
-								if (shouldDismiss) {
-									val direction =
-										if (target >= 0f) SwipeDirection.Right else SwipeDirection.Left
-									offsetX.animateTo(
-										targetValue = if (direction == SwipeDirection.Right) {
-											SwipeDismissOffset
-										} else {
-											-SwipeDismissOffset
-										},
-										animationSpec = tween(
-											durationMillis = 220,
-											easing = FastOutSlowInEasing
-										)
-									)
-									onSwiped(direction)
-								} else {
-									offsetX.animateTo(
-										0f,
-										tween(durationMillis = 260, easing = FastOutSlowInEasing)
-									)
-									rotation.animateTo(
-										0f,
-										tween(durationMillis = 260, easing = FastOutSlowInEasing)
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2)
+					.graphicsLayer {
+						translationX = offsetX.value
+						translationY = offsetY.value
+						rotationZ = rotation.value
+						scaleX = currentCardScale
+						scaleY = currentCardScale
+						alpha = currentCardAlpha
+					}
+					.pointerInput(currentProfile.id) {
+						detectDragGestures(
+							onDrag = { change, dragAmount ->
+								change.consume()
+								scope.launch {
+									offsetX.snapTo(offsetX.value + dragAmount.x)
+									offsetY.snapTo((offsetY.value + dragAmount.y).coerceAtMost(0f))
+									rotation.snapTo(
+										(offsetX.value / SwipeRotationDivisor)
+											.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
 									)
 								}
+							},
+							onDragEnd = {
+								val targetX = offsetX.value
+								val targetY = offsetY.value
+								val direction = when {
+									abs(targetY) > SwipeDismissThreshold && abs(targetY) > abs(targetX) ->
+										SwipeDirection.Up
+									abs(targetX) > SwipeDismissThreshold ->
+										if (targetX >= 0f) SwipeDirection.Right else SwipeDirection.Left
+									else -> null
+								}
+								scope.launch {
+									if (direction != null) {
+										val dismissXTarget = if (direction == SwipeDirection.Up) {
+											targetX
+										} else {
+											when (direction) {
+												SwipeDirection.Right -> SwipeDismissOffset
+												SwipeDirection.Left -> -SwipeDismissOffset
+												SwipeDirection.Up -> 0f
+											}
+										}
+										val dismissRotationTarget = if (direction == SwipeDirection.Up) {
+											rotation.value
+										} else {
+											when (direction) {
+												SwipeDirection.Right -> SwipeRotationLimit
+												SwipeDirection.Left -> -SwipeRotationLimit
+												SwipeDirection.Up -> 0f
+											}
+										}
+										val dismissSpec = tween<Float>(
+											durationMillis = 260,
+											easing = FastOutSlowInEasing
+										)
+										listOf(
+											async {
+												offsetX.animateTo(
+													targetValue = dismissXTarget,
+													animationSpec = dismissSpec
+												)
+											},
+											async {
+												offsetY.animateTo(
+													targetValue = if (direction == SwipeDirection.Up) {
+														-SwipeVerticalDismissOffset
+													} else {
+														0f
+													},
+													animationSpec = dismissSpec
+												)
+											},
+											async {
+												rotation.animateTo(
+													targetValue = dismissRotationTarget,
+													animationSpec = dismissSpec
+												)
+											}
+										).awaitAll()
+										onSwiped(direction)
+									} else {
+										offsetX.animateTo(
+											0f,
+											tween(durationMillis = 260, easing = FastOutSlowInEasing)
+										)
+										offsetY.animateTo(
+											0f,
+											tween(durationMillis = 260, easing = FastOutSlowInEasing)
+										)
+										rotation.animateTo(
+											0f,
+											tween(durationMillis = 260, easing = FastOutSlowInEasing)
+										)
+									}
+								}
 							}
-						}
 					)
 				}
 		)
