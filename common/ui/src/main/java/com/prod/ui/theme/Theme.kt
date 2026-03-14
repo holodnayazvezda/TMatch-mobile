@@ -105,24 +105,7 @@ fun TmatchTheme(
 ) {
 	val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 	val extraColors = if (darkTheme) DarkExtraColors else LightExtraColors
-	val view = LocalView.current
 
-	if (!view.isInEditMode) {
-		val activity = view.context.findActivity()
-		if (activity != null) {
-			@Suppress("DEPRECATION")
-			SideEffect {
-				val window = activity.window
-				window.statusBarColor = colorScheme.primaryContainer.toArgb()
-				window.navigationBarColor = colorScheme.surfaceContainerHighest.toArgb()
-
-				WindowCompat.getInsetsController(window, view).apply {
-					isAppearanceLightStatusBars = !darkTheme
-					isAppearanceLightNavigationBars = !darkTheme
-				}
-			}
-		}
-	}
 	CompositionLocalProvider(
 		LocalDimensions provides Dimensions(),
 		LocalElevation provides Elevations(),
