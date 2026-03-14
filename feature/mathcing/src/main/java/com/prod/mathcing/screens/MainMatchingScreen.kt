@@ -10,7 +10,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,6 +67,11 @@ private enum class SwipeDirection {
 	Right
 }
 
+private const val SwipeDismissThreshold = 240f
+private const val SwipeRotationDivisor = 45f
+private const val SwipeRotationLimit = 12f
+private const val SwipeDismissOffset = 1200f
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainMatchingScreen(modifier: Modifier = Modifier) {
@@ -72,19 +79,26 @@ fun MainMatchingScreen(modifier: Modifier = Modifier) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+private interface MainMatchingContentController {
+	val currentProfile: MatchProfile
+	val isActionsSheetVisible: Boolean
+	val sheetState: SheetState
+
+	fun onMoreClick()
+	fun onSwiped(direction: SwipeDirection)
+	fun onDismissSheet()
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainMatchingScreenMock(modifier: Modifier = Modifier) {
+private fun MainMatchingContent(
+	controller: MainMatchingContentController,
+	modifier: Modifier = Modifier
+) {
 	val dim = LocalDimensions.current
-	val profiles = remember { MatchingContentController.profiles() }
-	var currentIndex by rememberSaveable { mutableIntStateOf(0) }
-	var isActionsSheetVisible by rememberSaveable { mutableStateOf(false) }
-	val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-	val scope = rememberCoroutineScope()
-	val currentProfile = profiles[currentIndex % profiles.size]
 
 	Box(
-		modifier = modifier
-			.fillMaxSize()
+		modifier = modifier.fillMaxSize()
 	) {
 		Column(
 			modifier = Modifier
@@ -94,25 +108,16 @@ private fun MainMatchingScreenMock(modifier: Modifier = Modifier) {
 			MatchingHeader()
 			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
 			SwipeCardDeck(
-				currentProfile = currentProfile,
-				onMoreClick = {
-					isActionsSheetVisible = true
-				},
-				onSwiped = {
-					currentIndex = (currentIndex + 1) % profiles.size
-				},
+				currentProfile = controller.currentProfile,
+				onMoreClick = controller::onMoreClick,
+				onSwiped = controller::onSwiped,
 				modifier = Modifier.weight(1f)
 			)
 		}
-		if (isActionsSheetVisible) {
+		if (controller.isActionsSheetVisible) {
 			MatchingActionsBottomSheet(
-				onDismiss = {
-					scope.launch {
-						sheetState.hide()
-						isActionsSheetVisible = false
-					}
-				},
-				sheetState = sheetState
+				onDismiss = controller::onDismissSheet,
+				sheetState = controller.sheetState
 			)
 		}
 	}
@@ -176,18 +181,25 @@ private fun SwipeCardDeck(
 							change.consume()
 							scope.launch {
 								offsetX.snapTo(offsetX.value + dragAmount.x)
-								rotation.snapTo((offsetX.value / 45f).coerceIn(-12f, 12f))
+								rotation.snapTo(
+									(offsetX.value / SwipeRotationDivisor)
+										.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
+								)
 							}
 						},
 						onDragEnd = {
 							val target = offsetX.value
-							val shouldDismiss = abs(target) > 240f
+							val shouldDismiss = abs(target) > SwipeDismissThreshold
 							scope.launch {
 								if (shouldDismiss) {
 									val direction =
 										if (target >= 0f) SwipeDirection.Right else SwipeDirection.Left
 									offsetX.animateTo(
-										targetValue = if (direction == SwipeDirection.Right) 1200f else -1200f,
+										targetValue = if (direction == SwipeDirection.Right) {
+											SwipeDismissOffset
+										} else {
+											-SwipeDismissOffset
+										},
 										animationSpec = tween(
 											durationMillis = 220,
 											easing = FastOutSlowInEasing
@@ -222,28 +234,19 @@ private fun ProfileCard(
 	val shapes = LocalShapes.current
 	val extraColors = LocalTmatchExtraColors.current
 	val typo = MaterialTheme.typography
+	val outerShape = RoundedCornerShape(shapes.veryBigRoundedValue)
+	val innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
 
-	Surface(
+	CardFrame(
 		modifier = modifier,
-		shape = RoundedCornerShape(shapes.veryBigRoundedValue),
-		color = Color.White,
-		shadowElevation = dim.cardStackInset
+		outerShape = outerShape,
+		innerShape = innerShape
 	) {
-		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(dim.cardOuterPadding)
-		) {
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.clip(RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding))
-			) {
 				Image(
 					painter = painterResource(profile.imageRes),
 					contentDescription = "Фото ${profile.name}",
 					contentScale = ContentScale.Crop,
-					modifier = Modifier.matchParentSize()
+					modifier = Modifier.fillMaxSize()
 				)
 				if (onMoreClick != null) {
 					IconBadge(
@@ -256,14 +259,7 @@ private fun ProfileCard(
 							.clickable(onClick = onMoreClick)
 					)
 				}
-				Column(
-					modifier = Modifier
-						.align(Alignment.BottomStart)
-						.fillMaxWidth()
-						.background(extraColors.baseScrim)
-						.padding(dim.medium),
-					verticalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2)
-				) {
+				ScrimInfoBlock {
 					Text(
 						text = "${profile.name}, ${profile.age}",
 						style = typo.titleLarge,
@@ -284,8 +280,6 @@ private fun ProfileCard(
 						)
 					}
 				}
-			}
-		}
 	}
 }
 
@@ -310,14 +304,7 @@ private fun MatchingActionsBottomSheet(
 				.padding(horizontal = dim.medium, vertical = dim.small),
 			verticalArrangement = Arrangement.spacedBy(dim.small)
 		) {
-			Box(
-				modifier = Modifier
-					.align(Alignment.CenterHorizontally)
-					.fillMaxWidth(0.18f)
-					.height(dim.sheetHandleHeight)
-					.clip(CircleShape)
-					.background(colors.onSurface.copy(alpha = 0.28f))
-			)
+			BottomSheetHandle()
 			ActionSheetButton(
 				text = "Открыть профиль",
 				onClick = onDismiss,
@@ -370,7 +357,6 @@ private fun IconBadge(
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
-	val shapes = LocalShapes.current
 	val extraColors = LocalTmatchExtraColors.current
 
 	Surface(
@@ -392,6 +378,101 @@ private fun IconBadge(
 		}
 	}
 }
+
+@Composable
+private fun CardFrame(
+	modifier: Modifier = Modifier,
+	outerShape: RoundedCornerShape,
+	innerShape: RoundedCornerShape,
+	content: @Composable BoxScope.() -> Unit
+) {
+	val dim = LocalDimensions.current
+
+	Surface(
+		modifier = modifier,
+		shape = outerShape,
+		color = Color.White,
+		shadowElevation = dim.cardStackInset
+	) {
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(dim.cardOuterPadding)
+				.clip(innerShape),
+			content = content
+		)
+	}
+}
+
+@Composable
+private fun BoxScope.ScrimInfoBlock(content: @Composable ColumnScope.() -> Unit) {
+	val dim = LocalDimensions.current
+	val extraColors = LocalTmatchExtraColors.current
+
+	Column(
+		modifier = Modifier
+			.align(Alignment.BottomStart)
+			.fillMaxWidth()
+			.background(extraColors.baseScrim)
+			.padding(dim.medium),
+		verticalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),
+		content = content
+	)
+}
+
+@Composable
+private fun ColumnScope.BottomSheetHandle() {
+	val dim = LocalDimensions.current
+	val colors = MaterialTheme.colorScheme
+
+	Box(
+		modifier = Modifier
+			.align(Alignment.CenterHorizontally)
+			.fillMaxWidth(0.18f)
+			.height(dim.sheetHandleHeight)
+			.clip(CircleShape)
+			.background(colors.onSurface.copy(alpha = 0.28f))
+	)
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainMatchingScreenMock(modifier: Modifier = Modifier) {
+	val profiles = remember { MatchingContentController.profiles() }
+	var currentIndex by rememberSaveable { mutableIntStateOf(0) }
+	var isActionsSheetVisible by rememberSaveable { mutableStateOf(false) }
+	val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+	val scope = rememberCoroutineScope()
+	val currentProfile = profiles[currentIndex % profiles.size]
+
+	val controller = object : MainMatchingContentController {
+		override val currentProfile: MatchProfile = currentProfile
+		override val isActionsSheetVisible: Boolean = isActionsSheetVisible
+		override val sheetState: SheetState = sheetState
+
+		override fun onMoreClick() {
+			isActionsSheetVisible = true
+		}
+
+		override fun onSwiped(direction: SwipeDirection) {
+			currentIndex = (currentIndex + 1) % profiles.size
+		}
+
+		override fun onDismissSheet() {
+			scope.launch {
+				sheetState.hide()
+				isActionsSheetVisible = false
+			}
+		}
+	}
+
+	MainMatchingContent(
+		controller = controller,
+		modifier = modifier
+	)
+}
+
 
 @Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 390, heightDp = 844)
 @Composable
