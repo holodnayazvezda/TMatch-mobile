@@ -343,6 +343,16 @@ private fun SwipeCardDeck(
 	val swipeAffordances = remember(colors.primary, colors.error, colors.tertiary) {
 		buildSwipeAffordances(colors)
 	}
+	val affordanceByDirection = remember(swipeAffordances) {
+		swipeAffordances.associateBy(SwipeAffordanceSpec::direction)
+	}
+	val affordanceOverlayModifier = remember(dim.extraSmall) {
+		Modifier
+			.fillMaxSize()
+			.padding(horizontal = dim.extraSmall / 2)
+	}
+	var dismissedAffordance by remember { mutableStateOf<SwipeAffordanceSpec?>(null) }
+	val dismissedAffordanceProgress = remember { Animatable(0f) }
 
 	Box(
 		modifier = modifier
@@ -355,8 +365,6 @@ private fun SwipeCardDeck(
 			offsetY = offsetY,
 			deckHeight = deckHeight
 		)
-		var dismissedAffordance by remember { mutableStateOf<SwipeAffordanceSpec?>(null) }
-		val dismissedAffordanceProgress = remember { Animatable(0f) }
 
 		if (nextProfile != null) {
 			ProfileCard(
@@ -388,7 +396,7 @@ private fun SwipeCardDeck(
 						onDrag = { change, dragAmount ->
 							change.consume()
 
-							// During, drag we update raw values directly so affordances stay perfectly
+							// During drag we update raw values directly so affordances stay perfectly
 							// locked to the finger, without any extra animation state in-between.
 							offsetX += dragAmount.x
 							offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
@@ -441,8 +449,11 @@ private fun SwipeCardDeck(
 											) { value, _ -> rotation = value }
 										}
 									).awaitAll()
-									dismissedAffordance =
-										swipeAffordances.firstOrNull { it.direction == direction }
+
+									// After the card is accepted/rejected/skipped, keep the same
+									// affordance visible for a short fade so the result does not
+									// disappear on the exact frame when the next profile appears.
+									dismissedAffordance = affordanceByDirection[direction]
 									dismissedAffordanceProgress.snapTo(1f)
 									onSwiped(direction)
 									dismissedAffordanceProgress.animateTo(
@@ -495,9 +506,7 @@ private fun SwipeCardDeck(
 				SwipeActionAffordance(
 					affordance = affordance,
 					progress = rawProgress,
-					modifier = Modifier
-						.fillMaxSize()
-						.padding(horizontal = dim.extraSmall / 2)
+					modifier = affordanceOverlayModifier
 				)
 			}
 		}
@@ -505,9 +514,7 @@ private fun SwipeCardDeck(
 			SwipeActionAffordance(
 				affordance = dismissedAffordance!!,
 				progress = dismissedAffordanceProgress.value,
-				modifier = Modifier
-					.fillMaxSize()
-					.padding(horizontal = dim.extraSmall / 2)
+				modifier = affordanceOverlayModifier
 			)
 		}
 	}
