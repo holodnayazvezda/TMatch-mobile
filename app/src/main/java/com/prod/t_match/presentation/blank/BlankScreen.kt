@@ -6,12 +6,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prod.ui.components.AppGradientBackground
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BlankScreen(
-	viewModel: BlankViewModel = viewModel()
+	viewModel: BlankViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
 

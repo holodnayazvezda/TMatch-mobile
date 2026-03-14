@@ -18,20 +18,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prod.auth.presentation.onboarding.components.OnboardingCard
 import com.prod.auth.presentation.onboarding.components.OnboardingPagerIndicator
 import com.prod.ui.components.AppGradientBackground
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun OnboardingScreen(
 	onCreateAccount: () -> Unit,
 	onLogin: () -> Unit,
 	modifier: Modifier = Modifier,
-	viewModel: OnboardingViewModel = viewModel()
+	viewModel: OnboardingViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
 	val pagerState = rememberPagerState(pageCount = { uiState.pages.size })

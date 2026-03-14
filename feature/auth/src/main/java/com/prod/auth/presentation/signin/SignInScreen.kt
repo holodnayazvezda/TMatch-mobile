@@ -12,8 +12,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.model.AuthSession
 import com.prod.auth.presentation.common.AuthCredentialsForm
 import com.prod.auth.presentation.common.AuthFormErrorCard
@@ -22,16 +20,16 @@ import com.prod.ui.components.AppGradientBackground
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import androidx.compose.foundation.layout.safeDrawingPadding
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun SignInScreen(
-	authGateway: AuthGateway,
 	onBack: () -> Unit,
 	onSwitchToSignUp: () -> Unit,
 	onAuthSuccess: (AuthSession) -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	modifier: Modifier = Modifier,
-	viewModel: SignInViewModel = viewModel(factory = SignInViewModel.factory(authGateway))
+	viewModel: SignInViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
 

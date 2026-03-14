@@ -4,11 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.model.AuthOperationResult
 import com.prod.auth.domain.model.AuthSession
 import com.prod.auth.domain.usecase.SignInWithEmailUseCase
@@ -88,20 +84,6 @@ class SignInViewModel(
 							onNoInternet = onNoInternet
 						)
 					}
-				}
-			}
-		}
-	}
-
-	companion object {
-		fun factory(authGateway: AuthGateway): ViewModelProvider.Factory {
-			return viewModelFactory {
-				initializer {
-					SignInViewModel(
-						signInWithEmailUseCase = SignInWithEmailUseCase(authGateway),
-						emailValidator = EmailValidator(),
-						passwordValidator = PasswordValidator()
-					)
 				}
 			}
 		}

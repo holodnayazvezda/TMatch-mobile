@@ -14,13 +14,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prod.ui.components.buttons.AppBigButton
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun NoInternetScreen(
 	onRetry: () -> Unit,
-	viewModel: NoInternetViewModel = viewModel()
+	viewModel: NoInternetViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
 

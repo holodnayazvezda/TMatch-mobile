@@ -9,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.prod.auth.data.gateway.KtorAuthGateway
 import com.prod.auth.presentation.flow.AuthFlowRoute
 import com.prod.t_match.navigation.AppDestination
 import com.prod.t_match.presentation.blank.BlankScreen
@@ -19,7 +18,6 @@ import com.prod.ui.theme.TmatchTheme
 @Composable
 fun TMatchApp() {
 	TmatchTheme {
-		val authGateway = remember { KtorAuthGateway(baseUrl = BuildConfig.API_BASE_URL) }
 		var destination by rememberSaveable { mutableStateOf(AppDestination.AUTH) }
 		var noInternetRetryAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 		var isNoInternetVisible by remember { mutableStateOf(false) }
@@ -27,7 +25,6 @@ fun TMatchApp() {
 		Box(modifier = Modifier.fillMaxSize()) {
 			when (destination) {
 				AppDestination.AUTH -> AuthFlowRoute(
-					authGateway = authGateway,
 					onAuthSuccess = { destination = AppDestination.BLANK },
 					onRequestNoInternet = { retryAction ->
 						noInternetRetryAction = retryAction
