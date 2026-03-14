@@ -1,5 +1,6 @@
 package com.prod.auth.di
 
+import com.prod.auth.domain.usecase.CreateJurySignUpCredentialsUseCase
 import com.prod.auth.domain.usecase.SignInWithEmailUseCase
 import com.prod.auth.domain.usecase.SignUpWithEmailUseCase
 import com.prod.auth.domain.validation.ConfirmPasswordValidator
@@ -17,6 +18,7 @@ val authFeatureModule = module {
 	single { PasswordValidator() }
 	single { ConfirmPasswordValidator() }
 	single { AuthOperationResultUiMapper() }
+	single { CreateJurySignUpCredentialsUseCase() }
 	single { SignInWithEmailUseCase(authGateway = get()) }
 	single { SignUpWithEmailUseCase(authGateway = get()) }
 
@@ -32,6 +34,7 @@ val authFeatureModule = module {
 	viewModel {
 		SignUpViewModel(
 			signUpWithEmailUseCase = get(),
+			createJurySignUpCredentialsUseCase = get(),
 			emailValidator = get(),
 			passwordValidator = get(),
 			confirmPasswordValidator = get(),

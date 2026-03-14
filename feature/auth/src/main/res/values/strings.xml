@@ -13,6 +13,7 @@
     <string name="auth_sign_up_title">Создайте аккаунт</string>
     <string name="auth_sign_up_description">Регистрация открывает персональную выдачу, настройки приватности и безопасный сценарий общения.</string>
     <string name="auth_sign_up_button">Зарегистрироваться</string>
+    <string name="auth_sign_up_jury_shortcut">Для жюри</string>
     <string name="auth_switch_to_sign_in">Перейти ко входу</string>
 
     <string name="onboarding_app_title">T-match</string>
