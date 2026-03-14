@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -50,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -174,12 +174,15 @@ private fun SwipeCardDeck(
 	var offsetX by remember(currentProfile.id) { mutableFloatStateOf(0f) }
 	var offsetY by remember(currentProfile.id) { mutableFloatStateOf(0f) }
 	var rotation by remember(currentProfile.id) { mutableFloatStateOf(0f) }
+	var deckHeight by remember { mutableIntStateOf(0) }
 	val scope = rememberCoroutineScope()
-	BoxWithConstraints(
-		modifier = modifier.fillMaxWidth(),
+	Box(
+		modifier = modifier
+			.fillMaxWidth()
+			.onSizeChanged { deckHeight = it.height },
 		contentAlignment = Alignment.Center
 	) {
-		val verticalDismissOffset = constraints.maxHeight.toFloat() + SwipeOffscreenMargin
+		val verticalDismissOffset = deckHeight.toFloat() + SwipeOffscreenMargin
 		val swipeDistance = maxOf(abs(offsetX), abs(offsetY))
 		val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
 		val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
