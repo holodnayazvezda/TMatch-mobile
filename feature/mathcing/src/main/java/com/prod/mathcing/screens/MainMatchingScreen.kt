@@ -2,6 +2,7 @@ package com.prod.mathcing.screens
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -37,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -96,6 +98,7 @@ private const val UpSwipeAlphaDelta = 0.18f
 private const val SwipeOffscreenMargin = 240f
 private const val SwipeDismissDurationMillis = 260
 private const val UpSwipeDismissDurationMillis = 320
+private const val SwipeAffordanceFadeOutDurationMillis = 180
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,8 +203,8 @@ private fun SwipeCardDeck(
 		val swipeDistance = maxOf(abs(offsetX), abs(offsetY))
 		val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
 		val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
-		val upSwipeProgress = (-offsetY / verticalDismissOffset).coerceIn(0f, 1f)
-		val upSwipeAffordanceProgress = (upSwipeProgress * 1.8f).coerceIn(0f, 1f)
+		val upSwipeProgress = (-offsetY / SwipeDismissOffset).coerceIn(0f, 1f)
+		val upSwipeAffordanceProgress = (upSwipeProgress).coerceIn(0f, 1f)
 		val currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress
 		val currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
 		val colors = MaterialTheme.colorScheme
@@ -214,6 +217,7 @@ private fun SwipeCardDeck(
 				label = "ПРОПУСК",
 				alignment = Alignment.BottomCenter
 			)
+
 			offsetX > 0f -> SwipeAffordance(
 				direction = SwipeDirection.Right,
 				progress = swipeProgress,
@@ -223,6 +227,7 @@ private fun SwipeCardDeck(
 				alignment = Alignment.TopStart,
 				rotation = -10f
 			)
+
 			offsetX < 0f -> SwipeAffordance(
 				direction = SwipeDirection.Left,
 				progress = swipeProgress,
@@ -232,12 +237,31 @@ private fun SwipeCardDeck(
 				alignment = Alignment.TopEnd,
 				rotation = 10f
 			)
+
 			else -> null
 		}
 		val resetSpec = tween<Float>(
 			durationMillis = SwipeDismissDurationMillis,
 			easing = FastOutSlowInEasing
 		)
+		var lastSwipeAffordance by remember { mutableStateOf<SwipeAffordance?>(null) }
+		if (swipeAffordance != null) {
+			lastSwipeAffordance = swipeAffordance
+		}
+		val displayedAffordance = swipeAffordance ?: lastSwipeAffordance
+		val animatedAffordanceProgress by animateFloatAsState(
+			targetValue = swipeAffordance?.progress ?: 0f,
+			animationSpec = tween(
+				durationMillis = SwipeAffordanceFadeOutDurationMillis,
+				easing = FastOutSlowInEasing
+			),
+			label = "swipe_affordance_progress"
+		)
+		LaunchedEffect(swipeAffordance, animatedAffordanceProgress) {
+			if (swipeAffordance == null && animatedAffordanceProgress <= 0.001f) {
+				lastSwipeAffordance = null
+			}
+		}
 
 		if (nextProfile != null) {
 			ProfileCard(
@@ -280,8 +304,10 @@ private fun SwipeCardDeck(
 							val direction = when {
 								abs(targetY) > SwipeDismissThreshold && abs(targetY) > abs(targetX) ->
 									SwipeDirection.Up
+
 								abs(targetX) > SwipeDismissThreshold ->
 									if (targetX >= 0f) SwipeDirection.Right else SwipeDirection.Left
+
 								else -> null
 							}
 							scope.launch {
@@ -296,16 +322,17 @@ private fun SwipeCardDeck(
 											SwipeDirection.Up -> 0f
 										}
 									}
-									val dismissRotationTarget = if (direction == SwipeDirection.Up) {
-										(targetX / abs(targetY).coerceAtLeast(1f) * SwipeRotationLimit)
-											.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
-									} else {
-										when (direction) {
-											SwipeDirection.Right -> SwipeRotationLimit
-											SwipeDirection.Left -> -SwipeRotationLimit
-											SwipeDirection.Up -> 0f
+									val dismissRotationTarget =
+										if (direction == SwipeDirection.Up) {
+											(targetX / abs(targetY).coerceAtLeast(1f) * SwipeRotationLimit)
+												.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
+										} else {
+											when (direction) {
+												SwipeDirection.Right -> SwipeRotationLimit
+												SwipeDirection.Left -> -SwipeRotationLimit
+												SwipeDirection.Up -> 0f
+											}
 										}
-									}
 									val dismissSpec = tween<Float>(
 										durationMillis = if (direction == SwipeDirection.Up) {
 											UpSwipeDismissDurationMillis
@@ -371,9 +398,9 @@ private fun SwipeCardDeck(
 					)
 				}
 		)
-		swipeAffordance?.let { affordance ->
+		displayedAffordance?.let { affordance ->
 			SwipeActionAffordance(
-				affordance = affordance,
+				affordance = affordance.copy(progress = animatedAffordanceProgress),
 				modifier = Modifier
 					.fillMaxSize()
 					.padding(horizontal = dim.extraSmall / 2)
@@ -405,7 +432,7 @@ private fun SwipeActionAffordance(
 					}
 				}
 				.graphicsLayer {
-					alpha = affordance.progress
+					alpha = (affordance.progress * 1.8f).coerceIn(0f, 1f)
 					scaleX = 0.88f + 0.12f * affordance.progress
 					scaleY = 0.88f + 0.12f * affordance.progress
 					rotationZ = affordance.rotation * affordance.progress
@@ -458,44 +485,44 @@ private fun ProfileCard(
 		outerShape = outerShape,
 		innerShape = innerShape
 	) {
-				Image(
-					painter = painterResource(profile.imageRes),
-					contentDescription = "Фото ${profile.name}",
-					contentScale = ContentScale.Crop,
-					modifier = Modifier.fillMaxSize()
+		Image(
+			painter = painterResource(profile.imageRes),
+			contentDescription = "Фото ${profile.name}",
+			contentScale = ContentScale.Crop,
+			modifier = Modifier.fillMaxSize()
+		)
+		if (onMoreClick != null) {
+			IconBadge(
+				iconRes = R.drawable.ic_menu_24,
+				modifier = Modifier
+					.padding(dim.medium - dim.extraSmall)
+					.size(dim.iconContainer + dim.verySmall - dim.extraSmall)
+					.align(Alignment.TopEnd)
+					.clip(CircleShape)
+					.clickable(onClick = onMoreClick)
+			)
+		}
+		ScrimInfoBlock {
+			Text(
+				text = "${profile.name}, ${profile.age}",
+				style = typo.titleLarge,
+				color = extraColors.onBaseScrim
+			)
+			Surface(
+				shape = CircleShape,
+				color = extraColors.accentGold
+			) {
+				Text(
+					text = profile.matchLabel,
+					modifier = Modifier.padding(
+						horizontal = dim.small + dim.extraSmall / 2,
+						vertical = dim.verySmall
+					),
+					style = typo.labelLarge,
+					color = extraColors.onBaseScrim
 				)
-				if (onMoreClick != null) {
-					IconBadge(
-						iconRes = R.drawable.ic_menu_24,
-						modifier = Modifier
-							.padding(dim.medium - dim.extraSmall)
-							.size(dim.iconContainer + dim.verySmall - dim.extraSmall)
-							.align(Alignment.TopEnd)
-							.clip(CircleShape)
-							.clickable(onClick = onMoreClick)
-					)
-				}
-				ScrimInfoBlock {
-					Text(
-						text = "${profile.name}, ${profile.age}",
-						style = typo.titleLarge,
-						color = extraColors.onBaseScrim
-					)
-					Surface(
-						shape = CircleShape,
-						color = extraColors.accentGold
-					) {
-						Text(
-							text = profile.matchLabel,
-							modifier = Modifier.padding(
-								horizontal = dim.small + dim.extraSmall / 2,
-								vertical = dim.verySmall
-							),
-							style = typo.labelLarge,
-							color = extraColors.onBaseScrim
-						)
-					}
-				}
+			}
+		}
 	}
 }
 
@@ -661,7 +688,8 @@ private fun MainMatchingScreenMock(modifier: Modifier = Modifier) {
 	val scope = rememberCoroutineScope()
 	val currentProfile = profiles[currentIndex % profiles.size]
 	val nextProfile =
-		profiles.getOrNull((currentIndex + 1) % profiles.size)?.takeIf { it.id != currentProfile.id }
+		profiles.getOrNull((currentIndex + 1) % profiles.size)
+			?.takeIf { it.id != currentProfile.id }
 
 	val controller = object : MainMatchingContentController {
 		override val currentProfile: MatchProfile = currentProfile
