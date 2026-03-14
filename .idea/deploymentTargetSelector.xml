@@ -7,10 +7,10 @@
       </SelectionState>
       <SelectionState runConfigName="MainMatchingScreenPreview">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-03-14T14:53:34.107807Z">
+        <DropdownSelection timestamp="2026-03-14T15:14:05.569254Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/max/.android/avd/Pixel_9_Pro.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=VBC0223B23001587" />
             </handle>
           </Target>
         </DropdownSelection>

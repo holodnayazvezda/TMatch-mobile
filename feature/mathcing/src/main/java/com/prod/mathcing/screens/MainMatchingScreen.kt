@@ -79,6 +79,8 @@ private const val NextCardMinAlpha = 0.1f
 private const val UpSwipeScaleDelta = 0.06f
 private const val UpSwipeAlphaDelta = 0.18f
 private const val SwipeOffscreenMargin = 240f
+private const val SwipeDismissDurationMillis = 260
+private const val UpSwipeDismissDurationMillis = 320
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -255,7 +257,11 @@ private fun SwipeCardDeck(
 											}
 										}
 										val dismissSpec = tween<Float>(
-											durationMillis = 260,
+											durationMillis = if (direction == SwipeDirection.Up) {
+												UpSwipeDismissDurationMillis
+											} else {
+												SwipeDismissDurationMillis
+											},
 											easing = FastOutSlowInEasing
 										)
 										listOf(
