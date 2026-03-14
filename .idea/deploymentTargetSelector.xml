@@ -7,10 +7,10 @@
       </SelectionState>
       <SelectionState runConfigName="MainMatchingScreenPreview">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-03-14T15:14:05.569254Z">
+        <DropdownSelection timestamp="2026-03-14T15:57:36.806569Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=VBC0223B23001587" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=cd057e3b" />
             </handle>
           </Target>
         </DropdownSelection>

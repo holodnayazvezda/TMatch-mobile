@@ -2,7 +2,6 @@ package com.prod.mathcing.screens
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -38,7 +37,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -78,9 +76,8 @@ private enum class SwipeDirection {
 	Up
 }
 
-private data class SwipeAffordance(
+private data class SwipeAffordanceSpec(
 	val direction: SwipeDirection,
-	val progress: Float,
 	val color: Color,
 	val iconRes: Int,
 	val label: String,
@@ -98,8 +95,6 @@ private const val UpSwipeAlphaDelta = 0.18f
 private const val SwipeOffscreenMargin = 240f
 private const val SwipeDismissDurationMillis = 260
 private const val UpSwipeDismissDurationMillis = 320
-private const val SwipeAffordanceFadeOutDurationMillis = 180
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainMatchingScreen(modifier: Modifier = Modifier) {
@@ -204,64 +199,47 @@ private fun SwipeCardDeck(
 		val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
 		val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
 		val upSwipeProgress = (-offsetY / SwipeDismissOffset).coerceIn(0f, 1f)
-		val upSwipeAffordanceProgress = (upSwipeProgress).coerceIn(0f, 1f)
+		val upSwipeAffordanceProgress = upSwipeProgress.coerceIn(0f, 1f)
 		val currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress
 		val currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
 		val colors = MaterialTheme.colorScheme
-		val swipeAffordance = when {
-			offsetY < 0f && abs(offsetY) > abs(offsetX) -> SwipeAffordance(
-				direction = SwipeDirection.Up,
-				progress = upSwipeAffordanceProgress,
-				color = colors.tertiary,
-				iconRes = R.drawable.ic_skip_24,
-				label = "ПРОПУСК",
-				alignment = Alignment.BottomCenter
-			)
-
-			offsetX > 0f -> SwipeAffordance(
-				direction = SwipeDirection.Right,
-				progress = swipeProgress,
-				color = colors.primary,
-				iconRes = R.drawable.ic_like_24,
-				label = "ЛАЙК",
-				alignment = Alignment.TopStart,
-				rotation = -10f
-			)
-
-			offsetX < 0f -> SwipeAffordance(
-				direction = SwipeDirection.Left,
-				progress = swipeProgress,
-				color = colors.error,
-				iconRes = R.drawable.ic_dislike_24,
-				label = "НЕТ",
-				alignment = Alignment.TopEnd,
-				rotation = 10f
-			)
-
+		val activeDirection = when {
+			offsetY < 0f && abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
+			offsetX > 0f -> SwipeDirection.Right
+			offsetX < 0f -> SwipeDirection.Left
 			else -> null
+		}
+		val swipeAffordances = remember(colors.primary, colors.error, colors.tertiary) {
+			listOf(
+				SwipeAffordanceSpec(
+					direction = SwipeDirection.Right,
+					color = colors.primary,
+					iconRes = R.drawable.ic_like_24,
+					label = "ЛАЙК",
+					alignment = Alignment.TopStart,
+					rotation = -10f
+				),
+				SwipeAffordanceSpec(
+					direction = SwipeDirection.Left,
+					color = colors.error,
+					iconRes = R.drawable.ic_dislike_24,
+					label = "НЕТ",
+					alignment = Alignment.TopEnd,
+					rotation = 10f
+				),
+				SwipeAffordanceSpec(
+					direction = SwipeDirection.Up,
+					color = colors.tertiary,
+					iconRes = R.drawable.ic_skip_24,
+					label = "ПРОПУСК",
+					alignment = Alignment.BottomCenter
+				)
+			)
 		}
 		val resetSpec = tween<Float>(
 			durationMillis = SwipeDismissDurationMillis,
 			easing = FastOutSlowInEasing
 		)
-		var lastSwipeAffordance by remember { mutableStateOf<SwipeAffordance?>(null) }
-		if (swipeAffordance != null) {
-			lastSwipeAffordance = swipeAffordance
-		}
-		val displayedAffordance = swipeAffordance ?: lastSwipeAffordance
-		val animatedAffordanceProgress by animateFloatAsState(
-			targetValue = swipeAffordance?.progress ?: 0f,
-			animationSpec = tween(
-				durationMillis = SwipeAffordanceFadeOutDurationMillis,
-				easing = FastOutSlowInEasing
-			),
-			label = "swipe_affordance_progress"
-		)
-		LaunchedEffect(swipeAffordance, animatedAffordanceProgress) {
-			if (swipeAffordance == null && animatedAffordanceProgress <= 0.001f) {
-				lastSwipeAffordance = null
-			}
-		}
 
 		if (nextProfile != null) {
 			ProfileCard(
@@ -398,20 +376,30 @@ private fun SwipeCardDeck(
 					)
 				}
 		)
-		displayedAffordance?.let { affordance ->
-			SwipeActionAffordance(
-				affordance = affordance.copy(progress = animatedAffordanceProgress),
-				modifier = Modifier
-					.fillMaxSize()
-					.padding(horizontal = dim.extraSmall / 2)
-			)
+		swipeAffordances.forEach { affordance ->
+			val progress = when (affordance.direction) {
+				SwipeDirection.Up ->
+					if (activeDirection == SwipeDirection.Up) upSwipeAffordanceProgress else 0f
+				SwipeDirection.Left, SwipeDirection.Right ->
+					if (activeDirection == affordance.direction) swipeProgress else 0f
+			}
+			if (progress > 0.001f) {
+				SwipeActionAffordance(
+					affordance = affordance,
+					progress = progress,
+					modifier = Modifier
+						.fillMaxSize()
+						.padding(horizontal = dim.extraSmall / 2)
+				)
+			}
 		}
 	}
 }
 
 @Composable
 private fun SwipeActionAffordance(
-	affordance: SwipeAffordance,
+	affordance: SwipeAffordanceSpec,
+	progress: Float,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -419,7 +407,7 @@ private fun SwipeActionAffordance(
 	Box(
 		modifier = modifier
 			.clip(RoundedCornerShape(28.dp))
-			.background(affordance.color.copy(alpha = 0.24f * affordance.progress))
+			.background(affordance.color.copy(alpha = 0.24f * progress))
 	) {
 		Surface(
 			modifier = Modifier
@@ -432,10 +420,10 @@ private fun SwipeActionAffordance(
 					}
 				}
 				.graphicsLayer {
-					alpha = (affordance.progress * 1.8f).coerceIn(0f, 1f)
-					scaleX = 0.88f + 0.12f * affordance.progress
-					scaleY = 0.88f + 0.12f * affordance.progress
-					rotationZ = affordance.rotation * affordance.progress
+					alpha = (progress * 1.8f).coerceIn(0f, 1f)
+					scaleX = 0.88f + 0.12f * progress
+					scaleY = 0.88f + 0.12f * progress
+					rotationZ = affordance.rotation * progress
 				},
 			shape = RoundedCornerShape(18.dp),
 			color = affordance.color.copy(alpha = 0.92f),
@@ -690,7 +678,6 @@ private fun MainMatchingScreenMock(modifier: Modifier = Modifier) {
 	val nextProfile =
 		profiles.getOrNull((currentIndex + 1) % profiles.size)
 			?.takeIf { it.id != currentProfile.id }
-
 	val controller = object : MainMatchingContentController {
 		override val currentProfile: MatchProfile = currentProfile
 		override val nextProfile: MatchProfile? = nextProfile
