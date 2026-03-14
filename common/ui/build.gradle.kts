@@ -5,11 +5,7 @@ plugins {
 
 android {
 	namespace = "com.prod.ui"
-	compileSdk {
-		version = release(36) {
-			minorApiLevel = 1
-		}
-	}
+	compileSdk = 36
 
 	defaultConfig {
 		minSdk = 26
