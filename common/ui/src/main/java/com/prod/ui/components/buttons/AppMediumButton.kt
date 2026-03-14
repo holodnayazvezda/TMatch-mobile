@@ -1,4 +1,4 @@
-package com.example.filnal_individual_solution.presentation.components.buttons
+package com.prod.ui.components.buttons
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height

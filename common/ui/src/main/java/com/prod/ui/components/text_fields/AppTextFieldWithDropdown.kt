@@ -1,4 +1,4 @@
-package com.example.filnal_individual_solution.presentation.components.text_fields
+package com.prod.ui.components.text_fields
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -37,7 +37,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.languageapp.R
+import com.prod.ui.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

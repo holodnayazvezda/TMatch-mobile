@@ -1,4 +1,4 @@
-package com.example.filnal_individual_solution.presentation.components.text_fields
+package com.prod.ui.components.text_fields
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
