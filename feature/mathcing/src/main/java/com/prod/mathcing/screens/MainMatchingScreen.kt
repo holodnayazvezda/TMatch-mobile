@@ -71,6 +71,7 @@ private const val SwipeDismissThreshold = 240f
 private const val SwipeRotationDivisor = 45f
 private const val SwipeRotationLimit = 12f
 private const val SwipeDismissOffset = 1200f
+private const val NextCardMinAlpha = 0.1f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +82,7 @@ fun MainMatchingScreen(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 private interface MainMatchingContentController {
 	val currentProfile: MatchProfile
+	val nextProfile: MatchProfile?
 	val isActionsSheetVisible: Boolean
 	val sheetState: SheetState
 
@@ -109,6 +111,7 @@ private fun MainMatchingContent(
 			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
 			SwipeCardDeck(
 				currentProfile = controller.currentProfile,
+				nextProfile = controller.nextProfile,
 				onMoreClick = controller::onMoreClick,
 				onSwiped = controller::onSwiped,
 				modifier = Modifier.weight(1f)
@@ -152,6 +155,7 @@ private fun MatchingHeader() {
 @Composable
 private fun SwipeCardDeck(
 	currentProfile: MatchProfile,
+	nextProfile: MatchProfile?,
 	onMoreClick: () -> Unit,
 	onSwiped: (SwipeDirection) -> Unit,
 	modifier: Modifier = Modifier
@@ -160,11 +164,24 @@ private fun SwipeCardDeck(
 	val offsetX = remember(currentProfile.id) { Animatable(0f) }
 	val rotation = remember(currentProfile.id) { Animatable(0f) }
 	val scope = rememberCoroutineScope()
+	val swipeProgress = (abs(offsetX.value) / SwipeDismissOffset).coerceIn(0f, 1f)
+	val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
 
 	Box(
 		modifier = modifier.fillMaxWidth(),
 		contentAlignment = Alignment.Center
 	) {
+		if (nextProfile != null) {
+			ProfileCard(
+				profile = nextProfile,
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2, vertical = dim.small)
+					.graphicsLayer {
+						alpha = nextCardAlpha
+					}
+			)
+		}
 		ProfileCard(
 			profile = currentProfile,
 			onMoreClick = onMoreClick,
@@ -445,9 +462,12 @@ private fun MainMatchingScreenMock(modifier: Modifier = Modifier) {
 	val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 	val scope = rememberCoroutineScope()
 	val currentProfile = profiles[currentIndex % profiles.size]
+	val nextProfile =
+		profiles.getOrNull((currentIndex + 1) % profiles.size)?.takeIf { it.id != currentProfile.id }
 
 	val controller = object : MainMatchingContentController {
 		override val currentProfile: MatchProfile = currentProfile
+		override val nextProfile: MatchProfile? = nextProfile
 		override val isActionsSheetVisible: Boolean = isActionsSheetVisible
 		override val sheetState: SheetState = sheetState
 
