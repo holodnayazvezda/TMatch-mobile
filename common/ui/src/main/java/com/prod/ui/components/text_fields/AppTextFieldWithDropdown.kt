@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -175,7 +176,10 @@ fun <T> AppTextFieldWithDropdown(
                 if (dropdownItems.isEmpty()) {
                     DropdownMenuItem(
                         text = {
-                            Text("Здесь пока ничего нет", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.common_dropdown_empty),
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         },
                         onClick = {
                             expanded = false

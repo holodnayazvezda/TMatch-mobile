@@ -1,0 +1,51 @@
+<resources>
+    <string name="auth_back">Назад</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Пароль</string>
+    <string name="auth_password_min_length">Пароль от 8 символов</string>
+    <string name="auth_confirm_password">Подтвердите пароль</string>
+
+    <string name="auth_sign_in_title">Войдите в аккаунт</string>
+    <string name="auth_sign_in_description">Вход возвращает вас в персональный сценарий и позволяет продолжить работу с рекомендациями.</string>
+    <string name="auth_sign_in_button">Войти</string>
+    <string name="auth_switch_to_sign_up">Перейти к регистрации</string>
+
+    <string name="auth_sign_up_title">Создайте аккаунт</string>
+    <string name="auth_sign_up_description">Регистрация открывает персональную выдачу, настройки приватности и безопасный сценарий общения.</string>
+    <string name="auth_sign_up_button">Зарегистрироваться</string>
+    <string name="auth_sign_up_jury_shortcut">Для жюри</string>
+    <string name="auth_switch_to_sign_in">Перейти ко входу</string>
+
+    <string name="onboarding_app_title">T-match</string>
+    <string name="onboarding_existing_account">У меня уже есть аккаунт</string>
+    <string name="onboarding_next">Далее</string>
+    <string name="onboarding_go_to_sign_up">Перейти к регистрации</string>
+    <string name="onboarding_footer_note">MVP держит главный маршрут в фокусе: onboarding -&gt; auth -&gt; персональный сценарий -&gt; безопасность.</string>
+
+    <string name="onboarding_page_1_label">T-Match</string>
+    <string name="onboarding_page_1_title">Ищите людей с похожим ритмом жизни, а не случайные карточки.</string>
+    <string name="onboarding_page_1_description">Подбор строится на безопасных поведенческих сигналах и помогает быстрее переходить от просмотра к реальному диалогу.</string>
+
+    <string name="onboarding_page_2_label">Объяснимость</string>
+    <string name="onboarding_page_2_title">Совместимость объясняется понятным языком без чувствительных деталей.</string>
+    <string name="onboarding_page_2_description">Приложение показывает общие lifestyle-паттерны: похожий темп жизни, сценарии досуга и привычки, не раскрывая конкретные места и транзакции.</string>
+
+    <string name="onboarding_page_3_label">Контроль общения</string>
+    <string name="onboarding_page_3_title">Вы сами задаёте, кто может написать первым.</string>
+    <string name="onboarding_page_3_description">Приватность работает на стороне сервера: можно принимать сообщения от всех, только от взаимно заинтересованных или отключить новые чаты.</string>
+
+    <string name="onboarding_page_4_label">Безопасность</string>
+    <string name="onboarding_page_4_title">Блок, жалоба и завершение контакта встроены в основной путь.</string>
+    <string name="onboarding_page_4_description">Нежелательные контакты не возвращаются в активный сценарий сразу, а ключевые действия фиксируются и не теряются в интерфейсе.</string>
+
+    <string name="validation_email_empty">Введите email</string>
+    <string name="validation_email_invalid">Введите корректный email</string>
+    <string name="validation_password_empty">Введите пароль</string>
+    <string name="validation_password_too_short">Пароль должен содержать минимум 8 символов</string>
+    <string name="validation_confirm_password_empty">Подтвердите пароль</string>
+    <string name="validation_confirm_password_mismatch">Пароли не совпадают</string>
+
+    <string name="auth_error_invalid_input">Проверьте введённые данные и попробуйте ещё раз</string>
+    <string name="auth_error_service_unavailable">Сервис временно недоступен, попробуйте ещё раз</string>
+    <string name="auth_error_request_failed">Не удалось выполнить запрос, попробуйте ещё раз</string>
+</resources>

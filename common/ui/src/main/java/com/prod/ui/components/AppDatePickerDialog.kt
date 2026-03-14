@@ -12,7 +12,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.prod.ui.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,14 +40,14 @@ fun AppDatePickerDialog(
                 onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         val formatter = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
-                        formatter.timeZone = TimeZone.getTimeZone("UTC") // DatePicker работает в UTC
+                        formatter.timeZone = TimeZone.getTimeZone("UTC")
                         onDateSelected(formatter.format(Date(millis)))
                     }
                     onDismissRequest()
                 }
             ) {
                 Text(
-                    text = "ОК",
+                    text = stringResource(R.string.common_date_picker_confirm),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -54,7 +56,7 @@ fun AppDatePickerDialog(
         dismissButton = {
             TextButton(onClick = onDismissRequest) {
                 Text(
-                    text = "Отмена",
+                    text = stringResource(R.string.common_date_picker_dismiss),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -65,7 +67,7 @@ fun AppDatePickerDialog(
             state = datePickerState,
             title = {
                 Text(
-                    text = "Выберите дату",
+                    text = stringResource(R.string.common_date_picker_title),
                     modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 8.dp),
                     style = MaterialTheme.typography.titleMedium
                 )
