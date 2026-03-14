@@ -53,6 +53,18 @@ class SignUpViewModel(
 		)
 	}
 
+	fun applyPrefilledEmail(value: String) {
+		if (value.isBlank() || uiState.email.isNotBlank()) {
+			return
+		}
+
+		uiState = uiState.copy(
+			email = value,
+			emailError = null,
+			formError = null
+		)
+	}
+
 	fun submit(
 		onSuccess: (AuthSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit

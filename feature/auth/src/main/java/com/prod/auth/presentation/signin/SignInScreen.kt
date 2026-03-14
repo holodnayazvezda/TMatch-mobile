@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -27,13 +28,18 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SignInScreen(
 	onBack: () -> Unit,
-	onSwitchToSignUp: () -> Unit,
+	onSwitchToSignUp: (String) -> Unit,
 	onAuthSuccess: (AuthSession) -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	prefilledEmail: String = "",
 	modifier: Modifier = Modifier,
 	viewModel: SignInViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
+
+	LaunchedEffect(prefilledEmail) {
+		viewModel.applyPrefilledEmail(prefilledEmail)
+	}
 
 	AppGradientBackground(modifier = modifier) {
 		Column(
@@ -83,7 +89,9 @@ fun SignInScreen(
 			AppMediumButton(
 				buttonText = stringResource(R.string.auth_switch_to_sign_up),
 				isLoading = false,
-				onClick = onSwitchToSignUp
+				onClick = {
+					onSwitchToSignUp(uiState.email)
+				}
 			)
 		}
 	}

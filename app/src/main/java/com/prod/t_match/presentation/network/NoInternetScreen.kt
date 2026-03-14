@@ -16,15 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.prod.ui.components.buttons.AppBigButton
-import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun NoInternetScreen(
 	onRetry: () -> Unit,
-	viewModel: NoInternetViewModel = koinViewModel()
+	uiState: NoInternetUiState = NoInternetUiState()
 ) {
-	val uiState = viewModel.uiState
-
 	Box(
 		modifier = Modifier
 			.fillMaxSize()
