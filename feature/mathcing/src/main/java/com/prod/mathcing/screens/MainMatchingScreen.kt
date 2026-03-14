@@ -1,5 +1,6 @@
 package com.prod.mathcing.screens
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
@@ -112,6 +113,7 @@ private const val UpSwipeAlphaDelta = 0.18f
 private const val SwipeOffscreenMargin = 240f
 private const val SwipeDismissDurationMillis = 260
 private const val UpSwipeDismissDurationMillis = 320
+private const val SwipeAffordanceFadeOutDurationMillis = 180
 
 // Keeps all visual derivations of the current drag in one place so the deck composable
 // can read like a layout description instead of a math-heavy gesture handler.
@@ -353,6 +355,8 @@ private fun SwipeCardDeck(
 			offsetY = offsetY,
 			deckHeight = deckHeight
 		)
+		var dismissedAffordance by remember { mutableStateOf<SwipeAffordanceSpec?>(null) }
+		val dismissedAffordanceProgress = remember { Animatable(0f) }
 
 		if (nextProfile != null) {
 			ProfileCard(
@@ -437,7 +441,18 @@ private fun SwipeCardDeck(
 											) { value, _ -> rotation = value }
 										}
 									).awaitAll()
+									dismissedAffordance =
+										swipeAffordances.firstOrNull { it.direction == direction }
+									dismissedAffordanceProgress.snapTo(1f)
 									onSwiped(direction)
+									dismissedAffordanceProgress.animateTo(
+										targetValue = 0f,
+										animationSpec = tween(
+											durationMillis = SwipeAffordanceFadeOutDurationMillis,
+											easing = FastOutSlowInEasing
+										)
+									)
+									dismissedAffordance = null
 								} else {
 									listOf(
 										async {
@@ -469,22 +484,31 @@ private fun SwipeCardDeck(
 				}
 		)
 		swipeAffordances.forEach { affordance ->
-			val progress = swipeAffordanceProgress(
+			val rawProgress = swipeAffordanceProgress(
 				affordanceDirection = affordance.direction,
 				activeDirection = visualState.activeDirection,
 				swipeProgress = visualState.swipeProgress,
 				upSwipeProgress = visualState.upSwipeProgress
 			)
 
-			if (progress > 0.001f) {
+			if (rawProgress > 0.001f) {
 				SwipeActionAffordance(
 					affordance = affordance,
-					progress = progress,
+					progress = rawProgress,
 					modifier = Modifier
 						.fillMaxSize()
 						.padding(horizontal = dim.extraSmall / 2)
 				)
 			}
+		}
+		if (visualState.activeDirection == null && dismissedAffordance != null) {
+			SwipeActionAffordance(
+				affordance = dismissedAffordance!!,
+				progress = dismissedAffordanceProgress.value,
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2)
+			)
 		}
 	}
 }
