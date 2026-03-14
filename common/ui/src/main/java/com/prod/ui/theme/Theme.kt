@@ -1,6 +1,8 @@
 package com.prod.ui.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -102,25 +104,30 @@ fun TmatchTheme(
 	content: @Composable () -> Unit
 ) {
 	val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+	val extraColors = if (darkTheme) DarkExtraColors else LightExtraColors
 	val view = LocalView.current
 
 	if (!view.isInEditMode) {
-		@Suppress("DEPRECATION")
-		SideEffect {
-			val window = (view.context as Activity).window
-			window.statusBarColor = colorScheme.primaryContainer.toArgb()
-			window.navigationBarColor = colorScheme.surfaceContainerHighest.toArgb()
+		val activity = view.context.findActivity()
+		if (activity != null) {
+			@Suppress("DEPRECATION")
+			SideEffect {
+				val window = activity.window
+				window.statusBarColor = colorScheme.primaryContainer.toArgb()
+				window.navigationBarColor = colorScheme.surfaceContainerHighest.toArgb()
 
-			WindowCompat.getInsetsController(window, view).apply {
-				isAppearanceLightStatusBars = !darkTheme
-				isAppearanceLightNavigationBars = !darkTheme
+				WindowCompat.getInsetsController(window, view).apply {
+					isAppearanceLightStatusBars = !darkTheme
+					isAppearanceLightNavigationBars = !darkTheme
+				}
 			}
 		}
 	}
 	CompositionLocalProvider(
 		LocalDimensions provides Dimensions(),
 		LocalElevation provides Elevations(),
-		LocalShapes provides Shapes()
+		LocalShapes provides Shapes(),
+		LocalTmatchExtraColors provides extraColors
 	) {
 		MaterialTheme(
 			colorScheme = colorScheme,
@@ -128,4 +135,10 @@ fun TmatchTheme(
 			content = content
 		)
 	}
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+	is Activity -> this
+	is ContextWrapper -> baseContext.findActivity()
+	else -> null
 }

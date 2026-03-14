@@ -9,7 +9,17 @@ data class Dimensions(
 	val verySmall: Dp = 8.dp,
 	val small: Dp = 12.dp,
 	val medium: Dp = 20.dp,
-	val large: Dp = 24.dp
+	val large: Dp = 24.dp,
+	val extraLarge: Dp = 32.dp,
+	val iconSmall: Dp = 20.dp,
+	val iconMedium: Dp = 24.dp,
+	val iconContainer: Dp = 36.dp,
+	val gridGap: Dp = 42.dp,
+	val cardOuterPadding: Dp = 6.dp,
+	val cardStackInset: Dp = 10.dp,
+	val cardStackVerticalInset: Dp = 18.dp,
+	val sheetHandleHeight: Dp = 5.dp,
+	val actionButtonHeight: Dp = 56.dp
 )
 
 val LocalDimensions = compositionLocalOf { Dimensions() }
