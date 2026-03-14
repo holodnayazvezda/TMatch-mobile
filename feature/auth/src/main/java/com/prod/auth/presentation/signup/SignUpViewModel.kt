@@ -6,14 +6,14 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prod.auth.domain.model.SignUpCredentials
-import com.prod.auth.domain.model.AuthOperationResult
-import com.prod.auth.domain.model.AuthSession
 import com.prod.auth.domain.usecase.CreateJurySignUpCredentialsUseCase
 import com.prod.auth.domain.usecase.SignUpWithEmailUseCase
 import com.prod.auth.domain.validation.ConfirmPasswordValidator
 import com.prod.auth.domain.validation.EmailValidator
 import com.prod.auth.domain.validation.PasswordValidator
 import com.prod.auth.presentation.common.AuthOperationResultUiMapper
+import com.prod.common.api.model.ApiOperationResult
+import com.prod.common.api.model.UserSession
 import kotlinx.coroutines.launch
 
 class SignUpViewModel(
@@ -66,7 +66,7 @@ class SignUpViewModel(
 	}
 
 	fun submit(
-		onSuccess: (AuthSession) -> Unit,
+		onSuccess: (UserSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		submitCredentials(
@@ -77,7 +77,7 @@ class SignUpViewModel(
 	}
 
 	fun submitJuryRegistration(
-		onSuccess: (AuthSession) -> Unit,
+		onSuccess: (UserSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		val credentials = createJurySignUpCredentialsUseCase()
@@ -112,7 +112,7 @@ class SignUpViewModel(
 	// Обычная форма и shortcut для жюри проходят через один и тот же путь валидации и отправки.
 	private fun submitCredentials(
 		credentials: SignUpCredentials,
-		onSuccess: (AuthSession) -> Unit,
+		onSuccess: (UserSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		val emailError = emailValidator.validate(credentials.email)
@@ -136,26 +136,26 @@ class SignUpViewModel(
 		viewModelScope.launch {
 			uiState = uiState.copy(isLoading = true)
 			when (val result = signUpWithEmailUseCase(credentials.email.trim(), credentials.password)) {
-				is AuthOperationResult.Success -> {
+				is ApiOperationResult.Success -> {
 					uiState = uiState.copy(isLoading = false)
-					onSuccess(result.session)
+					onSuccess(result.data)
 				}
 
-				is AuthOperationResult.ValidationError -> {
+				is ApiOperationResult.ValidationError -> {
 					uiState = uiState.copy(
 						isLoading = false,
 						formError = authOperationResultUiMapper.mapValidationError(result)
 					)
 				}
 
-				is AuthOperationResult.ApiError -> {
+				is ApiOperationResult.ApiError -> {
 					uiState = uiState.copy(
 						isLoading = false,
 						formError = authOperationResultUiMapper.mapApiError(result)
 					)
 				}
 
-				AuthOperationResult.NoInternet -> {
+				ApiOperationResult.NoInternet -> {
 					uiState = uiState.copy(isLoading = false)
 					onNoInternet {
 						submitCredentials(

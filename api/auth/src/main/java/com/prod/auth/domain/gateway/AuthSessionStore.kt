@@ -1,9 +1,9 @@
 package com.prod.auth.domain.gateway
 
-import com.prod.auth.domain.model.AuthSession
+import com.prod.common.api.model.UserSession
 
 interface AuthSessionStore {
-	fun get(): AuthSession?
-	fun save(session: AuthSession)
+	fun get(): UserSession?
+	fun save(session: UserSession)
 	fun clear()
 }

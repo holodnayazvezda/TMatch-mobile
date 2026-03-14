@@ -12,6 +12,7 @@
             <option value="$PROJECT_DIR$/api" />
             <option value="$PROJECT_DIR$/api/auth" />
             <option value="$PROJECT_DIR$/api/chats" />
+            <option value="$PROJECT_DIR$/api/common" />
             <option value="$PROJECT_DIR$/api/match" />
             <option value="$PROJECT_DIR$/api/profile" />
             <option value="$PROJECT_DIR$/app" />

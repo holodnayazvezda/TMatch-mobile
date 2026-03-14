@@ -1,9 +1,9 @@
 package com.prod.tmatch_api.auth.data.gateway
 
 import com.prod.auth.domain.gateway.AuthGateway
-import com.prod.auth.domain.model.AuthApiErrorReason
-import com.prod.auth.domain.model.AuthOperationResult
-import com.prod.auth.domain.model.AuthSession
+import com.prod.common.api.model.ApiErrorReason
+import com.prod.common.api.model.ApiOperationResult
+import com.prod.common.api.model.UserSession
 import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import com.prod.tmatch_api.auth.data.dto.AuthResponseDto
 import com.prod.tmatch_api.auth.data.dto.EmailSignInRequestDto
@@ -28,7 +28,10 @@ class KtorAuthGateway(
 	private val httpClient: HttpClient
 ) : AuthGateway {
 
-	override suspend fun signInWithEmail(email: String, password: String): AuthOperationResult {
+	override suspend fun signInWithEmail(
+		email: String,
+		password: String
+	): ApiOperationResult<UserSession> {
 		return performAuthRequest(
 			path = "/auth/signing/email",
 			body = EmailSignInRequestDto(
@@ -38,7 +41,10 @@ class KtorAuthGateway(
 		)
 	}
 
-	override suspend fun signUpWithEmail(email: String, password: String): AuthOperationResult {
+	override suspend fun signUpWithEmail(
+		email: String,
+		password: String
+	): ApiOperationResult<UserSession> {
 		return performAuthRequest(
 			path = "/auth/registration/email",
 			body = EmailSignUpRequestDto(
@@ -48,7 +54,10 @@ class KtorAuthGateway(
 		)
 	}
 
-	private suspend fun performAuthRequest(path: String, body: Any): AuthOperationResult {
+	private suspend fun performAuthRequest(
+		path: String,
+		body: Any
+	): ApiOperationResult<UserSession> {
 		return try {
 			val response = httpClient.post(path) {
 				accept(ContentType.Application.Json)
@@ -58,8 +67,8 @@ class KtorAuthGateway(
 
 			if (response.status.isSuccess()) {
 				val payload = response.body<AuthResponseDto>()
-				AuthOperationResult.Success(
-					session = AuthSession(
+				ApiOperationResult.Success(
+					data = UserSession(
 						accessToken = payload.accessToken,
 						userId = payload.userId
 					)
@@ -67,35 +76,35 @@ class KtorAuthGateway(
 			} else {
 				val errorPayload = runCatching { response.body<ApiErrorDto>() }.getOrNull()
 				when (response.status) {
-					HttpStatusCode.BadRequest -> AuthOperationResult.ValidationError(
+					HttpStatusCode.BadRequest -> ApiOperationResult.ValidationError(
 						message = errorPayload?.detail
 					)
 
 					HttpStatusCode.InternalServerError,
 					HttpStatusCode.BadGateway,
 					HttpStatusCode.ServiceUnavailable,
-					HttpStatusCode.GatewayTimeout -> AuthOperationResult.ApiError(
-						reason = AuthApiErrorReason.ServiceUnavailable,
+					HttpStatusCode.GatewayTimeout -> ApiOperationResult.ApiError(
+						reason = ApiErrorReason.ServiceUnavailable,
 						message = errorPayload?.detail
 					)
 
-					else -> AuthOperationResult.ApiError(
-						reason = AuthApiErrorReason.RequestFailed,
+					else -> ApiOperationResult.ApiError(
+						reason = ApiErrorReason.RequestFailed,
 						message = errorPayload?.detail
 					)
 				}
 			}
 		} catch (_: UnresolvedAddressException) {
-			AuthOperationResult.NoInternet
+			ApiOperationResult.NoInternet
 		} catch (_: UnknownHostException) {
-			AuthOperationResult.NoInternet
+			ApiOperationResult.NoInternet
 		} catch (_: ConnectException) {
-			AuthOperationResult.NoInternet
+			ApiOperationResult.NoInternet
 		} catch (_: NoRouteToHostException) {
-			AuthOperationResult.NoInternet
+			ApiOperationResult.NoInternet
 		} catch (exception: Exception) {
-			AuthOperationResult.ApiError(
-				reason = AuthApiErrorReason.RequestFailed,
+			ApiOperationResult.ApiError(
+				reason = ApiErrorReason.RequestFailed,
 				message = exception.message?.takeIf { it.isNotBlank() }
 			)
 		}

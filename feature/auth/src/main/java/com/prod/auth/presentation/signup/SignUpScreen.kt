@@ -17,7 +17,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.prod.auth.R
-import com.prod.auth.domain.model.AuthSession
+import com.prod.common.api.model.UserSession
 import com.prod.auth.presentation.common.AuthFormErrorCard
 import com.prod.auth.presentation.common.AuthScreenHeader
 import com.prod.auth.presentation.common.asString
@@ -34,7 +34,7 @@ import org.koin.androidx.compose.koinViewModel
 fun SignUpScreen(
 	onBack: () -> Unit,
 	onSwitchToSignIn: (String) -> Unit,
-	onAuthSuccess: (AuthSession) -> Unit,
+	onAuthSuccess: (UserSession) -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	prefilledEmail: String = "",
 	modifier: Modifier = Modifier,

@@ -9,7 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.prod.auth.domain.gateway.AuthSessionStore
-import com.prod.auth.domain.model.AuthSession
+import com.prod.common.api.model.UserSession
 import com.prod.profile.navigation.ProfileNavKey
 import com.prod.ui.navigation.NoInternetNavKey
 
@@ -19,7 +19,7 @@ class AuthGraphState(
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
 	private val requestNoInternetInternal: (retryAction: () -> Unit) -> Unit
 ) {
-	fun onAuthSuccess(session: AuthSession) {
+	fun onAuthSuccess(session: UserSession) {
 		authSessionStore.save(session)
 		backStack.clear()
 		backStack.add(ProfileNavKey())

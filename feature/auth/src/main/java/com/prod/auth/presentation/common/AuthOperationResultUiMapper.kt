@@ -1,19 +1,19 @@
 package com.prod.auth.presentation.common
 
 import com.prod.auth.R
-import com.prod.auth.domain.model.AuthApiErrorReason
-import com.prod.auth.domain.model.AuthOperationResult
+import com.prod.common.api.model.ApiErrorReason
+import com.prod.common.api.model.ApiOperationResult
 
 class AuthOperationResultUiMapper {
 
-	fun mapValidationError(error: AuthOperationResult.ValidationError): UiText {
+	fun mapValidationError(error: ApiOperationResult.ValidationError): UiText {
 		return error.message
 			?.takeIf { it.isNotBlank() }
 			?.let(UiText::DynamicString)
 			?: UiText.StringResource(R.string.auth_error_invalid_input)
 	}
 
-	fun mapApiError(error: AuthOperationResult.ApiError): UiText {
+	fun mapApiError(error: ApiOperationResult.ApiError): UiText {
 		error.message
 			?.takeIf { it.isNotBlank() }
 			?.let(UiText::DynamicString)
@@ -21,8 +21,8 @@ class AuthOperationResultUiMapper {
 
 		return UiText.StringResource(
 			resId = when (error.reason) {
-				AuthApiErrorReason.ServiceUnavailable -> R.string.auth_error_service_unavailable
-				AuthApiErrorReason.RequestFailed -> R.string.auth_error_request_failed
+				ApiErrorReason.ServiceUnavailable -> R.string.auth_error_service_unavailable
+				ApiErrorReason.RequestFailed -> R.string.auth_error_request_failed
 			}
 		)
 	}

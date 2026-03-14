@@ -3,7 +3,7 @@ package com.prod.tmatch_api.auth.data.gateway
 import android.content.Context
 import android.content.SharedPreferences
 import com.prod.auth.domain.gateway.AuthSessionStore
-import com.prod.auth.domain.model.AuthSession
+import com.prod.common.api.model.UserSession
 
 class SharedPrefsAuthSessionStore(
 	context: Context
@@ -12,7 +12,7 @@ class SharedPrefsAuthSessionStore(
 	private val preferences: SharedPreferences =
 		context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
-	override fun get(): AuthSession? {
+	override fun get(): UserSession? {
 		val accessToken = preferences.getString(KEY_ACCESS_TOKEN, null)
 		val userId = preferences.getString(KEY_USER_ID, null)
 
@@ -20,13 +20,13 @@ class SharedPrefsAuthSessionStore(
 			return null
 		}
 
-		return AuthSession(
+		return UserSession(
 			accessToken = accessToken,
 			userId = userId
 		)
 	}
 
-	override fun save(session: AuthSession) {
+	override fun save(session: UserSession) {
 		preferences.edit()
 			.putString(KEY_ACCESS_TOKEN, session.accessToken)
 			.putString(KEY_USER_ID, session.userId)
