@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,11 +51,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import com.prod.core.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.mathcing.R
@@ -71,6 +75,16 @@ private enum class SwipeDirection {
 	Right,
 	Up
 }
+
+private data class SwipeAffordance(
+	val direction: SwipeDirection,
+	val progress: Float,
+	val color: Color,
+	val iconRes: Int,
+	val label: String,
+	val alignment: Alignment,
+	val rotation: Float = 0f
+)
 
 private const val SwipeDismissThreshold = 240f
 private const val SwipeRotationDivisor = 45f
@@ -187,8 +201,39 @@ private fun SwipeCardDeck(
 		val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
 		val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
 		val upSwipeProgress = (-offsetY / verticalDismissOffset).coerceIn(0f, 1f)
+		val upSwipeAffordanceProgress = (upSwipeProgress * 1.8f).coerceIn(0f, 1f)
 		val currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress
 		val currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
+		val colors = MaterialTheme.colorScheme
+		val swipeAffordance = when {
+			offsetY < 0f && abs(offsetY) > abs(offsetX) -> SwipeAffordance(
+				direction = SwipeDirection.Up,
+				progress = upSwipeAffordanceProgress,
+				color = colors.tertiary,
+				iconRes = R.drawable.ic_skip_24,
+				label = "ПРОПУСК",
+				alignment = Alignment.BottomCenter
+			)
+			offsetX > 0f -> SwipeAffordance(
+				direction = SwipeDirection.Right,
+				progress = swipeProgress,
+				color = colors.primary,
+				iconRes = R.drawable.ic_like_24,
+				label = "ЛАЙК",
+				alignment = Alignment.TopStart,
+				rotation = -10f
+			)
+			offsetX < 0f -> SwipeAffordance(
+				direction = SwipeDirection.Left,
+				progress = swipeProgress,
+				color = colors.error,
+				iconRes = R.drawable.ic_dislike_24,
+				label = "НЕТ",
+				alignment = Alignment.TopEnd,
+				rotation = 10f
+			)
+			else -> null
+		}
 		val resetSpec = tween<Float>(
 			durationMillis = SwipeDismissDurationMillis,
 			easing = FastOutSlowInEasing
@@ -326,6 +371,72 @@ private fun SwipeCardDeck(
 					)
 				}
 		)
+		swipeAffordance?.let { affordance ->
+			SwipeActionAffordance(
+				affordance = affordance,
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2)
+			)
+		}
+	}
+}
+
+@Composable
+private fun SwipeActionAffordance(
+	affordance: SwipeAffordance,
+	modifier: Modifier = Modifier
+) {
+	val dim = LocalDimensions.current
+
+	Box(
+		modifier = modifier
+			.clip(RoundedCornerShape(28.dp))
+			.background(affordance.color.copy(alpha = 0.24f * affordance.progress))
+	) {
+		Surface(
+			modifier = Modifier
+				.align(affordance.alignment)
+				.offset {
+					when (affordance.direction) {
+						SwipeDirection.Left -> IntOffset(-24, 20)
+						SwipeDirection.Right -> IntOffset(24, 20)
+						SwipeDirection.Up -> IntOffset(0, -20)
+					}
+				}
+				.graphicsLayer {
+					alpha = affordance.progress
+					scaleX = 0.88f + 0.12f * affordance.progress
+					scaleY = 0.88f + 0.12f * affordance.progress
+					rotationZ = affordance.rotation * affordance.progress
+				},
+			shape = RoundedCornerShape(18.dp),
+			color = affordance.color.copy(alpha = 0.92f),
+			contentColor = Color.White
+		) {
+			Row(
+				modifier = Modifier.padding(
+					PaddingValues(
+						horizontal = dim.small + dim.extraSmall,
+						vertical = dim.verySmall + dim.extraSmall / 2
+					)
+				),
+				horizontalArrangement = Arrangement.spacedBy(dim.verySmall),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Icon(
+					painter = painterResource(affordance.iconRes),
+					contentDescription = null,
+					modifier = Modifier.size(dim.iconMedium),
+					tint = Color.White
+				)
+				Text(
+					text = affordance.label,
+					style = MaterialTheme.typography.titleMedium,
+					color = Color.White
+				)
+			}
+		}
 	}
 }
 
