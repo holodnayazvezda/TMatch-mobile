@@ -79,10 +79,27 @@ private enum class SwipeDirection {
 private data class SwipeAffordanceSpec(
 	val direction: SwipeDirection,
 	val color: Color,
+	val iconColor: Color,
 	val iconRes: Int,
-	val label: String,
 	val alignment: Alignment,
 	val rotation: Float = 0f
+)
+
+private data class SwipeDeckVisualState(
+	val verticalDismissOffset: Float,
+	val activeDirection: SwipeDirection?,
+	val swipeProgress: Float,
+	val upSwipeProgress: Float,
+	val nextCardAlpha: Float,
+	val currentCardScale: Float,
+	val currentCardAlpha: Float
+)
+
+private data class SwipeDismissTargets(
+	val translationX: Float,
+	val translationY: Float,
+	val rotation: Float,
+	val durationMillis: Int
 )
 
 private const val SwipeDismissThreshold = 240f
@@ -95,6 +112,132 @@ private const val UpSwipeAlphaDelta = 0.18f
 private const val SwipeOffscreenMargin = 240f
 private const val SwipeDismissDurationMillis = 260
 private const val UpSwipeDismissDurationMillis = 320
+
+// Keeps all visual derivations of the current drag in one place so the deck composable
+// can read like a layout description instead of a math-heavy gesture handler.
+private fun buildSwipeDeckVisualState(
+	offsetX: Float,
+	offsetY: Float,
+	deckHeight: Int
+): SwipeDeckVisualState {
+	val verticalDismissOffset = deckHeight.toFloat() + SwipeOffscreenMargin
+	val swipeDistance = maxOf(abs(offsetX), abs(offsetY))
+	val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
+	val upSwipeProgress = (-offsetY / SwipeDismissOffset).coerceIn(0f, 1f)
+
+	return SwipeDeckVisualState(
+		verticalDismissOffset = verticalDismissOffset,
+		activeDirection = resolveActiveSwipeDirection(offsetX = offsetX, offsetY = offsetY),
+		swipeProgress = swipeProgress,
+		upSwipeProgress = upSwipeProgress,
+		nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress,
+		currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress,
+		currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
+	)
+}
+
+private fun resolveActiveSwipeDirection(
+	offsetX: Float,
+	offsetY: Float
+): SwipeDirection? = when {
+	offsetY < 0f && abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
+	offsetX > 0f -> SwipeDirection.Right
+	offsetX < 0f -> SwipeDirection.Left
+	else -> null
+}
+
+private fun resolveDismissDirection(
+	offsetX: Float,
+	offsetY: Float
+): SwipeDirection? = when {
+	abs(offsetY) > SwipeDismissThreshold && abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
+	abs(offsetX) > SwipeDismissThreshold ->
+		if (offsetX >= 0f) SwipeDirection.Right else SwipeDirection.Left
+
+	else -> null
+}
+
+private fun buildSwipeAffordances(colors: androidx.compose.material3.ColorScheme): List<SwipeAffordanceSpec> =
+	listOf(
+		SwipeAffordanceSpec(
+			direction = SwipeDirection.Right,
+			color = colors.primaryContainer,
+			iconColor = colors.onPrimaryContainer,
+			iconRes = R.drawable.ic_like_24,
+			alignment = Alignment.TopStart,
+			rotation = -10f
+		),
+		SwipeAffordanceSpec(
+			direction = SwipeDirection.Left,
+			color = colors.errorContainer,
+			iconColor = colors.onErrorContainer,
+			iconRes = R.drawable.ic_dislike_24,
+			alignment = Alignment.TopEnd,
+			rotation = 10f
+		),
+		SwipeAffordanceSpec(
+			direction = SwipeDirection.Up,
+			color = colors.tertiaryContainer,
+			iconColor = colors.onTertiaryContainer,
+			iconRes = R.drawable.ic_skip_24,
+			alignment = Alignment.BottomCenter
+		)
+	)
+
+private fun swipeAffordanceProgress(
+	affordanceDirection: SwipeDirection,
+	activeDirection: SwipeDirection?,
+	swipeProgress: Float,
+	upSwipeProgress: Float
+): Float = when (affordanceDirection) {
+	SwipeDirection.Up -> if (activeDirection == SwipeDirection.Up) upSwipeProgress else 0f
+	SwipeDirection.Left, SwipeDirection.Right ->
+		if (activeDirection == affordanceDirection) swipeProgress else 0f
+}
+
+private fun buildDismissTargets(
+	direction: SwipeDirection,
+	offsetX: Float,
+	offsetY: Float,
+	verticalDismissOffset: Float
+): SwipeDismissTargets {
+	val dismissXTarget = if (direction == SwipeDirection.Up) {
+		val verticalDistance = abs(offsetY).coerceAtLeast(1f)
+		offsetX * (verticalDismissOffset / verticalDistance)
+	} else {
+		when (direction) {
+			SwipeDirection.Right -> SwipeDismissOffset
+			SwipeDirection.Left -> -SwipeDismissOffset
+			SwipeDirection.Up -> 0f
+		}
+	}
+	val dismissYTarget = when (direction) {
+		SwipeDirection.Up -> -verticalDismissOffset
+		SwipeDirection.Left, SwipeDirection.Right -> 0f
+	}
+	val dismissRotationTarget = if (direction == SwipeDirection.Up) {
+		(offsetX / abs(offsetY).coerceAtLeast(1f) * SwipeRotationLimit)
+			.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
+	} else {
+		when (direction) {
+			SwipeDirection.Right -> SwipeRotationLimit
+			SwipeDirection.Left -> -SwipeRotationLimit
+			SwipeDirection.Up -> 0f
+		}
+	}
+
+	return SwipeDismissTargets(
+		translationX = dismissXTarget,
+		translationY = dismissYTarget,
+		rotation = dismissRotationTarget,
+		durationMillis = if (direction == SwipeDirection.Up) {
+			UpSwipeDismissDurationMillis
+		} else {
+			SwipeDismissDurationMillis
+		}
+	)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainMatchingScreen(modifier: Modifier = Modifier) {
@@ -188,57 +331,27 @@ private fun SwipeCardDeck(
 	var rotation by remember(currentProfile.id) { mutableFloatStateOf(0f) }
 	var deckHeight by remember { mutableIntStateOf(0) }
 	val scope = rememberCoroutineScope()
+	val colors = MaterialTheme.colorScheme
+	val resetSpec = remember {
+		tween<Float>(
+			durationMillis = SwipeDismissDurationMillis,
+			easing = FastOutSlowInEasing
+		)
+	}
+	val swipeAffordances = remember(colors.primary, colors.error, colors.tertiary) {
+		buildSwipeAffordances(colors)
+	}
+
 	Box(
 		modifier = modifier
 			.fillMaxWidth()
 			.onSizeChanged { deckHeight = it.height },
 		contentAlignment = Alignment.Center
 	) {
-		val verticalDismissOffset = deckHeight.toFloat() + SwipeOffscreenMargin
-		val swipeDistance = maxOf(abs(offsetX), abs(offsetY))
-		val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
-		val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
-		val upSwipeProgress = (-offsetY / SwipeDismissOffset).coerceIn(0f, 1f)
-		val upSwipeAffordanceProgress = upSwipeProgress.coerceIn(0f, 1f)
-		val currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress
-		val currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
-		val colors = MaterialTheme.colorScheme
-		val activeDirection = when {
-			offsetY < 0f && abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
-			offsetX > 0f -> SwipeDirection.Right
-			offsetX < 0f -> SwipeDirection.Left
-			else -> null
-		}
-		val swipeAffordances = remember(colors.primary, colors.error, colors.tertiary) {
-			listOf(
-				SwipeAffordanceSpec(
-					direction = SwipeDirection.Right,
-					color = colors.primary,
-					iconRes = R.drawable.ic_like_24,
-					label = "ЛАЙК",
-					alignment = Alignment.TopStart,
-					rotation = -10f
-				),
-				SwipeAffordanceSpec(
-					direction = SwipeDirection.Left,
-					color = colors.error,
-					iconRes = R.drawable.ic_dislike_24,
-					label = "НЕТ",
-					alignment = Alignment.TopEnd,
-					rotation = 10f
-				),
-				SwipeAffordanceSpec(
-					direction = SwipeDirection.Up,
-					color = colors.tertiary,
-					iconRes = R.drawable.ic_skip_24,
-					label = "ПРОПУСК",
-					alignment = Alignment.BottomCenter
-				)
-			)
-		}
-		val resetSpec = tween<Float>(
-			durationMillis = SwipeDismissDurationMillis,
-			easing = FastOutSlowInEasing
+		val visualState = buildSwipeDeckVisualState(
+			offsetX = offsetX,
+			offsetY = offsetY,
+			deckHeight = deckHeight
 		)
 
 		if (nextProfile != null) {
@@ -248,7 +361,7 @@ private fun SwipeCardDeck(
 					.fillMaxSize()
 					.padding(horizontal = dim.extraSmall / 2)
 					.graphicsLayer {
-						alpha = nextCardAlpha
+						alpha = visualState.nextCardAlpha
 					}
 			)
 		}
@@ -262,14 +375,17 @@ private fun SwipeCardDeck(
 					translationX = offsetX
 					translationY = offsetY
 					rotationZ = rotation
-					scaleX = currentCardScale
-					scaleY = currentCardScale
-					alpha = currentCardAlpha
+					scaleX = visualState.currentCardScale
+					scaleY = visualState.currentCardScale
+					alpha = visualState.currentCardAlpha
 				}
 				.pointerInput(currentProfile.id) {
 					detectDragGestures(
 						onDrag = { change, dragAmount ->
 							change.consume()
+
+							// During, drag we update raw values directly so affordances stay perfectly
+							// locked to the finger, without any extra animation state in-between.
 							offsetX += dragAmount.x
 							offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
 							rotation = (offsetX / SwipeRotationDivisor)
@@ -279,68 +395,44 @@ private fun SwipeCardDeck(
 							val targetX = offsetX
 							val targetY = offsetY
 							val targetRotation = rotation
-							val direction = when {
-								abs(targetY) > SwipeDismissThreshold && abs(targetY) > abs(targetX) ->
-									SwipeDirection.Up
+							val direction = resolveDismissDirection(
+								offsetX = targetX,
+								offsetY = targetY
+							)
 
-								abs(targetX) > SwipeDismissThreshold ->
-									if (targetX >= 0f) SwipeDirection.Right else SwipeDirection.Left
-
-								else -> null
-							}
 							scope.launch {
 								if (direction != null) {
-									val dismissXTarget = if (direction == SwipeDirection.Up) {
-										val verticalDistance = abs(targetY).coerceAtLeast(1f)
-										targetX * (verticalDismissOffset / verticalDistance)
-									} else {
-										when (direction) {
-											SwipeDirection.Right -> SwipeDismissOffset
-											SwipeDirection.Left -> -SwipeDismissOffset
-											SwipeDirection.Up -> 0f
-										}
-									}
-									val dismissRotationTarget =
-										if (direction == SwipeDirection.Up) {
-											(targetX / abs(targetY).coerceAtLeast(1f) * SwipeRotationLimit)
-												.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
-										} else {
-											when (direction) {
-												SwipeDirection.Right -> SwipeRotationLimit
-												SwipeDirection.Left -> -SwipeRotationLimit
-												SwipeDirection.Up -> 0f
-											}
-										}
+									// Once the threshold is crossed we animate the card to the same
+									// off-screen targets that the final action implies.
+									val dismissTargets = buildDismissTargets(
+										direction = direction,
+										offsetX = targetX,
+										offsetY = targetY,
+										verticalDismissOffset = visualState.verticalDismissOffset
+									)
 									val dismissSpec = tween<Float>(
-										durationMillis = if (direction == SwipeDirection.Up) {
-											UpSwipeDismissDurationMillis
-										} else {
-											SwipeDismissDurationMillis
-										},
+										durationMillis = dismissTargets.durationMillis,
 										easing = FastOutSlowInEasing
 									)
 									listOf(
 										async {
 											animate(
 												initialValue = targetX,
-												targetValue = dismissXTarget,
+												targetValue = dismissTargets.translationX,
 												animationSpec = dismissSpec
 											) { value, _ -> offsetX = value }
 										},
 										async {
 											animate(
 												initialValue = targetY,
-												targetValue = when (direction) {
-													SwipeDirection.Up -> -verticalDismissOffset
-													SwipeDirection.Left, SwipeDirection.Right -> 0f
-												},
+												targetValue = dismissTargets.translationY,
 												animationSpec = dismissSpec
 											) { value, _ -> offsetY = value }
 										},
 										async {
 											animate(
 												initialValue = targetRotation,
-												targetValue = dismissRotationTarget,
+												targetValue = dismissTargets.rotation,
 												animationSpec = dismissSpec
 											) { value, _ -> rotation = value }
 										}
@@ -377,12 +469,13 @@ private fun SwipeCardDeck(
 				}
 		)
 		swipeAffordances.forEach { affordance ->
-			val progress = when (affordance.direction) {
-				SwipeDirection.Up ->
-					if (activeDirection == SwipeDirection.Up) upSwipeAffordanceProgress else 0f
-				SwipeDirection.Left, SwipeDirection.Right ->
-					if (activeDirection == affordance.direction) swipeProgress else 0f
-			}
+			val progress = swipeAffordanceProgress(
+				affordanceDirection = affordance.direction,
+				activeDirection = visualState.activeDirection,
+				swipeProgress = visualState.swipeProgress,
+				upSwipeProgress = visualState.upSwipeProgress
+			)
+
 			if (progress > 0.001f) {
 				SwipeActionAffordance(
 					affordance = affordance,
@@ -407,6 +500,8 @@ private fun SwipeActionAffordance(
 	Box(
 		modifier = modifier
 			.clip(RoundedCornerShape(28.dp))
+			// The tint follows the card position directly, so the feedback feels attached
+			// to the gesture instead of behaving like a separate animation layer.
 			.background(affordance.color.copy(alpha = 0.24f * progress))
 	) {
 		Surface(
@@ -425,7 +520,7 @@ private fun SwipeActionAffordance(
 					scaleY = 0.88f + 0.12f * progress
 					rotationZ = affordance.rotation * progress
 				},
-			shape = RoundedCornerShape(18.dp),
+			shape = LocalShapes.current.mediumRounded,
 			color = affordance.color.copy(alpha = 0.92f),
 			contentColor = Color.White
 		) {
@@ -443,12 +538,7 @@ private fun SwipeActionAffordance(
 					painter = painterResource(affordance.iconRes),
 					contentDescription = null,
 					modifier = Modifier.size(dim.iconMedium),
-					tint = Color.White
-				)
-				Text(
-					text = affordance.label,
-					style = MaterialTheme.typography.titleMedium,
-					color = Color.White
+					tint = affordance.iconColor
 				)
 			}
 		}
