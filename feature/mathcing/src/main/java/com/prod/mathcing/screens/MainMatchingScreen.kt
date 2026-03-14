@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -74,10 +75,10 @@ private const val SwipeDismissThreshold = 240f
 private const val SwipeRotationDivisor = 45f
 private const val SwipeRotationLimit = 12f
 private const val SwipeDismissOffset = 1200f
-private const val SwipeVerticalDismissOffset = 1400f
 private const val NextCardMinAlpha = 0.1f
 private const val UpSwipeScaleDelta = 0.06f
 private const val UpSwipeAlphaDelta = 0.18f
+private const val SwipeOffscreenMargin = 240f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,17 +172,18 @@ private fun SwipeCardDeck(
 	val offsetY = remember(currentProfile.id) { Animatable(0f) }
 	val rotation = remember(currentProfile.id) { Animatable(0f) }
 	val scope = rememberCoroutineScope()
-	val swipeDistance = maxOf(abs(offsetX.value), abs(offsetY.value))
-	val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
-	val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
-	val upSwipeProgress = (-offsetY.value / SwipeVerticalDismissOffset).coerceIn(0f, 1f)
-	val currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress
-	val currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
-
-	Box(
+	BoxWithConstraints(
 		modifier = modifier.fillMaxWidth(),
 		contentAlignment = Alignment.Center
 	) {
+		val verticalDismissOffset = constraints.maxHeight.toFloat() + SwipeOffscreenMargin
+		val swipeDistance = maxOf(abs(offsetX.value), abs(offsetY.value))
+		val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
+		val nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress
+		val upSwipeProgress = (-offsetY.value / verticalDismissOffset).coerceIn(0f, 1f)
+		val currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress
+		val currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
+
 		if (nextProfile != null) {
 			ProfileCard(
 				profile = nextProfile,
@@ -233,7 +235,8 @@ private fun SwipeCardDeck(
 								scope.launch {
 									if (direction != null) {
 										val dismissXTarget = if (direction == SwipeDirection.Up) {
-											targetX
+											val verticalDistance = abs(targetY).coerceAtLeast(1f)
+											targetX * (verticalDismissOffset / verticalDistance)
 										} else {
 											when (direction) {
 												SwipeDirection.Right -> SwipeDismissOffset
@@ -242,7 +245,8 @@ private fun SwipeCardDeck(
 											}
 										}
 										val dismissRotationTarget = if (direction == SwipeDirection.Up) {
-											rotation.value
+											(targetX / abs(targetY).coerceAtLeast(1f) * SwipeRotationLimit)
+												.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
 										} else {
 											when (direction) {
 												SwipeDirection.Right -> SwipeRotationLimit
@@ -263,10 +267,9 @@ private fun SwipeCardDeck(
 											},
 											async {
 												offsetY.animateTo(
-													targetValue = if (direction == SwipeDirection.Up) {
-														-SwipeVerticalDismissOffset
-													} else {
-														0f
+													targetValue = when (direction) {
+														SwipeDirection.Up -> -verticalDismissOffset
+														SwipeDirection.Left, SwipeDirection.Right -> 0f
 													},
 													animationSpec = dismissSpec
 												)
@@ -468,8 +471,7 @@ private fun CardFrame(
 	Surface(
 		modifier = modifier,
 		shape = outerShape,
-		color = Color.White,
-		shadowElevation = dim.cardStackInset
+		color = Color.White
 	) {
 		Box(
 			modifier = Modifier
