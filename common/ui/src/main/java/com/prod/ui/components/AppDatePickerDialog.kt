@@ -38,7 +38,7 @@ fun AppDatePickerDialog(
                 onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         val formatter = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
-                        formatter.timeZone = TimeZone.getTimeZone("UTC") // DatePicker работает в UTC
+                        formatter.timeZone = TimeZone.getTimeZone("UTC")
                         onDateSelected(formatter.format(Date(millis)))
                     }
                     onDismissRequest()

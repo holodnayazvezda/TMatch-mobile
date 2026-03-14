@@ -1,0 +1,71 @@
+package com.prod.auth.presentation.onboarding.components
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.prod.auth.presentation.onboarding.model.OnboardingPageUiModel
+
+@Composable
+fun OnboardingCard(
+	page: OnboardingPageUiModel,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier.fillMaxSize(),
+		shape = RoundedCornerShape(32.dp),
+		color = MaterialTheme.colorScheme.surface,
+		tonalElevation = 6.dp
+	) {
+		Column(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(24.dp)
+		) {
+			Surface(
+				color = MaterialTheme.colorScheme.primaryContainer,
+				contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+				shape = RoundedCornerShape(999.dp)
+			) {
+				Text(
+					text = page.label,
+					style = MaterialTheme.typography.labelLarge,
+					modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+				)
+			}
+			Spacer(modifier = Modifier.padding(top = 18.dp))
+			Text(
+				text = page.title,
+				style = MaterialTheme.typography.headlineMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+				fontWeight = FontWeight.SemiBold
+			)
+			Spacer(modifier = Modifier.padding(top = 16.dp))
+			Text(
+				text = page.description,
+				style = MaterialTheme.typography.bodyLarge,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+			Spacer(modifier = Modifier.weight(1f))
+			Surface(
+				shape = RoundedCornerShape(24.dp),
+				color = MaterialTheme.colorScheme.surfaceContainerHighest
+			) {
+				Text(
+					text = "MVP держит главный маршрут в фокусе: onboarding -> auth -> персональный сценарий -> безопасность.",
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier.padding(16.dp)
+				)
+			}
+		}
+	}
+}
