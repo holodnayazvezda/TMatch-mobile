@@ -1,5 +1,9 @@
 package com.prod.auth.presentation.onboarding.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,17 +30,33 @@ fun OnboardingPagerIndicator(
 	) {
 		repeat(total) { index ->
 			val isSelected = index == current
+			val indicatorWidth = animateDpAsState(
+				targetValue = if (isSelected) 32.dp else 10.dp,
+				animationSpec = spring(
+					dampingRatio = Spring.DampingRatioMediumBouncy,
+					stiffness = Spring.StiffnessLow
+				),
+				label = "onboarding_indicator_width"
+			)
+			val indicatorColor = animateColorAsState(
+				targetValue = if (isSelected) {
+					MaterialTheme.colorScheme.primary
+				} else {
+					MaterialTheme.colorScheme.outlineVariant
+				},
+				animationSpec = spring(
+					dampingRatio = Spring.DampingRatioNoBouncy,
+					stiffness = Spring.StiffnessMediumLow
+				),
+				label = "onboarding_indicator_color"
+			)
 			Box(
 				modifier = Modifier
 					.padding(horizontal = 4.dp)
 					.height(8.dp)
-					.width(if (isSelected) 32.dp else 10.dp)
+					.width(indicatorWidth.value)
 					.background(
-						color = if (isSelected) {
-							MaterialTheme.colorScheme.primary
-						} else {
-							MaterialTheme.colorScheme.outlineVariant
-						},
+						color = indicatorColor.value,
 						shape = RoundedCornerShape(999.dp)
 					)
 			)

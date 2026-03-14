@@ -5,6 +5,7 @@ import com.prod.auth.data.dto.AuthResponseDto
 import com.prod.auth.data.dto.EmailSignInRequestDto
 import com.prod.auth.data.dto.EmailSignUpRequestDto
 import com.prod.auth.data.network.createAuthHttpClient
+import com.prod.auth.domain.model.AuthApiErrorReason
 import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.model.AuthOperationResult
 import com.prod.auth.domain.model.AuthSession
@@ -68,11 +69,12 @@ class KtorAuthGateway(
 				val errorPayload = runCatching { response.body<ApiErrorDto>() }.getOrNull()
 				when (response.status) {
 					HttpStatusCode.BadRequest -> AuthOperationResult.ValidationError(
-						message = errorPayload?.detail ?: "Проверьте введённые данные и попробуйте ещё раз."
+						message = errorPayload?.detail
 					)
 
 					else -> AuthOperationResult.ApiError(
-						message = errorPayload?.detail ?: "Сервис временно недоступен. Попробуйте ещё раз."
+						reason = AuthApiErrorReason.ServiceUnavailable,
+						message = errorPayload?.detail
 					)
 				}
 			}
@@ -86,8 +88,8 @@ class KtorAuthGateway(
 			AuthOperationResult.NoInternet
 		} catch (exception: Exception) {
 			AuthOperationResult.ApiError(
+				reason = AuthApiErrorReason.RequestFailed,
 				message = exception.message?.takeIf { it.isNotBlank() }
-					?: "Не удалось выполнить запрос. Попробуйте ещё раз."
 			)
 		}
 	}

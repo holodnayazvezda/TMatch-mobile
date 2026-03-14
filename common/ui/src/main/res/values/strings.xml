@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_password_hide">Скрыть пароль</string>
+    <string name="common_password_show">Показать пароль</string>
+    <string name="common_dropdown_empty">Здесь пока ничего нет</string>
+    <string name="common_date_picker_confirm">ОК</string>
+    <string name="common_date_picker_dismiss">Отмена</string>
+    <string name="common_date_picker_title">Выберите дату</string>
+</resources>

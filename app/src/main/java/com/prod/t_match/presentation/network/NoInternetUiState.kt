@@ -1,7 +1,10 @@
 package com.prod.t_match.presentation.network
 
+import androidx.annotation.StringRes
+import com.prod.t_match.R
+
 data class NoInternetUiState(
-	val title: String = "Нет подключения к интернету",
-	val description: String = "Запрос не удалось отправить. Проверьте соединение и повторите попытку.",
-	val retryButtonLabel: String = "Попробовать ещё раз"
+	@param:StringRes val titleRes: Int = R.string.no_internet_title,
+	@param:StringRes val descriptionRes: Int = R.string.no_internet_description,
+	@param:StringRes val retryButtonLabelRes: Int = R.string.no_internet_retry
 )

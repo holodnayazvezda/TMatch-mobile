@@ -16,8 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.prod.auth.R
 import com.prod.auth.presentation.onboarding.components.OnboardingCard
 import com.prod.auth.presentation.onboarding.components.OnboardingPagerIndicator
 import com.prod.ui.components.AppGradientBackground
@@ -49,7 +51,7 @@ fun OnboardingScreen(
 		) {
 			Spacer(modifier = Modifier.height(16.dp))
 			Text(
-				text = uiState.appTitle,
+				text = stringResource(uiState.appTitleRes),
 				style = MaterialTheme.typography.titleLarge,
 				color = MaterialTheme.colorScheme.onBackground,
 				textAlign = TextAlign.Center,
@@ -58,6 +60,7 @@ fun OnboardingScreen(
 			Spacer(modifier = Modifier.height(12.dp))
 			HorizontalPager(
 				state = pagerState,
+				pageSpacing = 12.dp,
 				modifier = Modifier
 					.weight(1f)
 					.fillMaxWidth()
@@ -71,13 +74,15 @@ fun OnboardingScreen(
 			)
 			Spacer(modifier = Modifier.height(20.dp))
 			AppMediumButton(
-				buttonText = "У меня уже есть аккаунт",
+				buttonText = stringResource(R.string.onboarding_existing_account),
 				isLoading = false,
 				onClick = onLogin
 			)
 			Spacer(modifier = Modifier.height(12.dp))
 			AppBigButton(
-				buttonText = if (isLastPage) "Перейти к регистрации" else "Далее",
+				buttonText = stringResource(
+					if (isLastPage) R.string.onboarding_go_to_sign_up else R.string.onboarding_next
+				),
 				isLoading = false,
 				onClick = {
 					if (isLastPage) {

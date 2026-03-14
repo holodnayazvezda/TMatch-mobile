@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.prod.auth.R
+import com.prod.ui.components.text_fields.AppPasswordTextField
 import com.prod.ui.components.text_fields.AppTextField
 
 @Composable
@@ -17,7 +19,7 @@ fun AuthCredentialsForm(
 	password: String,
 	emailError: String?,
 	passwordError: String?,
-	passwordLabel: String,
+	passwordLabelRes: Int,
 	onEmailChange: (String) -> Unit,
 	onPasswordChange: (String) -> Unit,
 	onDone: () -> Unit
@@ -25,7 +27,7 @@ fun AuthCredentialsForm(
 	AppTextField(
 		value = email,
 		onValueChange = onEmailChange,
-		label = "Email",
+		label = stringResource(R.string.auth_email),
 		error = emailError,
 		keyboardOptions = KeyboardOptions(
 			keyboardType = KeyboardType.Email,
@@ -33,12 +35,11 @@ fun AuthCredentialsForm(
 		)
 	)
 	Spacer(modifier = Modifier.height(12.dp))
-	AppTextField(
+	AppPasswordTextField(
 		value = password,
 		onValueChange = onPasswordChange,
-		label = passwordLabel,
+		label = stringResource(passwordLabelRes),
 		error = passwordError,
-		visualTransformation = PasswordVisualTransformation(),
 		keyboardOptions = KeyboardOptions(
 			keyboardType = KeyboardType.Password,
 			imeAction = ImeAction.Done

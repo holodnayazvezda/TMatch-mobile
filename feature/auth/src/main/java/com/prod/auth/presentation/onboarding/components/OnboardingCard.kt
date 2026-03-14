@@ -10,8 +10,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.prod.auth.R
 import com.prod.auth.presentation.onboarding.model.OnboardingPageUiModel
 
 @Composable
@@ -36,21 +38,21 @@ fun OnboardingCard(
 				shape = RoundedCornerShape(999.dp)
 			) {
 				Text(
-					text = page.label,
+					text = stringResource(page.labelRes),
 					style = MaterialTheme.typography.labelLarge,
 					modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
 				)
 			}
 			Spacer(modifier = Modifier.padding(top = 18.dp))
 			Text(
-				text = page.title,
+				text = stringResource(page.titleRes),
 				style = MaterialTheme.typography.headlineMedium,
 				color = MaterialTheme.colorScheme.onSurface,
 				fontWeight = FontWeight.SemiBold
 			)
 			Spacer(modifier = Modifier.padding(top = 16.dp))
 			Text(
-				text = page.description,
+				text = stringResource(page.descriptionRes),
 				style = MaterialTheme.typography.bodyLarge,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
@@ -60,7 +62,7 @@ fun OnboardingCard(
 				color = MaterialTheme.colorScheme.surfaceContainerHighest
 			) {
 				Text(
-					text = "MVP держит главный маршрут в фокусе: onboarding -> auth -> персональный сценарий -> безопасность.",
+					text = stringResource(R.string.onboarding_footer_note),
 					style = MaterialTheme.typography.bodyMedium,
 					color = MaterialTheme.colorScheme.onSurface,
 					modifier = Modifier.padding(16.dp)

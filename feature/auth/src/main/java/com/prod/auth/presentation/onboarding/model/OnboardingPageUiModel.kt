@@ -1,7 +1,9 @@
 package com.prod.auth.presentation.onboarding.model
 
+import androidx.annotation.StringRes
+
 data class OnboardingPageUiModel(
-	val label: String,
-	val title: String,
-	val description: String
+	@param:StringRes val labelRes: Int,
+	@param:StringRes val titleRes: Int,
+	@param:StringRes val descriptionRes: Int
 )

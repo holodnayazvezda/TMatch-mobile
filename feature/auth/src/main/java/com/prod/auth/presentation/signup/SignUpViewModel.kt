@@ -8,14 +8,18 @@ import androidx.lifecycle.viewModelScope
 import com.prod.auth.domain.model.AuthOperationResult
 import com.prod.auth.domain.model.AuthSession
 import com.prod.auth.domain.usecase.SignUpWithEmailUseCase
+import com.prod.auth.domain.validation.ConfirmPasswordValidator
 import com.prod.auth.domain.validation.EmailValidator
 import com.prod.auth.domain.validation.PasswordValidator
+import com.prod.auth.presentation.common.AuthOperationResultUiMapper
 import kotlinx.coroutines.launch
 
 class SignUpViewModel(
 	private val signUpWithEmailUseCase: SignUpWithEmailUseCase,
 	private val emailValidator: EmailValidator,
-	private val passwordValidator: PasswordValidator
+	private val passwordValidator: PasswordValidator,
+	private val confirmPasswordValidator: ConfirmPasswordValidator,
+	private val authOperationResultUiMapper: AuthOperationResultUiMapper
 ) : ViewModel() {
 
 	var uiState by mutableStateOf(SignUpUiState())
@@ -33,6 +37,15 @@ class SignUpViewModel(
 		uiState = uiState.copy(
 			password = value,
 			passwordError = null,
+			confirmPasswordError = null,
+			formError = null
+		)
+	}
+
+	fun onConfirmPasswordChange(value: String) {
+		uiState = uiState.copy(
+			confirmPassword = value,
+			confirmPasswordError = null,
 			formError = null
 		)
 	}
@@ -43,14 +56,19 @@ class SignUpViewModel(
 	) {
 		val emailError = emailValidator.validate(uiState.email)
 		val passwordError = passwordValidator.validateForSignUp(uiState.password)
+		val confirmPasswordError = confirmPasswordValidator.validate(
+			password = uiState.password,
+			confirmPassword = uiState.confirmPassword
+		)
 
 		uiState = uiState.copy(
 			emailError = emailError,
 			passwordError = passwordError,
+			confirmPasswordError = confirmPasswordError,
 			formError = null
 		)
 
-		if (emailError != null || passwordError != null) {
+		if (emailError != null || passwordError != null || confirmPasswordError != null) {
 			return
 		}
 
@@ -65,14 +83,14 @@ class SignUpViewModel(
 				is AuthOperationResult.ValidationError -> {
 					uiState = uiState.copy(
 						isLoading = false,
-						formError = result.message
+						formError = authOperationResultUiMapper.mapValidationError(result)
 					)
 				}
 
 				is AuthOperationResult.ApiError -> {
 					uiState = uiState.copy(
 						isLoading = false,
-						formError = result.message
+						formError = authOperationResultUiMapper.mapApiError(result)
 					)
 				}
 

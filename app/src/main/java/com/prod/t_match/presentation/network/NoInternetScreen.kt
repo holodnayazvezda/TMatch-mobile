@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.prod.ui.components.buttons.AppBigButton
 import org.koin.androidx.compose.koinViewModel
@@ -41,17 +42,17 @@ fun NoInternetScreen(
 				verticalArrangement = Arrangement.spacedBy(16.dp)
 			) {
 				Text(
-					text = uiState.title,
+					text = stringResource(uiState.titleRes),
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onSurface
 				)
 				Text(
-					text = uiState.description,
+					text = stringResource(uiState.descriptionRes),
 					style = MaterialTheme.typography.bodyLarge,
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 				AppBigButton(
-					buttonText = uiState.retryButtonLabel,
+					buttonText = stringResource(uiState.retryButtonLabelRes),
 					isLoading = false,
 					onClick = onRetry
 				)

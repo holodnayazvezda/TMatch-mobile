@@ -10,12 +10,14 @@ import com.prod.auth.domain.model.AuthSession
 import com.prod.auth.domain.usecase.SignInWithEmailUseCase
 import com.prod.auth.domain.validation.EmailValidator
 import com.prod.auth.domain.validation.PasswordValidator
+import com.prod.auth.presentation.common.AuthOperationResultUiMapper
 import kotlinx.coroutines.launch
 
 class SignInViewModel(
 	private val signInWithEmailUseCase: SignInWithEmailUseCase,
 	private val emailValidator: EmailValidator,
-	private val passwordValidator: PasswordValidator
+	private val passwordValidator: PasswordValidator,
+	private val authOperationResultUiMapper: AuthOperationResultUiMapper
 ) : ViewModel() {
 
 	var uiState by mutableStateOf(SignInUiState())
@@ -65,14 +67,14 @@ class SignInViewModel(
 				is AuthOperationResult.ValidationError -> {
 					uiState = uiState.copy(
 						isLoading = false,
-						formError = result.message
+						formError = authOperationResultUiMapper.mapValidationError(result)
 					)
 				}
 
 				is AuthOperationResult.ApiError -> {
 					uiState = uiState.copy(
 						isLoading = false,
-						formError = result.message
+						formError = authOperationResultUiMapper.mapApiError(result)
 					)
 				}
 

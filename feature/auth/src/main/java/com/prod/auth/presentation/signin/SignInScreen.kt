@@ -7,15 +7,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.prod.auth.R
 import com.prod.auth.domain.model.AuthSession
 import com.prod.auth.presentation.common.AuthCredentialsForm
 import com.prod.auth.presentation.common.AuthFormErrorCard
-import com.prod.auth.presentation.common.AuthScreenHeadline
+import com.prod.auth.presentation.common.AuthScreenHeader
+import com.prod.auth.presentation.common.asString
+import com.prod.auth.presentation.common.asStringOrNull
 import com.prod.ui.components.AppGradientBackground
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
@@ -41,21 +43,18 @@ fun SignInScreen(
 				.safeDrawingPadding()
 				.padding(horizontal = 24.dp, vertical = 16.dp)
 		) {
-			TextButton(onClick = onBack) {
-				Text(text = "Назад")
-			}
-			Spacer(modifier = Modifier.height(12.dp))
-			AuthScreenHeadline(
-				title = "Войдите в аккаунт",
-				description = "Вход возвращает вас в персональный сценарий и позволяет продолжить работу с рекомендациями."
+			AuthScreenHeader(
+				title = stringResource(R.string.auth_sign_in_title),
+				description = stringResource(R.string.auth_sign_in_description),
+				onBack = onBack
 			)
 			Spacer(modifier = Modifier.height(28.dp))
 			AuthCredentialsForm(
 				email = uiState.email,
 				password = uiState.password,
-				emailError = uiState.emailError,
-				passwordError = uiState.passwordError,
-				passwordLabel = "Пароль",
+				emailError = uiState.emailError.asStringOrNull(),
+				passwordError = uiState.passwordError.asStringOrNull(),
+				passwordLabelRes = R.string.auth_password,
 				onEmailChange = viewModel::onEmailChange,
 				onPasswordChange = viewModel::onPasswordChange,
 				onDone = {
@@ -67,11 +66,11 @@ fun SignInScreen(
 			)
 			uiState.formError?.let { message ->
 				Spacer(modifier = Modifier.height(20.dp))
-				AuthFormErrorCard(message = message)
+				AuthFormErrorCard(message = message.asString())
 			}
 			Spacer(modifier = Modifier.height(24.dp))
 			AppBigButton(
-				buttonText = "Войти",
+				buttonText = stringResource(R.string.auth_sign_in_button),
 				isLoading = uiState.isLoading,
 				onClick = {
 					viewModel.submit(
@@ -82,7 +81,7 @@ fun SignInScreen(
 			)
 			Spacer(modifier = Modifier.height(12.dp))
 			AppMediumButton(
-				buttonText = "Перейти к регистрации",
+				buttonText = stringResource(R.string.auth_switch_to_sign_up),
 				isLoading = false,
 				onClick = onSwitchToSignUp
 			)
