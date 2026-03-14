@@ -8,11 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
-import androidx.navigation3.runtime.NavKey
 import com.prod.match.navigation.MatchingNavKey
 import com.prod.ui.components.AppGradientBackground
 
-fun EntryProviderScope<NavKey>.matchingGraph() {
+fun EntryProviderScope<Any>.matchingGraph() {
 	entry<MatchingNavKey> {
 		MatchingScreen()
 	}

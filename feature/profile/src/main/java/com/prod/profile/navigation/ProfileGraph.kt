@@ -8,10 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
-import androidx.navigation3.runtime.NavKey
 import com.prod.ui.components.AppGradientBackground
 
-fun EntryProviderScope<NavKey>.profileGraph() {
+fun EntryProviderScope<Any>.profileGraph() {
 	entry<ProfileNavKey> {
 		ProfileScreen()
 	}

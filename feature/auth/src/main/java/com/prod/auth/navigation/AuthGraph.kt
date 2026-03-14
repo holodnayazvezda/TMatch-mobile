@@ -1,14 +1,13 @@
 package com.prod.auth.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
-import androidx.navigation3.runtime.NavBackStack
-import androidx.navigation3.runtime.NavKey
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.prod.auth.presentation.onboarding.OnboardingScreen
 import com.prod.auth.presentation.signin.SignInScreen
 import com.prod.auth.presentation.signup.SignUpScreen
 
-fun EntryProviderScope<NavKey>.authGraph(
-	backStack: NavBackStack<NavKey>,
+fun EntryProviderScope<Any>.authGraph(
+	backStack: SnapshotStateList<Any>,
 	state: AuthGraphState
 ) {
 	entry<OnboardingNavKey> { key ->
@@ -52,7 +51,7 @@ fun EntryProviderScope<NavKey>.authGraph(
 	}
 }
 
-private fun NavBackStack<NavKey>.replaceTop(destination: NavKey) {
+private fun SnapshotStateList<Any>.replaceTop(destination: Any) {
 	if (isEmpty()) {
 		add(destination)
 		return

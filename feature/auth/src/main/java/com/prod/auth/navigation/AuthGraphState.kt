@@ -7,13 +7,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.navigation3.runtime.NavBackStack
-import androidx.navigation3.runtime.NavKey
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.prod.profile.navigation.ProfileNavKey
 import com.prod.ui.navigation.NoInternetNavKey
 
 class AuthGraphState(
-	private val backStack: NavBackStack<NavKey>,
+	private val backStack: SnapshotStateList<Any>,
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
 	private val requestNoInternetInternal: (retryAction: () -> Unit) -> Unit
 ) {
@@ -29,7 +28,7 @@ class AuthGraphState(
 
 @Composable
 fun rememberAuthGraphState(
-	backStack: NavBackStack<NavKey>
+	backStack: SnapshotStateList<Any>
 ): AuthGraphState {
 	var nextRetryRequestId by rememberSaveable { mutableStateOf(0L) }
 	var retryAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -55,7 +54,7 @@ fun rememberAuthGraphState(
 	)
 }
 
-private fun NavBackStack<NavKey>.showNoInternet(destination: NoInternetNavKey) {
+private fun SnapshotStateList<Any>.showNoInternet(destination: NoInternetNavKey) {
 	if (lastOrNull() is NoInternetNavKey) {
 		this[lastIndex] = destination
 		return
