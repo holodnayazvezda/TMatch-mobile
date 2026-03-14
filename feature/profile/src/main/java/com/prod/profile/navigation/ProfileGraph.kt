@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
-import com.prod.ui.components.AppGradientBackground
 
 fun EntryProviderScope<Any>.profileGraph() {
 	entry<ProfileNavKey> {
@@ -18,16 +17,14 @@ fun EntryProviderScope<Any>.profileGraph() {
 
 @Composable
 private fun ProfileScreen() {
-	AppGradientBackground {
-		Box(
-			modifier = Modifier.fillMaxSize(),
-			contentAlignment = Alignment.Center
-		) {
-			Text(
-				text = "Профиль",
-				style = MaterialTheme.typography.headlineMedium,
-				color = MaterialTheme.colorScheme.onBackground
-			)
-		}
+	Box(
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center
+	) {
+		Text(
+			text = "Профиль",
+			style = MaterialTheme.typography.headlineMedium,
+			color = MaterialTheme.colorScheme.onBackground
+		)
 	}
 }

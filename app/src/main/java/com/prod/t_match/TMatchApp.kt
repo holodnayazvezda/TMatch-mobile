@@ -1,5 +1,7 @@
 package com.prod.t_match
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -25,6 +27,7 @@ import com.prod.match.navigation.MatchingNavKey
 import com.prod.matching.navigation.matchingGraph
 import com.prod.profile.navigation.ProfileNavKey
 import com.prod.profile.navigation.profileGraph
+import com.prod.ui.components.rememberAppGradientBrush
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
 import org.koin.compose.koinInject
@@ -45,11 +48,15 @@ fun TMatchApp() {
 			backStack = backStack,
 			authSessionStore = authSessionStore
 		)
+		val backgroundBrush = rememberAppGradientBrush()
 		val saveableStateHolder = rememberSaveableStateHolder()
 		val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current)
 		val currentDestination = backStack.lastOrNull()
 
 		Scaffold(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(backgroundBrush),
 			bottomBar = {
 				if (currentDestination.isMainTabDestination()) {
 					MainBottomBar(
@@ -64,13 +71,14 @@ fun TMatchApp() {
 					)
 				}
 			},
-			) { innerPadding ->
-				NavDisplay(
-					backStack = backStack,
-					modifier = Modifier.padding(innerPadding),
-					entryDecorators = listOf(
-						rememberSaveableStateHolderNavEntryDecorator(saveableStateHolder),
-						rememberViewModelStoreNavEntryDecorator(viewModelStoreOwner) { true }
+			containerColor = androidx.compose.ui.graphics.Color.Transparent
+		) { innerPadding ->
+			NavDisplay(
+				backStack = backStack,
+				modifier = Modifier.padding(innerPadding),
+				entryDecorators = listOf(
+					rememberSaveableStateHolderNavEntryDecorator(saveableStateHolder),
+					rememberViewModelStoreNavEntryDecorator(viewModelStoreOwner) { true }
 				),
 				onBack = {
 					if (backStack.size > 1) {

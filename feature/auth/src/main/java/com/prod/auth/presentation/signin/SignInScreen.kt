@@ -19,7 +19,6 @@ import com.prod.auth.presentation.common.AuthFormErrorCard
 import com.prod.auth.presentation.common.AuthScreenHeader
 import com.prod.auth.presentation.common.asString
 import com.prod.auth.presentation.common.asStringOrNull
-import com.prod.ui.components.AppGradientBackground
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -27,12 +26,12 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun SignInScreen(
+	modifier: Modifier = Modifier,
 	onBack: () -> Unit,
 	onSwitchToSignUp: (String) -> Unit,
 	onAuthSuccess: (UserSession) -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	prefilledEmail: String = "",
-	modifier: Modifier = Modifier,
 	viewModel: SignInViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
@@ -41,58 +40,56 @@ fun SignInScreen(
 		viewModel.applyPrefilledEmail(prefilledEmail)
 	}
 
-	AppGradientBackground(modifier = modifier) {
-		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.verticalScroll(rememberScrollState())
-				.safeDrawingPadding()
-				.padding(horizontal = 24.dp, vertical = 16.dp)
-		) {
-			AuthScreenHeader(
-				title = stringResource(R.string.auth_sign_in_title),
-				description = stringResource(R.string.auth_sign_in_description),
-				onBack = onBack
-			)
-			Spacer(modifier = Modifier.height(28.dp))
-			AuthCredentialsForm(
-				email = uiState.email,
-				password = uiState.password,
-				emailError = uiState.emailError.asStringOrNull(),
-				passwordError = uiState.passwordError.asStringOrNull(),
-				passwordLabelRes = R.string.auth_password,
-				onEmailChange = viewModel::onEmailChange,
-				onPasswordChange = viewModel::onPasswordChange,
-				onDone = {
-					viewModel.submit(
-						onSuccess = onAuthSuccess,
-						onNoInternet = onRequestNoInternet
-					)
-				}
-			)
-			uiState.formError?.let { message ->
-				Spacer(modifier = Modifier.height(20.dp))
-				AuthFormErrorCard(message = message.asString())
+	Column(
+		modifier = modifier
+			.fillMaxSize()
+			.verticalScroll(rememberScrollState())
+			.safeDrawingPadding()
+			.padding(horizontal = 24.dp, vertical = 16.dp)
+	) {
+		AuthScreenHeader(
+			title = stringResource(R.string.auth_sign_in_title),
+			description = stringResource(R.string.auth_sign_in_description),
+			onBack = onBack
+		)
+		Spacer(modifier = Modifier.height(28.dp))
+		AuthCredentialsForm(
+			email = uiState.email,
+			password = uiState.password,
+			emailError = uiState.emailError.asStringOrNull(),
+			passwordError = uiState.passwordError.asStringOrNull(),
+			passwordLabelRes = R.string.auth_password,
+			onEmailChange = viewModel::onEmailChange,
+			onPasswordChange = viewModel::onPasswordChange,
+			onDone = {
+				viewModel.submit(
+					onSuccess = onAuthSuccess,
+					onNoInternet = onRequestNoInternet
+				)
 			}
-			Spacer(modifier = Modifier.height(24.dp))
-			AppBigButton(
-				buttonText = stringResource(R.string.auth_sign_in_button),
-				isLoading = uiState.isLoading,
-				onClick = {
-					viewModel.submit(
-						onSuccess = onAuthSuccess,
-						onNoInternet = onRequestNoInternet
-					)
-				}
-			)
-			Spacer(modifier = Modifier.height(12.dp))
-			AppMediumButton(
-				buttonText = stringResource(R.string.auth_switch_to_sign_up),
-				isLoading = false,
-				onClick = {
-					onSwitchToSignUp(uiState.email)
-				}
-			)
+		)
+		uiState.formError?.let { message ->
+			Spacer(modifier = Modifier.height(20.dp))
+			AuthFormErrorCard(message = message.asString())
 		}
+		Spacer(modifier = Modifier.height(24.dp))
+		AppBigButton(
+			buttonText = stringResource(R.string.auth_sign_in_button),
+			isLoading = uiState.isLoading,
+			onClick = {
+				viewModel.submit(
+					onSuccess = onAuthSuccess,
+					onNoInternet = onRequestNoInternet
+				)
+			}
+		)
+		Spacer(modifier = Modifier.height(12.dp))
+		AppMediumButton(
+			buttonText = stringResource(R.string.auth_switch_to_sign_up),
+			isLoading = false,
+			onClick = {
+				onSwitchToSignUp(uiState.email)
+			}
+		)
 	}
 }

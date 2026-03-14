@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.prod.auth.R
 import com.prod.auth.presentation.onboarding.components.OnboardingCard
 import com.prod.auth.presentation.onboarding.components.OnboardingPagerIndicator
-import com.prod.ui.components.AppGradientBackground
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import kotlinx.coroutines.launch
@@ -44,61 +43,59 @@ fun OnboardingScreen(
 	val scope = rememberCoroutineScope()
 	val isLastPage = pagerState.currentPage == uiState.pages.lastIndex
 
-	AppGradientBackground(modifier = modifier) {
-		Column(
+	Column(
+		modifier = modifier
+			.fillMaxSize()
+			.padding(horizontal = 24.dp)
+			.statusBarsPadding()
+			.navigationBarsPadding(),
+		horizontalAlignment = Alignment.CenterHorizontally
+	) {
+		Spacer(modifier = Modifier.height(16.dp))
+		Text(
+			text = stringResource(uiState.appTitleRes),
+			style = MaterialTheme.typography.titleLarge,
+			color = MaterialTheme.colorScheme.onBackground,
+			textAlign = TextAlign.Center,
+			modifier = Modifier.fillMaxWidth()
+		)
+		Spacer(modifier = Modifier.height(12.dp))
+		HorizontalPager(
+			state = pagerState,
+			pageSpacing = 12.dp,
 			modifier = Modifier
-				.fillMaxSize()
-				.padding(horizontal = 24.dp)
-				.statusBarsPadding()
-				.navigationBarsPadding(),
-			horizontalAlignment = Alignment.CenterHorizontally
-		) {
-			Spacer(modifier = Modifier.height(16.dp))
-			Text(
-				text = stringResource(uiState.appTitleRes),
-				style = MaterialTheme.typography.titleLarge,
-				color = MaterialTheme.colorScheme.onBackground,
-				textAlign = TextAlign.Center,
-				modifier = Modifier.fillMaxWidth()
-			)
-			Spacer(modifier = Modifier.height(12.dp))
-			HorizontalPager(
-				state = pagerState,
-				pageSpacing = 12.dp,
-				modifier = Modifier
-					.weight(1f)
-					.fillMaxWidth()
-			) { pageIndex ->
-				OnboardingCard(page = uiState.pages[pageIndex])
-			}
-			Spacer(modifier = Modifier.height(24.dp))
-			OnboardingPagerIndicator(
-				total = uiState.pages.size,
-				current = pagerState.currentPage
-			)
-			Spacer(modifier = Modifier.height(20.dp))
-			AppMediumButton(
-				buttonText = stringResource(R.string.onboarding_existing_account),
-				isLoading = false,
-				onClick = onLogin
-			)
-			Spacer(modifier = Modifier.height(12.dp))
-			AppBigButton(
-				buttonText = stringResource(
-					if (isLastPage) R.string.onboarding_go_to_sign_up else R.string.onboarding_next
-				),
-				isLoading = false,
-				onClick = {
-					if (isLastPage) {
-						onCreateAccount()
-					} else {
-						scope.launch {
-							pagerState.animateScrollToPage(pagerState.currentPage + 1)
-						}
+				.weight(1f)
+				.fillMaxWidth()
+		) { pageIndex ->
+			OnboardingCard(page = uiState.pages[pageIndex])
+		}
+		Spacer(modifier = Modifier.height(24.dp))
+		OnboardingPagerIndicator(
+			total = uiState.pages.size,
+			current = pagerState.currentPage
+		)
+		Spacer(modifier = Modifier.height(20.dp))
+		AppMediumButton(
+			buttonText = stringResource(R.string.onboarding_existing_account),
+			isLoading = false,
+			onClick = onLogin
+		)
+		Spacer(modifier = Modifier.height(12.dp))
+		AppBigButton(
+			buttonText = stringResource(
+				if (isLastPage) R.string.onboarding_go_to_sign_up else R.string.onboarding_next
+			),
+			isLoading = false,
+			onClick = {
+				if (isLastPage) {
+					onCreateAccount()
+				} else {
+					scope.launch {
+						pagerState.animateScrollToPage(pagerState.currentPage + 1)
 					}
 				}
-			)
-			Spacer(modifier = Modifier.height(24.dp))
-		}
+			}
+		)
+		Spacer(modifier = Modifier.height(24.dp))
 	}
 }
