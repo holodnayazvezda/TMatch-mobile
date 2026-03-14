@@ -41,6 +41,7 @@ android {
 dependencies {
 	implementation(project(":api:auth"))
 	implementation(project(":common:ui"))
+	implementation(project(":data:tmatch_api"))
 	implementation(project(":feature:auth"))
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.androidx.lifecycle.runtime.ktx)

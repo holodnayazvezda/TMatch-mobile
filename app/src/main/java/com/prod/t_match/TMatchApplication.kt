@@ -1,9 +1,9 @@
 package com.prod.t_match
 
 import android.app.Application
-import com.prod.auth.di.authApiModule
 import com.prod.auth.di.authFeatureModule
-import com.prod.t_match.di.appModule
+import com.prod.tmatch_api.di.tmatchApiDataModule
+import com.prod.t_match.BuildConfig
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -14,8 +14,7 @@ class TMatchApplication : Application() {
 		startKoin {
 			androidContext(this@TMatchApplication)
 			modules(
-				appModule,
-				authApiModule,
+				tmatchApiDataModule(baseUrl = BuildConfig.API_BASE_URL),
 				authFeatureModule
 			)
 		}

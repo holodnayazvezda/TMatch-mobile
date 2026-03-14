@@ -1,9 +1,9 @@
 package com.prod.t_match.di
 
-import com.prod.auth.di.authApiModule
 import com.prod.auth.di.authFeatureModule
 import com.prod.auth.presentation.signin.SignInViewModel
 import com.prod.auth.presentation.signup.SignUpViewModel
+import com.prod.tmatch_api.di.tmatchApiDataModule
 import org.junit.After
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -18,11 +18,10 @@ class AppModulesSmokeTest {
 	}
 
 	@Test
-	fun authViewModelsResolveFromKoin() {
+		fun authViewModelsResolveFromKoin() {
 		val koin = startKoin {
 			modules(
-				appModule,
-				authApiModule,
+				tmatchApiDataModule(baseUrl = "https://example.com"),
 				authFeatureModule
 			)
 		}.koin

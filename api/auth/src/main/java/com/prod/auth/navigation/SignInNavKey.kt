@@ -1,0 +1,9 @@
+package com.prod.auth.navigation
+
+import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class SignInNavKey(
+	val prefilledEmail: String = ""
+): NavKey
