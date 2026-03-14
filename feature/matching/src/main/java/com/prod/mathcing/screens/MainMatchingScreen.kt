@@ -1,4 +1,4 @@
-package com.prod.mathcing.screens
+package com.prod.matching.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -61,9 +61,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.prod.core.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
-import com.prod.mathcing.R
-import com.prod.mathcing.model.MatchProfile
-import com.prod.mathcing.model.MatchingContentController
+import com.prod.matching.R
+import com.prod.matching.model.MatchProfile
+import com.prod.matching.model.MatchingContentController
 import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
 import kotlinx.coroutines.async
@@ -243,7 +243,7 @@ private fun buildDismissTargets(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainMatchingScreen(modifier: Modifier = Modifier) {
-	Box(modifier = modifier.fillMaxSize())
+	MainMatchingScreenMock(modifier = modifier)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

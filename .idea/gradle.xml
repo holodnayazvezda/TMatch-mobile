@@ -22,7 +22,7 @@
             <option value="$PROJECT_DIR$/feature" />
             <option value="$PROJECT_DIR$/feature/auth" />
             <option value="$PROJECT_DIR$/feature/chats" />
-            <option value="$PROJECT_DIR$/feature/mathcing" />
+            <option value="$PROJECT_DIR$/feature/matching" />
             <option value="$PROJECT_DIR$/feature/profile" />
           </set>
         </option>

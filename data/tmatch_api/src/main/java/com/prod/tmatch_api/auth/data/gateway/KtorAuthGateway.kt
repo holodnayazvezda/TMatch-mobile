@@ -25,8 +25,7 @@ import java.net.NoRouteToHostException
 import java.net.UnknownHostException
 
 class KtorAuthGateway(
-	private val baseUrl: String,
-	private val httpClient: HttpClient = createAuthHttpClient()
+	private val httpClient: HttpClient
 ) : AuthGateway {
 
 	override suspend fun signInWithEmail(email: String, password: String): AuthOperationResult {
@@ -51,7 +50,7 @@ class KtorAuthGateway(
 
 	private suspend fun performAuthRequest(path: String, body: Any): AuthOperationResult {
 		return try {
-			val response = httpClient.post("${baseUrl.trimEnd('/')}$path") {
+			val response = httpClient.post(path) {
 				accept(ContentType.Application.Json)
 				header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
 				setBody(body)
@@ -72,8 +71,16 @@ class KtorAuthGateway(
 						message = errorPayload?.detail
 					)
 
-					else -> AuthOperationResult.ApiError(
+					HttpStatusCode.InternalServerError,
+					HttpStatusCode.BadGateway,
+					HttpStatusCode.ServiceUnavailable,
+					HttpStatusCode.GatewayTimeout -> AuthOperationResult.ApiError(
 						reason = AuthApiErrorReason.ServiceUnavailable,
+						message = errorPayload?.detail
+					)
+
+					else -> AuthOperationResult.ApiError(
+						reason = AuthApiErrorReason.RequestFailed,
 						message = errorPayload?.detail
 					)
 				}

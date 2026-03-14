@@ -1,4 +1,4 @@
-package com.prod.mathcing
+package com.prod.matching
 
 import org.junit.Test
 

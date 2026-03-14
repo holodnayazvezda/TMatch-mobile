@@ -4,7 +4,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
@@ -16,23 +15,36 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.navigation.OnboardingNavKey
 import com.prod.auth.navigation.authGraph
 import com.prod.auth.navigation.rememberAuthGraphState
 import com.prod.chats.navigation.ChatsNavKey
 import com.prod.chats.navigation.chatsGraph
 import com.prod.match.navigation.MatchingNavKey
-import com.prod.mathcing.navigation.matchingGraph
+import com.prod.matching.navigation.matchingGraph
 import com.prod.profile.navigation.ProfileNavKey
 import com.prod.profile.navigation.profileGraph
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
+import org.koin.compose.koinInject
 
 @Composable
 fun TMatchApp() {
 	TmatchTheme {
-		val backStack = remember { mutableStateListOf<Any>(OnboardingNavKey()) }
-		val authGraphState = rememberAuthGraphState(backStack)
+		val authSessionStore = koinInject<AuthSessionStore>()
+		val startDestination = remember(authSessionStore) {
+			if (authSessionStore.get() != null) {
+				ProfileNavKey()
+			} else {
+				OnboardingNavKey()
+			}
+		}
+		val backStack = remember(startDestination) { mutableStateListOf<Any>(startDestination) }
+		val authGraphState = rememberAuthGraphState(
+			backStack = backStack,
+			authSessionStore = authSessionStore
+		)
 		val saveableStateHolder = rememberSaveableStateHolder()
 		val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current)
 		val currentDestination = backStack.lastOrNull()
@@ -52,14 +64,13 @@ fun TMatchApp() {
 					)
 				}
 			},
-		) { innerPadding ->
-			innerPadding
-			NavDisplay(
-				backStack = backStack,
-				modifier = Modifier.padding(),
-				entryDecorators = listOf(
-					rememberSaveableStateHolderNavEntryDecorator(saveableStateHolder),
-					rememberViewModelStoreNavEntryDecorator(viewModelStoreOwner) { true }
+			) { innerPadding ->
+				NavDisplay(
+					backStack = backStack,
+					modifier = Modifier.padding(innerPadding),
+					entryDecorators = listOf(
+						rememberSaveableStateHolderNavEntryDecorator(saveableStateHolder),
+						rememberViewModelStoreNavEntryDecorator(viewModelStoreOwner) { true }
 				),
 				onBack = {
 					if (backStack.size > 1) {

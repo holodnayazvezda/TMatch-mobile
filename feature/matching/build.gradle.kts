@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-	namespace = "com.prod.mathcing"
+	namespace = "com.prod.matching"
 	compileSdk = 36
 
 	defaultConfig {

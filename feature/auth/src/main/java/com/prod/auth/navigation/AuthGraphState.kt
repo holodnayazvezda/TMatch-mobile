@@ -8,15 +8,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.prod.auth.domain.gateway.AuthSessionStore
+import com.prod.auth.domain.model.AuthSession
 import com.prod.profile.navigation.ProfileNavKey
 import com.prod.ui.navigation.NoInternetNavKey
 
 class AuthGraphState(
 	private val backStack: SnapshotStateList<Any>,
+	private val authSessionStore: AuthSessionStore,
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
 	private val requestNoInternetInternal: (retryAction: () -> Unit) -> Unit
 ) {
-	fun onAuthSuccess() {
+	fun onAuthSuccess(session: AuthSession) {
+		authSessionStore.save(session)
 		backStack.clear()
 		backStack.add(ProfileNavKey())
 	}
@@ -28,7 +32,8 @@ class AuthGraphState(
 
 @Composable
 fun rememberAuthGraphState(
-	backStack: SnapshotStateList<Any>
+	backStack: SnapshotStateList<Any>,
+	authSessionStore: AuthSessionStore
 ): AuthGraphState {
 	var nextRetryRequestId by rememberSaveable { mutableStateOf(0L) }
 	var retryAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -41,6 +46,7 @@ fun rememberAuthGraphState(
 
 	return AuthGraphState(
 		backStack = backStack,
+		authSessionStore = authSessionStore,
 		consumeRetryActionInternal = {
 			val callback = retryAction
 			retryAction = null

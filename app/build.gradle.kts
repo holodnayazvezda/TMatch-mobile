@@ -47,7 +47,7 @@ dependencies {
 	implementation(project(":data:tmatch_api"))
 	implementation(project(":feature:auth"))
 	implementation(project(":feature:chats"))
-	implementation(project(":feature:mathcing"))
+	implementation(project(":feature:matching"))
 	implementation(project(":feature:profile"))
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.androidx.lifecycle.runtime.ktx)

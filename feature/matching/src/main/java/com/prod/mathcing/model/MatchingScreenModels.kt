@@ -1,7 +1,7 @@
-package com.prod.mathcing.model
+package com.prod.matching.model
 
 import androidx.annotation.DrawableRes
-import com.prod.mathcing.R
+import com.prod.matching.R
 
 internal data class MatchProfile(
 	val id: String,
