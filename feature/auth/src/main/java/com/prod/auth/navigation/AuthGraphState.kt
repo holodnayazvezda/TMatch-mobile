@@ -19,7 +19,19 @@ class AuthGraphState(
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
 	private val requestNoInternetInternal: (retryAction: () -> Unit) -> Unit
 ) {
-	fun onAuthSuccess(session: UserSession) {
+	fun onSignInSuccess(session: UserSession) {
+		authSessionStore.save(session)
+		backStack.clear()
+		backStack.add(
+			if (authSessionStore.isProfileCompleted()) {
+				ProfileNavKey()
+			} else {
+				ProfileSetupNavKey()
+			}
+		)
+	}
+
+	fun onSignUpSuccess(session: UserSession) {
 		authSessionStore.save(session)
 		authSessionStore.setProfileCompleted(false)
 		backStack.clear()

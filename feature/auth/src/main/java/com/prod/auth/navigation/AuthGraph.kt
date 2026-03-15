@@ -30,7 +30,7 @@ fun EntryProviderScope<Any>.authGraph(
 			onSwitchToSignUp = { email ->
 				backStack.replaceTop(SignUpNavKey(prefilledEmail = email.trim()))
 			},
-			onAuthSuccess = state::onAuthSuccess,
+			onAuthSuccess = state::onSignInSuccess,
 			onRequestNoInternet = state::onRequestNoInternet
 		)
 	}
@@ -46,7 +46,7 @@ fun EntryProviderScope<Any>.authGraph(
 			onSwitchToSignIn = { email ->
 				backStack.replaceTop(SignInNavKey(prefilledEmail = email.trim()))
 			},
-			onAuthSuccess = state::onAuthSuccess,
+			onAuthSuccess = state::onSignUpSuccess,
 			onRequestNoInternet = state::onRequestNoInternet
 		)
 	}

@@ -138,7 +138,7 @@ class KtorMatchGateway(
 	private fun String.toRecommendationReasonType(): RecommendationReasonType {
 		return when (this) {
 			"lifestyle" -> RecommendationReasonType.Lifestyle
-			else -> RecommendationReasonType.Lifestyle
+			else -> error("Unsupported recommendation reason type: $this")
 		}
 	}
 
@@ -163,7 +163,8 @@ class KtorMatchGateway(
 	private fun String.toDomainAction(): InteractionAction {
 		return when (this) {
 			"dislike" -> InteractionAction.Dislike
-			else -> InteractionAction.Like
+			"like" -> InteractionAction.Like
+			else -> error("Unsupported interaction action: $this")
 		}
 	}
 }
