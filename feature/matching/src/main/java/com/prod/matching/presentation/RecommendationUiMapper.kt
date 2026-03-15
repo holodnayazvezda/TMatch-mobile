@@ -2,9 +2,6 @@ package com.prod.matching.presentation
 
 import com.prod.match.domain.model.Recommendation
 import com.prod.match.domain.model.RecommendationCandidateProfile
-import com.prod.match.domain.model.RecommendationReason
-import com.prod.match.domain.model.RecommendationReasonType
-import com.prod.matching.R
 import com.prod.matching.model.MatchProfile
 import java.time.LocalDate
 import java.time.Period
@@ -19,18 +16,13 @@ class RecommendationUiMapper {
 					fallback = "Пользователь ${recommendation.candidateUserId.take(8)}"
 				),
 				age = profile?.birthDate?.toAgeOrNull(),
-				matchLabel = recommendation.reasons.maxByOrNull { it.score }?.toLabel()
-					?: "Есть потенциальное совпадение",
+				reasonLabels = recommendation.reasons
+					.map { it.reasonType.label }
+					.distinct()
+					.ifEmpty { listOf("Есть потенциальное совпадение") },
 				imageUrl = recommendation.candidateCard?.datingProfile?.photos?.firstOrNull(),
 				recommendationId = recommendation.mlRecommendationId
 			)
-		}
-	}
-
-	private fun RecommendationReason.toLabel(): String {
-		return when (reasonType) {
-			RecommendationReasonType.Lifestyle -> "Схожий образ жизни"
-			RecommendationReasonType.Unknown -> "Есть потенциальное совпадение"
 		}
 	}
 

@@ -4,6 +4,7 @@ import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
+import com.prod.match.domain.model.RecommendationReasonType
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -22,7 +23,7 @@ import org.junit.Test
 class KtorMatchGatewayTest {
 
 	@Test
-	fun `maps unknown recommendation reasons without crashing`() = runBlocking {
+	fun `maps known and unknown recommendation reasons from backend keys`() = runBlocking {
 		val gateway = KtorMatchGateway(
 			httpClient = createHttpClient(
 				status = HttpStatusCode.OK,
@@ -35,7 +36,7 @@ class KtorMatchGatewayTest {
 					      "candidate_user_id": "candidate-1",
 					      "reasons": {
 					        "new_backend_reason": 0.91,
-					        "lifestyle": 0.42
+					        "ACTIVITY_FREQUENCY": 0.42
 					      }
 					    }
 					  ]
@@ -51,6 +52,10 @@ class KtorMatchGatewayTest {
 		val recommendations = (result as ApiOperationResult.Success).data
 		assertEquals(1, recommendations.size)
 		assertEquals(2, recommendations.single().reasons.size)
+		assertEquals(
+			listOf(RecommendationReasonType.Unknown, RecommendationReasonType.ACTIVITY_FREQUENCY),
+			recommendations.single().reasons.map { it.reasonType }
+		)
 	}
 
 	@Test

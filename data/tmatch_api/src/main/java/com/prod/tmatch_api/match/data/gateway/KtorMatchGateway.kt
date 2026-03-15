@@ -153,10 +153,7 @@ class KtorMatchGateway(
 	}
 
 	private fun String.toRecommendationReasonType(): RecommendationReasonType {
-		return when (this) {
-			"lifestyle" -> RecommendationReasonType.Lifestyle
-			else -> RecommendationReasonType.Unknown
-		}
+		return RecommendationReasonType.fromServerKey(this)
 	}
 
 	private fun InteractionResponseDto.toDomainOrNull(): Interaction? {
