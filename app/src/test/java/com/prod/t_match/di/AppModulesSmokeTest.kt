@@ -4,6 +4,7 @@ import com.prod.auth.di.authFeatureModule
 import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.domain.model.Gender
+import com.prod.auth.domain.model.JuryPreviewUser
 import com.prod.auth.domain.model.Profile
 import com.prod.auth.domain.model.ProfileDraft
 import com.prod.auth.presentation.signin.SignInViewModel
@@ -94,6 +95,9 @@ class AppModulesSmokeTest {
 			email: String,
 			password: String
 		): ApiOperationResult<UserSession> = ApiOperationResult.ValidationError()
+
+		override suspend fun getJuryPreviewUsers(): ApiOperationResult<List<JuryPreviewUser>> =
+			ApiOperationResult.Success(emptyList())
 
 		override suspend fun getOwnProfile(): ApiOperationResult<Profile?> =
 			ApiOperationResult.Success(null)

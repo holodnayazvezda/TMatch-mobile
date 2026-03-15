@@ -29,6 +29,7 @@ import com.prod.auth.navigation.rememberAuthGraphState
 import com.prod.chats.navigation.ChatsNavKey
 import com.prod.chats.navigation.chatsGraph
 import com.prod.match.navigation.MatchingNavKey
+import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.navigation.matchingGraph
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.navigation.ProfileNavKey
@@ -47,14 +48,17 @@ fun TMatchApp() {
 	TmatchTheme {
 		val authSessionStore = koinInject<AuthSessionStore>()
 		val profileGateway = koinInject<ProfileGateway>()
+		val pendingMatchActionStore = koinInject<PendingMatchActionStore>()
 		val startDestination by produceState<Any?>(
 			initialValue = null,
 			authSessionStore,
-			profileGateway
+			profileGateway,
+			pendingMatchActionStore
 		) {
 			value = AppStartDestinationResolver(
 				authSessionStore = authSessionStore,
-				profileGateway = profileGateway
+				profileGateway = profileGateway,
+				pendingMatchActionStore = pendingMatchActionStore
 			).resolve()
 		}
 		val backgroundBrush = rememberAppGradientBrush()
@@ -76,10 +80,12 @@ fun TMatchApp() {
 		val authGraphState = rememberAuthGraphState(
 			backStack = backStack,
 			authSessionStore = authSessionStore,
+			onSessionCleared = pendingMatchActionStore::clear,
 			resolveSignedInDestination = {
 				AppStartDestinationResolver(
 					authSessionStore = authSessionStore,
-					profileGateway = profileGateway
+					profileGateway = profileGateway,
+					pendingMatchActionStore = pendingMatchActionStore
 				).resolveAuthenticatedDestination()
 			}
 		)

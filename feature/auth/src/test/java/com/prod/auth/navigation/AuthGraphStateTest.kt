@@ -92,28 +92,55 @@ class AuthGraphStateTest {
 			save(UserSession(accessToken = "token", userId = "user"))
 			setProfileCompleted(true)
 		}
+		val pendingMatchActionStore = FakePendingMatchActionStore()
 		val backStack = mutableStateListOf<Any>(ProfileNavKey())
 		val state = createState(
 			backStack = backStack,
 			authSessionStore = sessionStore,
+			pendingMatchActionStore = pendingMatchActionStore,
 			resolveSignedInDestination = { ProfileNavKey() }
 		)
 
 		state.onLogout()
 
-		assertEquals(listOf(OnboardingNavKey(), SignInNavKey()), backStack.toList())
+			assertEquals(listOf(OnboardingNavKey(), SignInNavKey()), backStack.toList())
+			assertNull(sessionStore.get())
+			assertEquals(false, sessionStore.isProfileCompleted())
+			assertTrue(pendingMatchActionStore.wasCleared)
+		}
+
+	@Test
+	fun `unauthorized clears session queue and opens onboarding`() {
+		val sessionStore = FakeAuthSessionStore().apply {
+			save(UserSession(accessToken = "token", userId = "user"))
+			setProfileCompleted(true)
+		}
+		val pendingMatchActionStore = FakePendingMatchActionStore()
+		val backStack = mutableStateListOf<Any>(ProfileNavKey())
+		val state = createState(
+			backStack = backStack,
+			authSessionStore = sessionStore,
+			pendingMatchActionStore = pendingMatchActionStore,
+			resolveSignedInDestination = { ProfileNavKey() }
+		)
+
+		state.onUnauthorized()
+
+		assertEquals(listOf(OnboardingNavKey()), backStack.toList())
 		assertNull(sessionStore.get())
-		assertEquals(false, sessionStore.isProfileCompleted())
+		assertTrue(pendingMatchActionStore.wasCleared)
 	}
 
 	private fun createState(
 		backStack: SnapshotStateList<Any>,
 		authSessionStore: AuthSessionStore,
+		pendingMatchActionStore: FakePendingMatchActionStore = FakePendingMatchActionStore(),
 		resolveSignedInDestination: suspend () -> Any
 	): AuthGraphState {
 		return AuthGraphState(
 			backStack = backStack,
 			authSessionStore = authSessionStore,
+			onSessionCleared = pendingMatchActionStore::clear,
 			resolveSignedInDestination = resolveSignedInDestination,
 			consumeRetryActionInternal = { null },
 			requestNoInternetInternal = {}
@@ -139,6 +166,14 @@ class AuthGraphStateTest {
 		override fun clear() {
 			session = null
 			isProfileCompleted = false
+		}
+	}
+
+	private class FakePendingMatchActionStore {
+		var wasCleared: Boolean = false
+
+		fun clear() {
+			wasCleared = true
 		}
 	}
 }

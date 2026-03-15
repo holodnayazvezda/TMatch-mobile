@@ -6,6 +6,7 @@ import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
+import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
@@ -24,7 +25,8 @@ class AppStartDestinationResolverTest {
 		val sessionStore = FakeAuthSessionStore()
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
-			profileGateway = FakeProfileGateway()
+			profileGateway = FakeProfileGateway(),
+			pendingMatchActionStore = FakePendingMatchActionStore()
 		)
 
 		val destination = resolver.resolve()
@@ -48,7 +50,8 @@ class AppStartDestinationResolverTest {
 						hasDatingProfile = false
 					)
 				)
-			)
+			),
+			pendingMatchActionStore = FakePendingMatchActionStore()
 		)
 
 		val destination = resolver.resolve()
@@ -73,7 +76,8 @@ class AppStartDestinationResolverTest {
 						hasDatingProfile = true
 					)
 				)
-			)
+			),
+			pendingMatchActionStore = FakePendingMatchActionStore()
 		)
 
 		val destination = resolver.resolve()
@@ -98,7 +102,8 @@ class AppStartDestinationResolverTest {
 						hasDatingProfile = false
 					)
 				)
-			)
+			),
+			pendingMatchActionStore = FakePendingMatchActionStore()
 		)
 
 		val destination = resolver.resolve()
@@ -117,7 +122,8 @@ class AppStartDestinationResolverTest {
 			authSessionStore = sessionStore,
 			profileGateway = FakeProfileGateway(
 				ownCardResult = ApiOperationResult.NoInternet
-			)
+			),
+			pendingMatchActionStore = FakePendingMatchActionStore()
 		)
 
 		val destination = resolver.resolve()
@@ -131,17 +137,20 @@ class AppStartDestinationResolverTest {
 			save(UserSession(accessToken = "token", userId = "user"))
 			setProfileCompleted(true)
 		}
+		val pendingMatchActionStore = FakePendingMatchActionStore()
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
 			profileGateway = FakeProfileGateway(
 				ownCardResult = ApiOperationResult.ApiError(ApiErrorReason.Unauthorized)
-			)
+			),
+			pendingMatchActionStore = pendingMatchActionStore
 		)
 
 		val destination = resolver.resolve()
 
 		assertTrue(destination is OnboardingNavKey)
 		assertNull(sessionStore.get())
+		assertTrue(pendingMatchActionStore.wasCleared)
 	}
 
 	private class FakeAuthSessionStore : AuthSessionStore {
@@ -182,6 +191,18 @@ class AppStartDestinationResolverTest {
 		override suspend fun uploadDatingProfilePhoto(
 			contentType: String,
 			bytes: ByteArray
-		): ApiOperationResult<String> = ApiOperationResult.ValidationError()
+			): ApiOperationResult<String> = ApiOperationResult.ValidationError()
+		}
+
+	private class FakePendingMatchActionStore : PendingMatchActionStore {
+		var wasCleared: Boolean = false
+
+		override fun getAll() = emptyList<com.prod.matching.domain.model.PendingMatchAction>()
+
+		override fun saveAll(actions: List<com.prod.matching.domain.model.PendingMatchAction>) = Unit
+
+		override fun clear() {
+			wasCleared = true
+		}
 	}
 }

@@ -16,6 +16,7 @@ import com.prod.ui.navigation.NoInternetNavKey
 class AuthGraphState(
 	private val backStack: SnapshotStateList<Any>,
 	private val authSessionStore: AuthSessionStore,
+	private val onSessionCleared: () -> Unit,
 	private val resolveSignedInDestination: suspend () -> Any,
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
 	private val requestNoInternetInternal: (retryAction: () -> Unit) -> Unit
@@ -48,12 +49,14 @@ class AuthGraphState(
 
 	fun onUnauthorized() {
 		authSessionStore.clear()
+		onSessionCleared()
 		backStack.clear()
 		backStack.add(OnboardingNavKey())
 	}
 
 	fun onLogout() {
 		authSessionStore.clear()
+		onSessionCleared()
 		backStack.clear()
 		backStack.add(OnboardingNavKey())
 		backStack.add(SignInNavKey())
@@ -68,6 +71,7 @@ class AuthGraphState(
 fun rememberAuthGraphState(
 	backStack: SnapshotStateList<Any>,
 	authSessionStore: AuthSessionStore,
+	onSessionCleared: () -> Unit,
 	resolveSignedInDestination: suspend () -> Any
 ): AuthGraphState {
 	var nextRetryRequestId by rememberSaveable { mutableStateOf(0L) }
@@ -82,6 +86,7 @@ fun rememberAuthGraphState(
 	return AuthGraphState(
 		backStack = backStack,
 		authSessionStore = authSessionStore,
+		onSessionCleared = onSessionCleared,
 		resolveSignedInDestination = resolveSignedInDestination,
 		consumeRetryActionInternal = {
 			val callback = retryAction

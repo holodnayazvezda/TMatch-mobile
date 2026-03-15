@@ -5,12 +5,14 @@ import com.prod.auth.navigation.OnboardingNavKey
 import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.navigation.ProfileNavKey
 
 class AppStartDestinationResolver(
 	private val authSessionStore: AuthSessionStore,
-	private val profileGateway: ProfileGateway
+	private val profileGateway: ProfileGateway,
+	private val pendingMatchActionStore: PendingMatchActionStore
 ) {
 	suspend fun resolve(): Any {
 		if (authSessionStore.get() == null) {
@@ -35,6 +37,7 @@ class AppStartDestinationResolver(
 			is ApiOperationResult.ApiError -> {
 				if (result.reason == ApiErrorReason.Unauthorized) {
 					authSessionStore.clear()
+					clearSessionState()
 					OnboardingNavKey()
 				} else {
 					fallbackDestination()
@@ -52,5 +55,9 @@ class AppStartDestinationResolver(
 		} else {
 			ProfileSetupNavKey()
 		}
+	}
+
+	private fun clearSessionState() {
+		pendingMatchActionStore.clear()
 	}
 }
