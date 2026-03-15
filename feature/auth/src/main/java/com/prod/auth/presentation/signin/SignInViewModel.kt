@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.prod.auth.domain.model.JuryPreviewUser
+import com.prod.auth.domain.usecase.GetJuryPreviewUsersUseCase
 import com.prod.auth.domain.usecase.SignInWithEmailUseCase
 import com.prod.auth.domain.validation.EmailValidator
 import com.prod.auth.domain.validation.PasswordValidator
@@ -15,6 +17,7 @@ import kotlinx.coroutines.launch
 
 class SignInViewModel(
 	private val signInWithEmailUseCase: SignInWithEmailUseCase,
+	private val getJuryPreviewUsersUseCase: GetJuryPreviewUsersUseCase,
 	private val emailValidator: EmailValidator,
 	private val passwordValidator: PasswordValidator,
 	private val authOperationResultUiMapper: AuthOperationResultUiMapper
@@ -48,6 +51,63 @@ class SignInViewModel(
 			email = value,
 			emailError = null,
 			formError = null
+		)
+	}
+
+	fun loadJuryPreviewUsers(
+		onNoInternet: (retryAction: () -> Unit) -> Unit
+	) {
+		viewModelScope.launch {
+			uiState = uiState.copy(
+				isJuryLoading = true,
+				formError = null
+			)
+			when (val result = getJuryPreviewUsersUseCase()) {
+				is ApiOperationResult.Success -> {
+					uiState = uiState.copy(
+						isJuryLoading = false,
+						isJuryPickerVisible = true,
+						juryPreviewUsers = result.data,
+						formError = null
+					)
+				}
+
+				is ApiOperationResult.ValidationError -> {
+					uiState = uiState.copy(
+						isJuryLoading = false,
+						formError = authOperationResultUiMapper.mapValidationError(result)
+					)
+				}
+
+				is ApiOperationResult.ApiError -> {
+					uiState = uiState.copy(
+						isJuryLoading = false,
+						formError = authOperationResultUiMapper.mapApiError(result)
+					)
+				}
+
+				ApiOperationResult.NoInternet -> {
+					uiState = uiState.copy(isJuryLoading = false)
+					onNoInternet {
+						loadJuryPreviewUsers(onNoInternet = onNoInternet)
+					}
+				}
+			}
+		}
+	}
+
+	fun dismissJuryPicker() {
+		uiState = uiState.copy(isJuryPickerVisible = false)
+	}
+
+	fun applyJuryPreviewUser(user: JuryPreviewUser) {
+		uiState = uiState.copy(
+			email = user.toPreviewEmail(),
+			password = JuryPreviewPassword,
+			emailError = null,
+			passwordError = null,
+			formError = null,
+			isJuryPickerVisible = false
 		)
 	}
 
@@ -101,5 +161,22 @@ class SignInViewModel(
 				}
 			}
 		}
+	}
+
+	private fun JuryPreviewUser.toPreviewEmail(): String {
+		val localPart = listOf(firstName, lastName.orEmpty())
+			.map { part ->
+				part.trim()
+					.lowercase()
+					.replace(' ', '_')
+			}
+			.filter { it.isNotBlank() }
+			.joinToString("_")
+
+		return "$localPart@example.com"
+	}
+
+	private companion object {
+		const val JuryPreviewPassword = "password"
 	}
 }

@@ -8,6 +8,9 @@
     <string name="auth_sign_in_title">Войдите в аккаунт</string>
     <string name="auth_sign_in_description">Вход возвращает вас в персональный сценарий и позволяет продолжить работу с рекомендациями.</string>
     <string name="auth_sign_in_button">Войти</string>
+    <string name="auth_sign_in_jury_picker_title">Выберите пользователя</string>
+    <string name="auth_sign_in_jury_picker_cancel">Отмена</string>
+    <string name="auth_sign_in_jury_picker_empty">Не удалось получить пользователей для preview.</string>
     <string name="auth_switch_to_sign_up">Перейти к регистрации</string>
 
     <string name="auth_sign_up_title">Создайте аккаунт</string>
@@ -58,7 +61,7 @@
     <string name="profile_setup_gender_male">Мужской</string>
     <string name="profile_setup_gender_female">Женский</string>
     <string name="profile_setup_region">Регион</string>
-    <string name="profile_setup_submit">Сохранить профиль</string>
+    <string name="profile_setup_submit">Сохранить и продолжить</string>
     <string name="profile_setup_pick_avatar">Выбрать фото</string>
     <string name="profile_setup_change_avatar">Изменить фото</string>
     <string name="profile_setup_avatar_placeholder">Фото</string>
