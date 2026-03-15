@@ -2,6 +2,7 @@ package com.prod.t_match.debug
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,11 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -38,7 +39,6 @@ import com.prod.tmatch_api.common.data.network.ApiResponseOverride
 import com.prod.tmatch_api.common.data.network.ApiResponseOverrideRegistry
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
-import com.prod.ui.components.text_fields.AppTextFieldWithDropdown
 import io.ktor.http.HttpMethod
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -393,33 +393,35 @@ private fun DebugOverrideEditorScreen(
 		}
 
 		item(key = "status") {
-			AppTextFieldWithDropdown(
+			DebugDropdownSelector(
+				title = "HTTP status",
 				value = state.statusCode,
-				label = "HTTP status",
-				readOnly = true,
-				dropdownItems = debugStatusOptions,
-				onDropdownItemSelected = { option ->
+				options = debugStatusOptions,
+				optionLabel = { option -> "${option.code} ${option.label}" },
+				onOptionSelected = { option ->
 					onStateChange(
 						state.copy(
 							statusCode = option.code.toString(),
+							body = if (option.code < 400) {
+								state.definition.defaultBody.toPrettyJson()
+							} else {
+								state.body
+							},
 							selectedPresetLabel = null,
 							error = null
 						)
 					)
-				},
-				dropDownItem = { option ->
-					Text("${option.code} ${option.label}")
 				}
 			)
 		}
 
 		item(key = "preset") {
-			AppTextFieldWithDropdown(
+			DebugDropdownSelector(
+				title = "Error preset",
 				value = state.selectedPresetLabel ?: "Выбери error preset",
-				label = "Error preset",
-				readOnly = true,
-				dropdownItems = debugErrorPresets,
-				onDropdownItemSelected = { preset ->
+				options = debugErrorPresets,
+				optionLabel = { preset -> "${preset.statusCode} ${preset.label}" },
+				onOptionSelected = { preset ->
 					onStateChange(
 						state.copy(
 							statusCode = preset.statusCode.toString(),
@@ -428,9 +430,6 @@ private fun DebugOverrideEditorScreen(
 							error = null
 						)
 					)
-				},
-				dropDownItem = { preset ->
-					Text("${preset.statusCode} ${preset.label}")
 				}
 			)
 		}
@@ -482,6 +481,53 @@ private fun DebugOverrideEditorScreen(
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.error
 				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun <T> DebugDropdownSelector(
+	title: String,
+	value: String,
+	options: List<T>,
+	optionLabel: (T) -> String,
+	onOptionSelected: (T) -> Unit
+) {
+	var expanded by remember { mutableStateOf(false) }
+
+	Column(
+		verticalArrangement = Arrangement.spacedBy(8.dp)
+	) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.labelLarge,
+			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+		Box(
+			modifier = Modifier.fillMaxWidth()
+		) {
+			AppMediumButton(
+				modifier = Modifier.fillMaxWidth(),
+				onClick = { expanded = true },
+				buttonText = value,
+				isLoading = false
+			)
+			DropdownMenu(
+				expanded = expanded,
+				onDismissRequest = { expanded = false }
+			) {
+				options.forEach { option ->
+					DropdownMenuItem(
+						text = {
+							Text(optionLabel(option))
+						},
+						onClick = {
+							onOptionSelected(option)
+							expanded = false
+						}
+					)
+				}
 			}
 		}
 	}
