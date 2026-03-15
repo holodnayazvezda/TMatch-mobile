@@ -2,6 +2,7 @@ package com.prod.t_match
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.CircularProgressIndicator
@@ -118,7 +119,9 @@ fun TMatchApp() {
 		) { innerPadding ->
 			NavDisplay(
 				backStack = backStack,
-				modifier = Modifier.padding(innerPadding),
+				modifier = Modifier
+					.padding(innerPadding)
+					.consumeWindowInsets(innerPadding),
 				entryDecorators = listOf(
 					rememberSaveableStateHolderNavEntryDecorator(saveableStateHolder),
 					rememberViewModelStoreNavEntryDecorator(viewModelStoreOwner) { true }
