@@ -10,8 +10,4 @@ interface AuthGateway {
 	suspend fun signUpWithEmail(email: String, password: String): ApiOperationResult<UserSession>
 	suspend fun getOwnProfile(): ApiOperationResult<Profile?>
 	suspend fun upsertOwnProfile(draft: ProfileDraft): ApiOperationResult<Profile>
-	suspend fun uploadDatingProfilePhoto(
-		contentType: String,
-		bytes: ByteArray
-	): ApiOperationResult<String>
 }

@@ -3,6 +3,8 @@ package com.prod.t_match.di
 import com.prod.auth.di.authFeatureModule
 import com.prod.auth.presentation.signin.SignInViewModel
 import com.prod.auth.presentation.signup.SignUpViewModel
+import com.prod.profile.di.profileFeatureModule
+import com.prod.profile.presentation.ProfileViewModel
 import com.prod.tmatch_api.di.tmatchApiDataModule
 import org.junit.After
 import org.junit.Assert.assertNotNull
@@ -22,11 +24,13 @@ class AppModulesSmokeTest {
 		val koin = startKoin {
 			modules(
 				tmatchApiDataModule(baseUrl = "https://example.com"),
-				authFeatureModule
+				authFeatureModule,
+				profileFeatureModule
 			)
 		}.koin
 
 		assertNotNull(koin.get<SignInViewModel>())
 		assertNotNull(koin.get<SignUpViewModel>())
+		assertNotNull(koin.get<ProfileViewModel>())
 	}
 }

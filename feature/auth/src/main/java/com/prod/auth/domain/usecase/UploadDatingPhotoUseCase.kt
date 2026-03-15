@@ -1,16 +1,16 @@
 package com.prod.auth.domain.usecase
 
-import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.profile.domain.gateway.ProfileGateway
 
 class UploadDatingPhotoUseCase(
-	private val authGateway: AuthGateway
+	private val profileGateway: ProfileGateway
 ) {
 	suspend operator fun invoke(
 		contentType: String,
 		bytes: ByteArray
 	): ApiOperationResult<String> {
-		return authGateway.uploadDatingProfilePhoto(
+		return profileGateway.uploadDatingProfilePhoto(
 			contentType = contentType,
 			bytes = bytes
 		)

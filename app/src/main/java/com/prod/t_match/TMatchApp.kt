@@ -93,7 +93,10 @@ fun TMatchApp() {
 						backStack = backStack,
 						state = authGraphState
 					)
-					profileGraph()
+					profileGraph(
+						onUnauthorized = authGraphState::onUnauthorized,
+						onRequestNoInternet = authGraphState::onRequestNoInternet
+					)
 					matchingGraph()
 					chatsGraph()
 					commonUiGraph(

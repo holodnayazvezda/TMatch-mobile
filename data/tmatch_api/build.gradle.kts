@@ -36,6 +36,7 @@ android {
 
 dependencies {
 	implementation(project(":api:auth"))
+	implementation(project(":api:profile"))
 	implementation(libs.koin.core)
 	implementation(libs.kotlinx.serialization.json)
 	implementation(libs.ktor.client.content.negotiation)

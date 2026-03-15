@@ -28,3 +28,10 @@ android {
 		targetCompatibility = JavaVersion.VERSION_11
 	}
 }
+
+dependencies {
+	implementation(project(":api:common"))
+	testImplementation(libs.junit)
+	androidTestImplementation(libs.androidx.junit)
+	androidTestImplementation(libs.androidx.espresso.core)
+}

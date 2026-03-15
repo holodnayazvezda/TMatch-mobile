@@ -27,7 +27,7 @@ val authFeatureModule = module {
 	single { SignUpWithEmailUseCase(authGateway = get()) }
 	single { GetOwnProfileUseCase(authGateway = get()) }
 	single { UpsertOwnProfileUseCase(authGateway = get()) }
-	single { UploadDatingPhotoUseCase(authGateway = get()) }
+	single { UploadDatingPhotoUseCase(profileGateway = get()) }
 
 	viewModel { OnboardingViewModel() }
 	viewModel {

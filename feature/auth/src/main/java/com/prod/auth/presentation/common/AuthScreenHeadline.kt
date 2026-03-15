@@ -16,7 +16,7 @@ fun AuthScreenHeadline(
 	description: String
 ) {
 	AuthScreenHeadlineTitle(title = title)
-	Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+	Spacer(modifier = Modifier.height(8.dp))
 	AuthScreenHeadlineDescription(description = description)
 }
 

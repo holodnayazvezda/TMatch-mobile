@@ -13,7 +13,6 @@ import com.prod.tmatch_api.auth.data.dto.EmailSignInRequestDto
 import com.prod.tmatch_api.auth.data.dto.EmailSignUpRequestDto
 import com.prod.tmatch_api.auth.data.dto.ProfileDto
 import com.prod.tmatch_api.auth.data.dto.UpsertProfileRequestDto
-import com.prod.tmatch_api.auth.data.dto.UploadDatingPhotoResponseDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
@@ -106,31 +105,6 @@ class KtorAuthGateway(
 
 			if (response.status.isSuccess()) {
 				ApiOperationResult.Success(response.body<ProfileDto>().toDomain())
-			} else {
-				mapErrorResponse(
-					status = response.status,
-					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
-				)
-			}
-		} catch (exception: Exception) {
-			handleException(exception)
-		}
-	}
-
-	override suspend fun uploadDatingProfilePhoto(
-		contentType: String,
-		bytes: ByteArray
-	): ApiOperationResult<String> {
-		return try {
-			val response = httpClient.post("/dating-profile/me/photos") {
-				accept(ContentType.Application.Json)
-				header(HttpHeaders.ContentType, contentType)
-				applyAuthorizedRequest()
-				setBody(bytes)
-			}
-
-			if (response.status.isSuccess()) {
-				ApiOperationResult.Success(response.body<UploadDatingPhotoResponseDto>().photoUrl)
 			} else {
 				mapErrorResponse(
 					status = response.status,
