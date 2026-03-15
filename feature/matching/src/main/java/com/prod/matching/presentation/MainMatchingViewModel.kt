@@ -87,6 +87,7 @@ class MainMatchingViewModel(
 
 	private fun submitAction(action: MatchAction) {
 		val currentProfile = uiState.currentProfile ?: return
+		advanceProfile()
 		viewModelScope.launch {
 			when (
 				val result = submitMatchActionUseCase(
@@ -95,8 +96,8 @@ class MainMatchingViewModel(
 					recommendationId = currentProfile.recommendationId
 				)
 			) {
-				null -> advanceProfile()
-				is ApiOperationResult.Success -> advanceProfile()
+				null -> Unit
+				is ApiOperationResult.Success -> Unit
 				is ApiOperationResult.ValidationError -> {
 					uiState = uiState.copy(error = result.message.orDefaultErrorMessage())
 				}
