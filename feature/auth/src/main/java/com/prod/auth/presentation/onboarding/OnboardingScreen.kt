@@ -1,13 +1,16 @@
 package com.prod.auth.presentation.onboarding
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +49,6 @@ fun OnboardingScreen(
 	Column(
 		modifier = modifier
 			.fillMaxSize()
-			.padding(horizontal = 24.dp)
 			.statusBarsPadding()
 			.navigationBarsPadding(),
 		horizontalAlignment = Alignment.CenterHorizontally
@@ -57,7 +59,9 @@ fun OnboardingScreen(
 			style = MaterialTheme.typography.titleLarge,
 			color = MaterialTheme.colorScheme.onBackground,
 			textAlign = TextAlign.Center,
-			modifier = Modifier.fillMaxWidth()
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = 24.dp)
 		)
 		Spacer(modifier = Modifier.height(12.dp))
 		HorizontalPager(
@@ -67,7 +71,18 @@ fun OnboardingScreen(
 				.weight(1f)
 				.fillMaxWidth()
 		) { pageIndex ->
-			OnboardingCard(page = uiState.pages[pageIndex])
+			Row(
+				modifier = Modifier.fillMaxSize()
+			) {
+				Spacer(modifier = Modifier.width(24.dp))
+				OnboardingCard(
+					page = uiState.pages[pageIndex],
+					modifier = Modifier
+						.weight(1f)
+						.fillMaxHeight()
+				)
+				Spacer(modifier = Modifier.width(24.dp))
+			}
 		}
 		Spacer(modifier = Modifier.height(24.dp))
 		OnboardingPagerIndicator(
@@ -76,12 +91,14 @@ fun OnboardingScreen(
 		)
 		Spacer(modifier = Modifier.height(20.dp))
 		AppMediumButton(
+			modifier = Modifier.padding(horizontal = 24.dp),
 			buttonText = stringResource(R.string.onboarding_existing_account),
 			isLoading = false,
 			onClick = onLogin
 		)
 		Spacer(modifier = Modifier.height(12.dp))
 		AppBigButton(
+			modifier = Modifier.padding(horizontal = 24.dp),
 			buttonText = stringResource(
 				if (isLastPage) R.string.onboarding_go_to_sign_up else R.string.onboarding_next
 			),
