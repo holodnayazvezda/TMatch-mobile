@@ -16,7 +16,10 @@ class TMatchApplication : Application() {
 		startKoin {
 			androidContext(this@TMatchApplication)
 				modules(
-					tmatchApiDataModule(baseUrl = BuildConfig.API_BASE_URL),
+					tmatchApiDataModule(
+						baseUrl = BuildConfig.API_BASE_URL,
+						enableResponseOverrides = BuildConfig.DEBUG
+					),
 					authFeatureModule,
 					matchingFeatureModule,
 					profileFeatureModule

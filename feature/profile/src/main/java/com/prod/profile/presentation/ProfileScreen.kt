@@ -72,6 +72,7 @@ fun ProfileScreen(
 	onUnauthorized: () -> Unit,
 	onLogout: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	onOpenDebugTools: (() -> Unit)? = null,
 	modifier: Modifier = Modifier,
 	viewModel: ProfileViewModel = koinViewModel()
 ) {
@@ -111,6 +112,7 @@ fun ProfileScreen(
 						)
 					},
 					onLogoutClick = { showLogoutDialog = true },
+					onOpenDebugTools = onOpenDebugTools,
 					modifier = Modifier.fillMaxSize()
 				)
 			}
@@ -205,6 +207,7 @@ private fun ProfileCardScene(
 	error: String?,
 	onChangePhotoClick: () -> Unit,
 	onLogoutClick: () -> Unit,
+	onOpenDebugTools: (() -> Unit)?,
 	modifier: Modifier = Modifier
 ) {
 	Column(
@@ -212,6 +215,7 @@ private fun ProfileCardScene(
 	) {
 		ProfileHeader(
 			onLogoutClick = onLogoutClick,
+			onOpenDebugTools = onOpenDebugTools,
 			isLogoutEnabled = !isLoggingOut
 		)
 
@@ -269,6 +273,7 @@ private fun ProfileCardScene(
 @Composable
 private fun ProfileHeader(
 	onLogoutClick: () -> Unit,
+	onOpenDebugTools: (() -> Unit)?,
 	isLogoutEnabled: Boolean,
 	modifier: Modifier = Modifier
 ) {
@@ -293,6 +298,16 @@ private fun ProfileHeader(
 				contentDescription = stringResource(R.string.profile_screen_logout_button),
 				tint = MaterialTheme.colorScheme.onBackground,
 				modifier = Modifier.size(22.dp)
+			)
+		}
+		if (onOpenDebugTools != null) {
+			AppMediumButton(
+				modifier = Modifier
+					.align(Alignment.CenterStart)
+					.widthIn(max = 180.dp),
+				buttonText = "Debug API",
+				isLoading = false,
+				onClick = onOpenDebugTools
 			)
 		}
 	}

@@ -78,12 +78,14 @@ fun <T> AppTextFieldWithDropdown(
     var isFocused by remember { mutableStateOf(false) }
 
     var textFieldValue by remember { mutableStateOf(TextFieldValue(value)) }
-    LaunchedEffect(value) {
-        if (textFieldValue.text != value) {
-            textFieldValue = textFieldValue.copy(
-                text = value,
-                selection = TextRange(value.length)
-            )
+    if (!readOnly) {
+        LaunchedEffect(value) {
+            if (textFieldValue.text != value) {
+                textFieldValue = textFieldValue.copy(
+                    text = value,
+                    selection = TextRange(value.length)
+                )
+            }
         }
     }
 
@@ -108,65 +110,124 @@ fun <T> AppTextFieldWithDropdown(
         ) {
             val anchorType = if (readOnly) ExposedDropdownMenuAnchorType.PrimaryNotEditable else ExposedDropdownMenuAnchorType.PrimaryEditable
 
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(anchorType)
-                    .onFocusChanged { isFocused = it.isFocused },
-                value = textFieldValue,
-                readOnly = readOnly,
-                onValueChange = {
-                    textFieldValue = it
-                    onValueChange(it.text)
-                },
-                textStyle = typography.labelLarge.copy(fontSize = 14.sp),
-                visualTransformation = visualTransformation,
-                placeholder = {
-                    Text(
-                        text = if (isFocused && !focusedPlaceholder.isNullOrEmpty()) focusedPlaceholder else label,
-                        style = typography.labelLarge,
-                        fontSize = 14.sp,
-                    )
-                },
-                isError = error != null,
-                supportingText = {
-                    if (error != null) {
-                        Spacer(Modifier.height(5.dp))
+            if (readOnly) {
+                OutlinedTextField(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(anchorType)
+                        .onFocusChanged { isFocused = it.isFocused },
+                    value = value,
+                    readOnly = true,
+                    onValueChange = onValueChange,
+                    textStyle = typography.labelLarge.copy(fontSize = 14.sp),
+                    visualTransformation = visualTransformation,
+                    placeholder = {
                         Text(
-                            text = error,
+                            text = if (isFocused && !focusedPlaceholder.isNullOrEmpty()) focusedPlaceholder else label,
                             style = typography.labelLarge,
-                            fontSize = 12.sp
+                            fontSize = 14.sp,
                         )
+                    },
+                    isError = error != null,
+                    supportingText = {
+                        if (error != null) {
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = error,
+                                style = typography.labelLarge,
+                                fontSize = 12.sp
+                            )
+                        }
+                    },
+                    keyboardOptions = keyboardOptions,
+                    singleLine = singleLine,
+                    maxLines = maxLines,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = colorScheme.surfaceContainerHighest,
+                        unfocusedContainerColor = colorScheme.surfaceContainerHighest,
+                        errorContainerColor = colorScheme.errorContainer,
+
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        errorBorderColor = Color.Transparent,
+
+                        focusedPlaceholderColor = colorScheme.onSurfaceVariant,
+                        unfocusedPlaceholderColor = colorScheme.onSurfaceVariant,
+                        errorPlaceholderColor = colorScheme.onErrorContainer,
+
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        errorTextColor = colorScheme.onErrorContainer,
+
+                        cursorColor = colorScheme.primary,
+                        errorCursorColor = colorScheme.onErrorContainer
+                    ),
+                    shape = RoundedCornerShape(15.dp),
+                    trailingIcon = {
+                        trailingIcon(expanded)
                     }
-                },
-                keyboardOptions = keyboardOptions,
-                singleLine = singleLine,
-                maxLines = maxLines,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = colorScheme.surfaceContainerHighest,
-                    unfocusedContainerColor = colorScheme.surfaceContainerHighest,
-                    errorContainerColor = colorScheme.errorContainer,
+                )
+            } else {
+                OutlinedTextField(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(anchorType)
+                        .onFocusChanged { isFocused = it.isFocused },
+                    value = textFieldValue,
+                    readOnly = false,
+                    onValueChange = {
+                        textFieldValue = it
+                        onValueChange(it.text)
+                    },
+                    textStyle = typography.labelLarge.copy(fontSize = 14.sp),
+                    visualTransformation = visualTransformation,
+                    placeholder = {
+                        Text(
+                            text = if (isFocused && !focusedPlaceholder.isNullOrEmpty()) focusedPlaceholder else label,
+                            style = typography.labelLarge,
+                            fontSize = 14.sp,
+                        )
+                    },
+                    isError = error != null,
+                    supportingText = {
+                        if (error != null) {
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = error,
+                                style = typography.labelLarge,
+                                fontSize = 12.sp
+                            )
+                        }
+                    },
+                    keyboardOptions = keyboardOptions,
+                    singleLine = singleLine,
+                    maxLines = maxLines,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = colorScheme.surfaceContainerHighest,
+                        unfocusedContainerColor = colorScheme.surfaceContainerHighest,
+                        errorContainerColor = colorScheme.errorContainer,
 
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    errorBorderColor = Color.Transparent,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        errorBorderColor = Color.Transparent,
 
-                    focusedPlaceholderColor = colorScheme.onSurfaceVariant,
-                    unfocusedPlaceholderColor = colorScheme.onSurfaceVariant,
-                    errorPlaceholderColor = colorScheme.onErrorContainer,
+                        focusedPlaceholderColor = colorScheme.onSurfaceVariant,
+                        unfocusedPlaceholderColor = colorScheme.onSurfaceVariant,
+                        errorPlaceholderColor = colorScheme.onErrorContainer,
 
-                    focusedTextColor = colorScheme.onSurface,
-                    unfocusedTextColor = colorScheme.onSurface,
-                    errorTextColor = colorScheme.onErrorContainer,
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        errorTextColor = colorScheme.onErrorContainer,
 
-                    cursorColor = colorScheme.primary,
-                    errorCursorColor = colorScheme.onErrorContainer
-                ),
-                shape = RoundedCornerShape(15.dp),
-                trailingIcon = {
-                    trailingIcon(expanded)
-                }
-            )
+                        cursorColor = colorScheme.primary,
+                        errorCursorColor = colorScheme.onErrorContainer
+                    ),
+                    shape = RoundedCornerShape(15.dp),
+                    trailingIcon = {
+                        trailingIcon(expanded)
+                    }
+                )
+            }
 
             ExposedDropdownMenu(
                 expanded = expanded,
