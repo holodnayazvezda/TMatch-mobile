@@ -32,6 +32,8 @@ import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import com.prod.ui.components.text_fields.AppTextFieldWithDropdown
 import io.ktor.http.HttpMethod
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 
 @Composable
@@ -50,8 +52,8 @@ fun DebugNetworkOverridesScreen(
 							enabled = override != null,
 							statusCode = override?.statusCode?.toString() ?: definition.defaultStatusCode.toString(),
 							savedStatusCode = override?.statusCode?.toString(),
-							body = override?.body ?: definition.defaultBody,
-							savedBody = override?.body,
+							body = (override?.body ?: definition.defaultBody).toPrettyJson(),
+							savedBody = override?.body?.toPrettyJson(),
 							selectedPresetLabel = null,
 							error = null
 						)
@@ -106,15 +108,15 @@ fun DebugNetworkOverridesScreen(
 				onClick = {
 					registry.clear()
 					val refreshedStates = debugEndpointDefinitions().map { definition ->
-							EndpointOverrideEditorState(
-								definition = definition,
-								enabled = false,
-								statusCode = definition.defaultStatusCode.toString(),
-								savedStatusCode = null,
-								body = definition.defaultBody,
-								savedBody = null,
-								selectedPresetLabel = null,
-								error = null
+						EndpointOverrideEditorState(
+							definition = definition,
+							enabled = false,
+							statusCode = definition.defaultStatusCode.toString(),
+							savedStatusCode = null,
+							body = definition.defaultBody.toPrettyJson(),
+							savedBody = null,
+							selectedPresetLabel = null,
+							error = null
 							)
 						}
 					editorStates.clear()
@@ -267,7 +269,7 @@ private fun DebugEndpointOverrideCard(
 					onStateChange(
 						state.copy(
 							statusCode = preset.statusCode.toString(),
-							body = preset.body,
+							body = preset.body.toPrettyJson(),
 							selectedPresetLabel = preset.label,
 							error = null
 						)
@@ -299,6 +301,25 @@ private fun DebugEndpointOverrideCard(
 					autoCorrectEnabled = false
 				)
 			)
+
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.End
+			) {
+				AppMediumButton(
+					modifier = Modifier.fillMaxWidth(),
+					onClick = {
+						onStateChange(
+							state.copy(
+								body = state.body.toPrettyJson(),
+								error = null
+							)
+						)
+					},
+					buttonText = "Форматировать JSON",
+					isLoading = false
+				)
+			}
 
 			state.error?.let { error ->
 				Text(
@@ -381,6 +402,11 @@ private val debugErrorPresets = listOf(
 )
 
 private const val DefaultMockImageUrl = "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6"
+@OptIn(ExperimentalSerializationApi::class)
+private val debugJsonFormatter = Json {
+	prettyPrint = true
+	prettyPrintIndent = "  "
+}
 
 private fun debugEndpointDefinitions(): List<DebugEndpointDefinition> {
 	return listOf(
@@ -448,4 +474,13 @@ private fun debugEndpointDefinitions(): List<DebugEndpointDefinition> {
 			defaultBody = """{"interaction_id":"interaction-1","actor_user_id":"debug-user","candidate_user_id":"candidate-1","action":"like","created_at":"2026-03-15T12:00:00Z","ml_recommendation_id":"rec-1"}"""
 		)
 	)
+}
+
+private fun String.toPrettyJson(): String {
+	return runCatching {
+		debugJsonFormatter.encodeToString(
+			kotlinx.serialization.json.JsonElement.serializer(),
+			debugJsonFormatter.parseToJsonElement(this)
+		)
+	}.getOrDefault(this)
 }
