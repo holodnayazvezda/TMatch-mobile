@@ -8,13 +8,23 @@ import com.prod.tmatch_api.auth.data.gateway.KtorAuthGateway
 import com.prod.tmatch_api.auth.data.gateway.SharedPrefsAuthSessionStore
 import com.prod.tmatch_api.match.data.gateway.KtorMatchGateway
 import com.prod.tmatch_api.auth.data.network.createAuthHttpClient
+import com.prod.tmatch_api.common.data.network.ApiResponseOverrideRegistry
+import com.prod.tmatch_api.common.data.network.InMemoryApiResponseOverrideRegistry
 import com.prod.tmatch_api.profile.data.gateway.KtorProfileGateway
 import org.koin.dsl.module
 
 fun tmatchApiDataModule(
-	baseUrl: String
+	baseUrl: String,
+	enableResponseOverrides: Boolean = false
 ) = module {
-	single { createAuthHttpClient(baseUrl = baseUrl) }
+	single<ApiResponseOverrideRegistry> { InMemoryApiResponseOverrideRegistry() }
+	single {
+		createAuthHttpClient(
+			baseUrl = baseUrl,
+			responseOverrideRegistry = get(),
+			enableOverrides = enableResponseOverrides
+		)
+	}
 	single<AuthSessionStore> {
 		SharedPrefsAuthSessionStore(context = get())
 	}
