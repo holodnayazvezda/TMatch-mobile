@@ -1,6 +1,9 @@
 package com.prod.tmatch_api.auth.data.gateway
 
+import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.domain.gateway.AuthGateway
+import com.prod.auth.domain.model.Profile
+import com.prod.auth.domain.model.ProfileDraft
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
@@ -8,12 +11,16 @@ import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import com.prod.tmatch_api.auth.data.dto.AuthResponseDto
 import com.prod.tmatch_api.auth.data.dto.EmailSignInRequestDto
 import com.prod.tmatch_api.auth.data.dto.EmailSignUpRequestDto
-import com.prod.tmatch_api.auth.data.network.createAuthHttpClient
+import com.prod.tmatch_api.auth.data.dto.ProfileDto
+import com.prod.tmatch_api.auth.data.dto.UpsertProfileRequestDto
+import com.prod.tmatch_api.auth.data.dto.UploadDatingPhotoResponseDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -25,7 +32,8 @@ import java.net.NoRouteToHostException
 import java.net.UnknownHostException
 
 class KtorAuthGateway(
-	private val httpClient: HttpClient
+	private val httpClient: HttpClient,
+	private val authSessionStore: AuthSessionStore
 ) : AuthGateway {
 
 	override suspend fun signInWithEmail(
@@ -54,6 +62,86 @@ class KtorAuthGateway(
 		)
 	}
 
+	override suspend fun getOwnProfile(): ApiOperationResult<Profile?> {
+		return try {
+			val response = httpClient.get("/profile") {
+				accept(ContentType.Application.Json)
+				applyAuthorizedRequest()
+			}
+
+			when {
+				response.status.isSuccess() -> {
+					ApiOperationResult.Success(response.body<ProfileDto>().toDomain())
+				}
+
+				response.status == HttpStatusCode.NotFound -> {
+					ApiOperationResult.Success(null)
+				}
+
+				else -> mapErrorResponse(response.status, responseBody = runCatching {
+					response.body<ApiErrorDto>()
+				}.getOrNull())
+			}
+		} catch (exception: Exception) {
+			handleException(exception)
+		}
+	}
+
+	override suspend fun upsertOwnProfile(draft: ProfileDraft): ApiOperationResult<Profile> {
+		return try {
+			val response = httpClient.put("/profile") {
+				accept(ContentType.Application.Json)
+				header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+				applyAuthorizedRequest()
+				setBody(
+					UpsertProfileRequestDto(
+						firstName = draft.firstName,
+						lastName = draft.lastName,
+						birthDate = draft.birthDate,
+						region = draft.region,
+						avatarUrl = draft.avatarUrl
+					)
+				)
+			}
+
+			if (response.status.isSuccess()) {
+				ApiOperationResult.Success(response.body<ProfileDto>().toDomain())
+			} else {
+				mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			handleException(exception)
+		}
+	}
+
+	override suspend fun uploadDatingProfilePhoto(
+		contentType: String,
+		bytes: ByteArray
+	): ApiOperationResult<String> {
+		return try {
+			val response = httpClient.post("/dating-profile/me/photos") {
+				accept(ContentType.Application.Json)
+				header(HttpHeaders.ContentType, contentType)
+				applyAuthorizedRequest()
+				setBody(bytes)
+			}
+
+			if (response.status.isSuccess()) {
+				ApiOperationResult.Success(response.body<UploadDatingPhotoResponseDto>().photoUrl)
+			} else {
+				mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			handleException(exception)
+		}
+	}
+
 	private suspend fun performAuthRequest(
 		path: String,
 		body: Any
@@ -74,39 +162,75 @@ class KtorAuthGateway(
 					)
 				)
 			} else {
-				val errorPayload = runCatching { response.body<ApiErrorDto>() }.getOrNull()
-				when (response.status) {
-					HttpStatusCode.BadRequest -> ApiOperationResult.ValidationError(
-						message = errorPayload?.detail
-					)
-
-					HttpStatusCode.InternalServerError,
-					HttpStatusCode.BadGateway,
-					HttpStatusCode.ServiceUnavailable,
-					HttpStatusCode.GatewayTimeout -> ApiOperationResult.ApiError(
-						reason = ApiErrorReason.ServiceUnavailable,
-						message = errorPayload?.detail
-					)
-
-					else -> ApiOperationResult.ApiError(
-						reason = ApiErrorReason.RequestFailed,
-						message = errorPayload?.detail
-					)
-				}
+				mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
 			}
-		} catch (_: UnresolvedAddressException) {
-			ApiOperationResult.NoInternet
-		} catch (_: UnknownHostException) {
-			ApiOperationResult.NoInternet
-		} catch (_: ConnectException) {
-			ApiOperationResult.NoInternet
-		} catch (_: NoRouteToHostException) {
-			ApiOperationResult.NoInternet
 		} catch (exception: Exception) {
-			ApiOperationResult.ApiError(
+			handleException(exception)
+		}
+	}
+
+	private fun mapErrorResponse(
+		status: HttpStatusCode,
+		responseBody: ApiErrorDto?
+	): ApiOperationResult<Nothing> {
+		return when (status) {
+			HttpStatusCode.Unauthorized -> {
+				authSessionStore.clear()
+				ApiOperationResult.ApiError(
+					reason = ApiErrorReason.Unauthorized,
+					message = responseBody?.detail
+				)
+			}
+
+			HttpStatusCode.BadRequest -> ApiOperationResult.ValidationError(
+				message = responseBody?.detail
+			)
+
+			HttpStatusCode.InternalServerError,
+			HttpStatusCode.BadGateway,
+			HttpStatusCode.ServiceUnavailable,
+			HttpStatusCode.GatewayTimeout -> ApiOperationResult.ApiError(
+				reason = ApiErrorReason.ServiceUnavailable,
+				message = responseBody?.detail
+			)
+
+			else -> ApiOperationResult.ApiError(
+				reason = ApiErrorReason.RequestFailed,
+				message = responseBody?.detail
+			)
+		}
+	}
+
+	private fun handleException(exception: Exception): ApiOperationResult<Nothing> {
+		return when (exception) {
+			is UnresolvedAddressException,
+			is UnknownHostException,
+			is ConnectException,
+			is NoRouteToHostException -> ApiOperationResult.NoInternet
+
+			else -> ApiOperationResult.ApiError(
 				reason = ApiErrorReason.RequestFailed,
 				message = exception.message?.takeIf { it.isNotBlank() }
 			)
 		}
+	}
+
+	private fun io.ktor.client.request.HttpRequestBuilder.applyAuthorizedRequest() {
+		val session = authSessionStore.get() ?: return
+		header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
+	}
+
+	private fun ProfileDto.toDomain(): Profile {
+		return Profile(
+			userId = userId,
+			firstName = firstName,
+			lastName = lastName,
+			birthDate = birthDate,
+			region = region,
+			avatarUrl = avatarUrl
+		)
 	}
 }

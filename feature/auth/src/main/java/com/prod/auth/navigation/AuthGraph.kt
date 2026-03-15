@@ -3,6 +3,7 @@ package com.prod.auth.navigation
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.prod.auth.presentation.onboarding.OnboardingScreen
+import com.prod.auth.presentation.profile.ProfileSetupScreen
 import com.prod.auth.presentation.signin.SignInScreen
 import com.prod.auth.presentation.signup.SignUpScreen
 
@@ -47,6 +48,16 @@ fun EntryProviderScope<Any>.authGraph(
 			},
 			onAuthSuccess = state::onAuthSuccess,
 			onRequestNoInternet = state::onRequestNoInternet
+		)
+	}
+
+	entry<ProfileSetupNavKey> {
+		ProfileSetupScreen(
+			onProfileCompleted = {
+				state.onProfileCompleted()
+			},
+			onRequestNoInternet = state::onRequestNoInternet,
+			onUnauthorized = state::onUnauthorized
 		)
 	}
 }

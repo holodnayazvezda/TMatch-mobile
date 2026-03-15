@@ -53,6 +53,7 @@ dependencies {
 	implementation(libs.kotlinx.serialization.json)
 	implementation(libs.koin.android)
 	implementation(libs.koin.androidx.compose)
+	implementation(libs.image.crop.view)
 	testImplementation(libs.junit)
 	androidTestImplementation(libs.androidx.junit)
 	androidTestImplementation(libs.androidx.espresso.core)

@@ -1,6 +1,7 @@
 package com.prod.auth.presentation.common
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -15,7 +16,7 @@ fun AuthFormErrorCard(
 	modifier: Modifier = Modifier
 ) {
 	Surface(
-		modifier = modifier,
+		modifier = modifier.fillMaxWidth(),
 		color = MaterialTheme.colorScheme.errorContainer,
 		contentColor = MaterialTheme.colorScheme.onErrorContainer,
 		shape = RoundedCornerShape(18.dp)

@@ -21,6 +21,7 @@ class AuthOperationResultUiMapper {
 
 		return UiText.StringResource(
 			resId = when (error.reason) {
+				ApiErrorReason.Unauthorized -> R.string.auth_error_unauthorized
 				ApiErrorReason.ServiceUnavailable -> R.string.auth_error_service_unavailable
 				ApiErrorReason.RequestFailed -> R.string.auth_error_request_failed
 			}

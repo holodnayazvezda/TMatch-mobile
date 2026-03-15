@@ -14,7 +14,7 @@ android {
 		targetSdk = 36
 		versionCode = 1
 		versionName = "1.0"
-		buildConfigField("String", "API_BASE_URL", "\"https://team-22-stage-e7e64b.pages.prodcontest.ru/\"")
+		buildConfigField("String", "API_BASE_URL", "\"https://team-22-staging-2-f9ab17.pages.prodcontest.ru/\"")
 
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}

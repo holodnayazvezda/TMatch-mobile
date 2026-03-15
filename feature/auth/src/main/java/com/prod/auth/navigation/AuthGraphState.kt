@@ -21,8 +21,21 @@ class AuthGraphState(
 ) {
 	fun onAuthSuccess(session: UserSession) {
 		authSessionStore.save(session)
+		authSessionStore.setProfileCompleted(false)
+		backStack.clear()
+		backStack.add(ProfileSetupNavKey())
+	}
+
+	fun onProfileCompleted() {
+		authSessionStore.setProfileCompleted(true)
 		backStack.clear()
 		backStack.add(ProfileNavKey())
+	}
+
+	fun onUnauthorized() {
+		authSessionStore.clear()
+		backStack.clear()
+		backStack.add(OnboardingNavKey())
 	}
 
 	fun onRequestNoInternet(retryAction: () -> Unit) = requestNoInternetInternal(retryAction)

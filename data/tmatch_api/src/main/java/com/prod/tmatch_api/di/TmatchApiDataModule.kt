@@ -11,10 +11,13 @@ fun tmatchApiDataModule(
 	baseUrl: String
 ) = module {
 	single { createAuthHttpClient(baseUrl = baseUrl) }
-	single<AuthGateway> {
-		KtorAuthGateway(httpClient = get())
-	}
 	single<AuthSessionStore> {
 		SharedPrefsAuthSessionStore(context = get())
+	}
+	single<AuthGateway> {
+		KtorAuthGateway(
+			httpClient = get(),
+			authSessionStore = get()
+		)
 	}
 }

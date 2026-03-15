@@ -46,6 +46,24 @@
     <string name="validation_confirm_password_mismatch">Пароли не совпадают</string>
 
     <string name="auth_error_invalid_input">Проверьте введённые данные и попробуйте ещё раз</string>
+    <string name="auth_error_unauthorized">Сессия истекла, войдите снова</string>
     <string name="auth_error_service_unavailable">Сервис временно недоступен, попробуйте ещё раз</string>
     <string name="auth_error_request_failed">Не удалось выполнить запрос, попробуйте ещё раз</string>
+
+    <string name="profile_setup_title">Заполните профиль</string>
+    <string name="profile_setup_description">Это обязательный шаг после регистрации. Дальше приложение сможет создать ваш базовый профиль и использовать фото как аватар.</string>
+    <string name="profile_setup_first_name">Имя</string>
+    <string name="profile_setup_last_name">Фамилия</string>
+    <string name="profile_setup_birth_date">Дата рождения</string>
+    <string name="profile_setup_region">Регион</string>
+    <string name="profile_setup_submit">Сохранить профиль</string>
+    <string name="profile_setup_pick_avatar">Выбрать фото</string>
+    <string name="profile_setup_change_avatar">Изменить фото</string>
+    <string name="profile_setup_avatar_placeholder">Фото</string>
+    <string name="profile_setup_avatar_content_description">Фото профиля</string>
+    <string name="profile_setup_crop_title">Обрежьте фото</string>
+    <string name="profile_setup_cancel_crop">Отмена</string>
+    <string name="profile_setup_apply_crop">Применить</string>
+    <string name="profile_setup_first_name_required">Введите имя</string>
+    <string name="profile_setup_birth_date_required">Выберите дату рождения</string>
 </resources>

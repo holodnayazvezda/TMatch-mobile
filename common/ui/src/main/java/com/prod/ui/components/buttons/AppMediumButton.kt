@@ -25,7 +25,7 @@ fun AppMediumButton(
     Button(
         modifier = modifier
             .fillMaxWidth()
-            .height(40.dp),
+            .height(55.dp),
         shape = RoundedCornerShape(10.dp),
         onClick = onClick,
         enabled = !isLoading,
@@ -41,7 +41,7 @@ fun AppMediumButton(
         } else {
             Text(
                 text = buttonText,
-                style = typography.labelLarge,
+                style = typography.titleMedium,
             )
         }
     }

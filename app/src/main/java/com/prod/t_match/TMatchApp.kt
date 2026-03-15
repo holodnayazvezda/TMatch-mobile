@@ -19,6 +19,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.navigation.OnboardingNavKey
+import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.auth.navigation.authGraph
 import com.prod.auth.navigation.rememberAuthGraphState
 import com.prod.chats.navigation.ChatsNavKey
@@ -37,10 +38,12 @@ fun TMatchApp() {
 	TmatchTheme {
 		val authSessionStore = koinInject<AuthSessionStore>()
 		val startDestination = remember(authSessionStore) {
-			if (authSessionStore.get() != null) {
+			if (authSessionStore.get() == null) {
+				OnboardingNavKey()
+			} else if (authSessionStore.isProfileCompleted()) {
 				ProfileNavKey()
 			} else {
-				OnboardingNavKey()
+				ProfileSetupNavKey()
 			}
 		}
 		val backStack = remember(startDestination) { mutableStateListOf<Any>(startDestination) }

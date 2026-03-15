@@ -33,10 +33,30 @@ class SharedPrefsAuthSessionStore(
 			.apply()
 	}
 
+	override fun isProfileCompleted(): Boolean {
+		if (get() == null) {
+			return false
+		}
+
+		return if (preferences.contains(KEY_PROFILE_COMPLETED)) {
+			preferences.getBoolean(KEY_PROFILE_COMPLETED, false)
+		} else {
+			// Preserve existing signed-in users after upgrade.
+			true
+		}
+	}
+
+	override fun setProfileCompleted(isCompleted: Boolean) {
+		preferences.edit()
+			.putBoolean(KEY_PROFILE_COMPLETED, isCompleted)
+			.apply()
+	}
+
 	override fun clear() {
 		preferences.edit()
 			.remove(KEY_ACCESS_TOKEN)
 			.remove(KEY_USER_ID)
+			.remove(KEY_PROFILE_COMPLETED)
 			.apply()
 	}
 
@@ -44,5 +64,6 @@ class SharedPrefsAuthSessionStore(
 		const val PREFERENCES_NAME = "auth_session"
 		const val KEY_ACCESS_TOKEN = "access_token"
 		const val KEY_USER_ID = "user_id"
+		const val KEY_PROFILE_COMPLETED = "profile_completed"
 	}
 }
