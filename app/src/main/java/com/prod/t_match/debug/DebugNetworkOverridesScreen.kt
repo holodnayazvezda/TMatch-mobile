@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -39,6 +37,7 @@ import com.prod.tmatch_api.common.data.network.ApiResponseOverride
 import com.prod.tmatch_api.common.data.network.ApiResponseOverrideRegistry
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
+import com.prod.ui.components.text_fields.AppTextFieldWithDropdown
 import io.ktor.http.HttpMethod
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -494,42 +493,19 @@ private fun <T> DebugDropdownSelector(
 	optionLabel: (T) -> String,
 	onOptionSelected: (T) -> Unit
 ) {
-	var expanded by remember { mutableStateOf(false) }
-
 	Column(
 		verticalArrangement = Arrangement.spacedBy(8.dp)
 	) {
-		Text(
-			text = title,
-			style = MaterialTheme.typography.labelLarge,
-			color = MaterialTheme.colorScheme.onSurfaceVariant
-		)
-		Box(
-			modifier = Modifier.fillMaxWidth()
-		) {
-			AppMediumButton(
-				modifier = Modifier.fillMaxWidth(),
-				onClick = { expanded = true },
-				buttonText = value,
-				isLoading = false
-			)
-			DropdownMenu(
-				expanded = expanded,
-				onDismissRequest = { expanded = false }
-			) {
-				options.forEach { option ->
-					DropdownMenuItem(
-						text = {
-							Text(optionLabel(option))
-						},
-						onClick = {
-							onOptionSelected(option)
-							expanded = false
-						}
-					)
-				}
+		AppTextFieldWithDropdown(
+			modifier = Modifier.fillMaxWidth(),
+			value = value,
+			label = title,
+			dropdownItems = options,
+			onDropdownItemSelected = onOptionSelected,
+			dropDownItem = { option ->
+				Text(optionLabel(option))
 			}
-		}
+		)
 	}
 }
 
