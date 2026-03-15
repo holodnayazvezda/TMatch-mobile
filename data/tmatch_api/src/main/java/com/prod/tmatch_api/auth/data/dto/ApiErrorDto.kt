@@ -5,5 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ApiErrorDto(
-	val detail: String? = null
+	val detail: String? = null,
+	val message: String? = null
 )

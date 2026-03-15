@@ -189,6 +189,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /profile/card:
+    get:
+      tags: [profile]
+      summary: Get own card (profile + dating profile)
+      security:
+        - BearerToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelfCardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /dating-profile/me:
     get:
       tags: [dating-profile]
@@ -333,15 +349,6 @@ paths:
         Requires a ready dating profile (exists and has at least one photo).
       security:
         - BearerToken: []
-      parameters:
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
       responses:
         '200':
           description: OK
@@ -642,6 +649,23 @@ components:
           format: uri
           nullable: true
 
+    SelfCardResponse:
+      type: object
+      additionalProperties: false
+      required: [user_id, profile, dating_profile]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        profile:
+          allOf:
+            - $ref: '#/components/schemas/ProfileResponse'
+          nullable: true
+        dating_profile:
+          allOf:
+            - $ref: '#/components/schemas/DatingProfileResponse'
+          nullable: true
+
     RecommendationsResponse:
       type: object
       additionalProperties: false
@@ -655,30 +679,77 @@ components:
     Recommendation:
       type: object
       additionalProperties: false
-      required: [ml_recommendation_id, candidate_user_id, reasons]
+      required: [ml_recommendation_id, user_id, candidate_user_id, reasons]
       properties:
         ml_recommendation_id:
           type: string
+        user_id:
+          type: string
+          format: uuid
         candidate_user_id:
           type: string
           format: uuid
         reasons:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/RecommendationReason'
+          type: object
+          minProperties: 1
+          description: Ключи должны быть из enum RecommendationFeatureName
+          propertyNames:
+            $ref: '#/components/schemas/RecommendationFeatureName'
+          additionalProperties:
+            type: number
+            format: float
+        candidate_card:
+          allOf:
+            - $ref: '#/components/schemas/RecommendationCandidateCard'
+          nullable: true
 
-    RecommendationReason:
+    RecommendationCandidateCard:
       type: object
       additionalProperties: false
-      required: [score, reason_type]
+      required: [user_id, profile, dating_profile]
       properties:
+        user_id:
+          type: string
+          format: uuid
+        profile:
+          allOf:
+            - $ref: '#/components/schemas/Profile'
+          nullable: true
+        dating_profile:
+          allOf:
+            - $ref: '#/components/schemas/RecommendationCandidateDatingProfile'
+          nullable: true
+
+    RecommendationCandidateDatingProfile:
+      type: object
+      additionalProperties: false
+      required: [photos, traits]
+      properties:
+        photos:
+          type: array
+          items:
+            type: string
+        traits:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendationCandidateDatingTrait'
+
+    RecommendationCandidateDatingTrait:
+      type: object
+      additionalProperties: false
+      required: [trait_code, score, is_hidden]
+      properties:
+        trait_code:
+          type: string
         score:
           type: number
           format: float
-        reason_type:
-          type: string
-          enum: [lifestyle]
+        is_hidden:
+          type: boolean
+
+    RecommendationFeatureName:
+      type: string
+      enum: [lifestyle]
 
     UpsertDatingProfileRequest:
       type: object
@@ -831,6 +902,74 @@ components:
         message:
           type: string
 ```
+
+## Internal API (backend -> ML)
+
+Контракт для интеграции backend с ML-сервисом. Backend выступает клиентом: запрашивает рекомендации у ML.
+
+### POST /ml/recommendations
+
+Backend запрашивает список кандидатов для пользователя. Формат ответа совпадает с DTO в backend (`RecommendationItem`).
+
+**Request** (backend -> ML):
+
+| Field    | Type   | Required | Description      |
+|----------|--------|----------|------------------|
+| user_id  | string | yes      | UUID пользователя |
+
+**Response** (ML -> backend), 200 OK:
+
+| Field   | Type  | Description |
+|---------|-------|-------------|
+| response[]                    | array  | Список рекомендаций |
+| response[].ml_recommendation_id | string | Идентификатор рекомендации от ML |
+| response[].user_id              | string | UUID пользователя, для которого сформирована рекомендация |
+| response[].candidate_user_id    | string | UUID кандидата (format: uuid) |
+| response[].reasons              | object | Причины/ранжирование: `feature_name -> score` |
+| response[].reasons keys         | enum   | `RecommendationFeatureName` |
+| response[].reasons.*            | number | Вклад фичи в скор (float) |
+
+**Response schemas (JSON):**
+
+```yaml
+# Request body (backend sends to ML)
+MlRecommendationsRequest:
+  type: object
+  required: [user_id]
+  properties:
+    user_id:
+      type: string
+      format: uuid
+
+# Response body (ML returns to backend)
+MlRecommendationsResponse:
+  type: array
+  items:
+    type: object
+    required: [ml_recommendation_id, user_id, candidate_user_id, reasons]
+    properties:
+      ml_recommendation_id:
+        type: string
+      user_id:
+        type: string
+        format: uuid
+      candidate_user_id:
+        type: string
+        format: uuid
+      reasons:
+        type: object
+        minProperties: 1
+        description: Ключи должны быть из enum RecommendationFeatureName
+        additionalProperties:
+          type: number
+          format: float
+
+RecommendationFeatureName:
+  type: string
+  enum: [lifestyle]
+```
+
+**Status codes:** `200` OK, `400` Bad request, `401` Unauthorized (если ML требует ключ), `503` Service unavailable.
 
 ## Domain Invariants (MVP)
 - Пользователь без заполненного `profile` не может получать рекомендации.

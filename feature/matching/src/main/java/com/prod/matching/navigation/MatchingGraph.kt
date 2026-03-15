@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
 import com.prod.match.navigation.MatchingNavKey
 import com.prod.matching.screens.MainMatchingScreen
+import org.koin.androidx.compose.koinViewModel
 
 fun EntryProviderScope<Any>.matchingGraph() {
 	entry<MatchingNavKey> {
@@ -16,6 +17,8 @@ fun EntryProviderScope<Any>.matchingGraph() {
 @Composable
 private fun MatchingScreen() {
 	Box(modifier = Modifier) {
-		MainMatchingScreen()
+		MainMatchingScreen(
+			viewModel = koinViewModel()
+		)
 	}
 }

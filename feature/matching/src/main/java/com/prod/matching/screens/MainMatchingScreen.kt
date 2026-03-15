@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -59,16 +58,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.prod.core.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.matching.R
 import com.prod.matching.model.MatchProfile
-import com.prod.matching.model.MatchingContentController
+import com.prod.matching.presentation.MainMatchingViewModel
 import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 import kotlin.math.abs
 
 private enum class SwipeDirection {
@@ -242,16 +243,47 @@ private fun buildDismissTargets(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainMatchingScreen(modifier: Modifier = Modifier) {
-	MainMatchingScreenMock(modifier = modifier)
+fun MainMatchingScreen(
+	modifier: Modifier = Modifier,
+	viewModel: MainMatchingViewModel = koinViewModel()
+) {
+	val uiState = viewModel.uiState
+	val controller = object : MainMatchingContentController {
+		override val currentProfile: MatchProfile? = uiState.currentProfile
+		override val nextProfile: MatchProfile? = uiState.nextProfile
+		override val isActionsSheetVisible: Boolean = uiState.isActionsSheetVisible
+
+		override fun onMoreClick() {
+			viewModel.onMoreClick()
+		}
+
+		override fun onSwiped(direction: SwipeDirection) {
+			when (direction) {
+				SwipeDirection.Left -> viewModel.onSwipeLeft()
+				SwipeDirection.Right -> viewModel.onSwipeRight()
+				SwipeDirection.Up -> viewModel.onSwipeUp()
+			}
+		}
+
+		override fun onDismissSheet() {
+			viewModel.onDismissSheet()
+		}
+	}
+
+	MainMatchingContent(
+		controller = controller,
+		isLoading = uiState.isLoading,
+		isLoadingMore = uiState.isLoadingMore,
+		error = uiState.error,
+		modifier = modifier
+	)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 private interface MainMatchingContentController {
-	val currentProfile: MatchProfile
+	val currentProfile: MatchProfile?
 	val nextProfile: MatchProfile?
 	val isActionsSheetVisible: Boolean
-	val sheetState: SheetState
 
 	fun onMoreClick()
 	fun onSwiped(direction: SwipeDirection)
@@ -262,23 +294,55 @@ private interface MainMatchingContentController {
 @Composable
 private fun MainMatchingContent(
 	controller: MainMatchingContentController,
+	isLoading: Boolean,
+	isLoadingMore: Boolean,
+	error: String?,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
+	val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+	val scope = rememberCoroutineScope()
 
 	Box(
 		modifier = modifier.fillMaxSize()
 	) {
+		if (isLoading) {
+			Text(
+				text = "Загрузка рекомендаций",
+				modifier = Modifier.align(Alignment.Center),
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onBackground
+			)
+			return@Box
+		}
+
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
 				.padding(horizontal = dim.cardStackInset)
 		) {
 			MatchingHeader()
+			error?.let { errorText ->
+				Surface(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(top = dim.small),
+					color = MaterialTheme.colorScheme.errorContainer,
+					contentColor = MaterialTheme.colorScheme.onErrorContainer,
+					shape = RoundedCornerShape(18.dp)
+					) {
+						Text(
+							text = errorText,
+						modifier = Modifier.padding(dim.small),
+						style = MaterialTheme.typography.bodyMedium
+					)
+				}
+			}
 			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
 			SwipeCardDeck(
 				currentProfile = controller.currentProfile,
 				nextProfile = controller.nextProfile,
+				isLoadingMore = isLoadingMore,
 				onMoreClick = controller::onMoreClick,
 				onSwiped = controller::onSwiped,
 				modifier = Modifier.weight(1f)
@@ -286,8 +350,13 @@ private fun MainMatchingContent(
 		}
 		if (controller.isActionsSheetVisible) {
 			MatchingActionsBottomSheet(
-				onDismiss = controller::onDismissSheet,
-				sheetState = controller.sheetState
+				onDismiss = {
+					scope.launch {
+						sheetState.hide()
+						controller.onDismissSheet()
+					}
+				},
+				sheetState = sheetState
 			)
 		}
 	}
@@ -321,16 +390,17 @@ private fun MatchingHeader() {
 
 @Composable
 private fun SwipeCardDeck(
-	currentProfile: MatchProfile,
+	currentProfile: MatchProfile?,
 	nextProfile: MatchProfile?,
+	isLoadingMore: Boolean,
 	onMoreClick: () -> Unit,
 	onSwiped: (SwipeDirection) -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
-	var offsetX by remember(currentProfile.id) { mutableFloatStateOf(0f) }
-	var offsetY by remember(currentProfile.id) { mutableFloatStateOf(0f) }
-	var rotation by remember(currentProfile.id) { mutableFloatStateOf(0f) }
+	var offsetX by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
+	var offsetY by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
+	var rotation by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
 	var deckHeight by remember { mutableIntStateOf(0) }
 	val scope = rememberCoroutineScope()
 	val colors = MaterialTheme.colorScheme
@@ -376,124 +446,128 @@ private fun SwipeCardDeck(
 						alpha = visualState.nextCardAlpha
 					}
 			)
+		} else {
+			MatchingDeckPlaceholderCard(
+				message = "Вы просмотрели всех пользователей.\nНовые рекомендации появятся позже.",
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2)
+					.graphicsLayer {
+						alpha = if (currentProfile != null) visualState.nextCardAlpha else 1f
+					}
+			)
 		}
-		ProfileCard(
-			profile = currentProfile,
-			onMoreClick = onMoreClick,
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(horizontal = dim.extraSmall / 2)
-				.graphicsLayer {
-					translationX = offsetX
-					translationY = offsetY
-					rotationZ = rotation
-					scaleX = visualState.currentCardScale
-					scaleY = visualState.currentCardScale
-					alpha = visualState.currentCardAlpha
-				}
-				.pointerInput(currentProfile.id) {
-					detectDragGestures(
-						onDrag = { change, dragAmount ->
-							change.consume()
+		currentProfile?.let { activeProfile ->
+			ProfileCard(
+				profile = activeProfile,
+				onMoreClick = onMoreClick,
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2)
+					.graphicsLayer {
+						translationX = offsetX
+						translationY = offsetY
+						rotationZ = rotation
+						scaleX = visualState.currentCardScale
+						scaleY = visualState.currentCardScale
+						alpha = visualState.currentCardAlpha
+					}
+					.pointerInput(activeProfile.id) {
+						detectDragGestures(
+							onDrag = { change, dragAmount ->
+								change.consume()
+								offsetX += dragAmount.x
+								offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
+								rotation = (offsetX / SwipeRotationDivisor)
+									.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
+							},
+							onDragEnd = {
+								val targetX = offsetX
+								val targetY = offsetY
+								val targetRotation = rotation
+								val direction = resolveDismissDirection(
+									offsetX = targetX,
+									offsetY = targetY
+								)
 
-							// During drag we update raw values directly so affordances stay perfectly
-							// locked to the finger, without any extra animation state in-between.
-							offsetX += dragAmount.x
-							offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
-							rotation = (offsetX / SwipeRotationDivisor)
-								.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
-						},
-						onDragEnd = {
-							val targetX = offsetX
-							val targetY = offsetY
-							val targetRotation = rotation
-							val direction = resolveDismissDirection(
-								offsetX = targetX,
-								offsetY = targetY
-							)
-
-							scope.launch {
-								if (direction != null) {
-									// Once the threshold is crossed we animate the card to the same
-									// off-screen targets that the final action implies.
-									val dismissTargets = buildDismissTargets(
-										direction = direction,
-										offsetX = targetX,
-										offsetY = targetY,
-										verticalDismissOffset = visualState.verticalDismissOffset
-									)
-									val dismissSpec = tween<Float>(
-										durationMillis = dismissTargets.durationMillis,
-										easing = FastOutSlowInEasing
-									)
-									listOf(
-										async {
-											animate(
-												initialValue = targetX,
-												targetValue = dismissTargets.translationX,
-												animationSpec = dismissSpec
-											) { value, _ -> offsetX = value }
-										},
-										async {
-											animate(
-												initialValue = targetY,
-												targetValue = dismissTargets.translationY,
-												animationSpec = dismissSpec
-											) { value, _ -> offsetY = value }
-										},
-										async {
-											animate(
-												initialValue = targetRotation,
-												targetValue = dismissTargets.rotation,
-												animationSpec = dismissSpec
-											) { value, _ -> rotation = value }
-										}
-									).awaitAll()
-
-									// After the card is accepted/rejected/skipped, keep the same
-									// affordance visible for a short fade so the result does not
-									// disappear on the exact frame when the next profile appears.
-									dismissedAffordance = affordanceByDirection[direction]
-									dismissedAffordanceProgress.snapTo(1f)
-									onSwiped(direction)
-									dismissedAffordanceProgress.animateTo(
-										targetValue = 0f,
-										animationSpec = tween(
-											durationMillis = SwipeAffordanceFadeOutDurationMillis,
+								scope.launch {
+									if (direction != null) {
+										val dismissTargets = buildDismissTargets(
+											direction = direction,
+											offsetX = targetX,
+											offsetY = targetY,
+											verticalDismissOffset = visualState.verticalDismissOffset
+										)
+										val dismissSpec = tween<Float>(
+											durationMillis = dismissTargets.durationMillis,
 											easing = FastOutSlowInEasing
 										)
-									)
-									dismissedAffordance = null
-								} else {
-									listOf(
-										async {
-											animate(
-												initialValue = targetX,
-												targetValue = 0f,
-												animationSpec = resetSpec
-											) { value, _ -> offsetX = value }
-										},
-										async {
-											animate(
-												initialValue = targetY,
-												targetValue = 0f,
-												animationSpec = resetSpec
-											) { value, _ -> offsetY = value }
-										},
-										async {
-											animate(
-												initialValue = targetRotation,
-												targetValue = 0f,
-												animationSpec = resetSpec
-											) { value, _ -> rotation = value }
-										}
-									).awaitAll()
+										listOf(
+											async {
+												animate(
+													initialValue = targetX,
+													targetValue = dismissTargets.translationX,
+													animationSpec = dismissSpec
+												) { value, _ -> offsetX = value }
+											},
+											async {
+												animate(
+													initialValue = targetY,
+													targetValue = dismissTargets.translationY,
+													animationSpec = dismissSpec
+												) { value, _ -> offsetY = value }
+											},
+											async {
+												animate(
+													initialValue = targetRotation,
+													targetValue = dismissTargets.rotation,
+													animationSpec = dismissSpec
+												) { value, _ -> rotation = value }
+											}
+										).awaitAll()
+
+										dismissedAffordance = affordanceByDirection[direction]
+										dismissedAffordanceProgress.snapTo(1f)
+										onSwiped(direction)
+										dismissedAffordanceProgress.animateTo(
+											targetValue = 0f,
+											animationSpec = tween(
+												durationMillis = SwipeAffordanceFadeOutDurationMillis,
+												easing = FastOutSlowInEasing
+											)
+										)
+										dismissedAffordance = null
+									} else {
+										listOf(
+											async {
+												animate(
+													initialValue = targetX,
+													targetValue = 0f,
+													animationSpec = resetSpec
+												) { value, _ -> offsetX = value }
+											},
+											async {
+												animate(
+													initialValue = targetY,
+													targetValue = 0f,
+													animationSpec = resetSpec
+												) { value, _ -> offsetY = value }
+											},
+											async {
+												animate(
+													initialValue = targetRotation,
+													targetValue = 0f,
+													animationSpec = resetSpec
+												) { value, _ -> rotation = value }
+											}
+										).awaitAll()
+									}
 								}
 							}
-						}
-					)
-				}
-		)
+						)
+					}
+			)
+		}
 		swipeAffordances.forEach { affordance ->
 			val rawProgress = swipeAffordanceProgress(
 				affordanceDirection = affordance.direction,
@@ -511,11 +585,53 @@ private fun SwipeCardDeck(
 			}
 		}
 		if (visualState.activeDirection == null && dismissedAffordance != null) {
+			val affordance = dismissedAffordance ?: return@Box
 			SwipeActionAffordance(
-				affordance = dismissedAffordance!!,
+				affordance = affordance,
 				progress = dismissedAffordanceProgress.value,
 				modifier = affordanceOverlayModifier
 			)
+		}
+	}
+}
+
+@Composable
+private fun MatchingDeckPlaceholderCard(
+	message: String,
+	modifier: Modifier = Modifier
+) {
+	val dim = LocalDimensions.current
+	val shapes = LocalShapes.current
+
+	CardFrame(
+		modifier = modifier,
+		outerShape = RoundedCornerShape(shapes.veryBigRoundedValue),
+		innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
+	) {
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.surfaceContainerHigh),
+			contentAlignment = Alignment.Center
+		) {
+			Column(
+				modifier = Modifier.padding(24.dp),
+				verticalArrangement = Arrangement.spacedBy(12.dp),
+				horizontalAlignment = Alignment.CenterHorizontally
+			) {
+				Icon(
+					painter = painterResource(R.drawable.ic_history_24),
+					contentDescription = null,
+					modifier = Modifier.size(32.dp),
+					tint = MaterialTheme.colorScheme.primary
+				)
+				Text(
+					text = message,
+					textAlign = TextAlign.Center,
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+			}
 		}
 	}
 }
@@ -594,10 +710,13 @@ private fun ProfileCard(
 		outerShape = outerShape,
 		innerShape = innerShape
 	) {
-		Image(
-			painter = painterResource(profile.imageRes),
+		AsyncImage(
+			model = profile.imageUrl,
 			contentDescription = "Фото ${profile.name}",
 			contentScale = ContentScale.Crop,
+			placeholder = painterResource(R.drawable.match_user_placeholder),
+			error = painterResource(R.drawable.match_user_placeholder),
+			fallback = painterResource(R.drawable.match_user_placeholder),
 			modifier = Modifier.fillMaxSize()
 		)
 		if (onMoreClick != null) {
@@ -613,7 +732,7 @@ private fun ProfileCard(
 		}
 		ScrimInfoBlock {
 			Text(
-				text = "${profile.name}, ${profile.age}",
+				text = profile.age?.let { "${profile.name}, $it" } ?: profile.name,
 				style = typo.titleLarge,
 				color = extraColors.onBaseScrim
 			)
@@ -785,55 +904,62 @@ private fun ColumnScope.BottomSheetHandle() {
 			.background(colors.onSurface.copy(alpha = 0.28f))
 	)
 }
-
-
-@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 390, heightDp = 844)
 @Composable
-private fun MainMatchingScreenMock(modifier: Modifier = Modifier) {
-	val profiles = remember { MatchingContentController.profiles() }
+private fun MainMatchingScreenPreview() {
+	val previewProfiles = remember {
+		listOf(
+			MatchProfile(
+				id = "preview-current",
+				name = "Марина Орлова",
+				age = 63,
+				matchLabel = "Схожий образ жизни",
+				imageUrl = null,
+				recommendationId = "preview-rec-1"
+			),
+			MatchProfile(
+				id = "preview-next",
+				name = "Александр Белый",
+				age = 70,
+				matchLabel = "Похожие семейные ценности",
+				imageUrl = null,
+				recommendationId = "preview-rec-2"
+			)
+		)
+	}
 	var currentIndex by rememberSaveable { mutableIntStateOf(0) }
 	var isActionsSheetVisible by rememberSaveable { mutableStateOf(false) }
-	val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-	val scope = rememberCoroutineScope()
-	val currentProfile = profiles[currentIndex % profiles.size]
-	val nextProfile =
-		profiles.getOrNull((currentIndex + 1) % profiles.size)
-			?.takeIf { it.id != currentProfile.id }
-	val controller = object : MainMatchingContentController {
-		override val currentProfile: MatchProfile = currentProfile
-		override val nextProfile: MatchProfile? = nextProfile
-		override val isActionsSheetVisible: Boolean = isActionsSheetVisible
-		override val sheetState: SheetState = sheetState
+	val previewController = object : MainMatchingContentController {
+		override val currentProfile: MatchProfile?
+			get() = previewProfiles.getOrNull(currentIndex)
+		override val nextProfile: MatchProfile?
+			get() = previewProfiles.getOrNull(currentIndex + 1)
+		override val isActionsSheetVisible: Boolean
+			get() = isActionsSheetVisible
 
 		override fun onMoreClick() {
 			isActionsSheetVisible = true
 		}
 
 		override fun onSwiped(direction: SwipeDirection) {
-			currentIndex = (currentIndex + 1) % profiles.size
+			currentIndex += 1
+			isActionsSheetVisible = false
 		}
 
 		override fun onDismissSheet() {
-			scope.launch {
-				sheetState.hide()
-				isActionsSheetVisible = false
-			}
+			isActionsSheetVisible = false
 		}
 	}
 
-	MainMatchingContent(
-		controller = controller,
-		modifier = modifier
-	)
-}
-
-
-@Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 390, heightDp = 844)
-@Composable
-private fun MainMatchingScreenPreview() {
 	TmatchTheme(darkTheme = true) {
 		Scaffold {
-			MainMatchingScreenMock(modifier = Modifier.padding(it))
+			MainMatchingContent(
+				controller = previewController,
+				isLoading = false,
+				isLoadingMore = false,
+				error = null,
+				modifier = Modifier.padding(it)
+			)
 		}
 	}
 }
