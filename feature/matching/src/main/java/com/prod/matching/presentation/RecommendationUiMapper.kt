@@ -1,6 +1,8 @@
 package com.prod.matching.presentation
 
 import com.prod.match.domain.model.Recommendation
+import com.prod.match.domain.model.RecommendationCandidateProfile
+import com.prod.match.domain.model.RecommendationReason
 import com.prod.match.domain.model.RecommendationReasonType
 import com.prod.matching.R
 import com.prod.matching.model.MatchProfile
@@ -25,13 +27,13 @@ class RecommendationUiMapper {
 		}
 	}
 
-	private fun com.prod.match.domain.model.RecommendationReason.toLabel(): String {
+	private fun RecommendationReason.toLabel(): String {
 		return when (reasonType) {
 			RecommendationReasonType.Lifestyle -> "Схожий образ жизни"
 		}
 	}
 
-	private fun com.prod.match.domain.model.RecommendationCandidateProfile?.toDisplayName(
+	private fun RecommendationCandidateProfile?.toDisplayName(
 		fallback: String
 	): String {
 		if (this == null) return fallback

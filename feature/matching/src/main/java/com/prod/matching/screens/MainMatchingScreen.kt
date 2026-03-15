@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -44,6 +43,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +63,6 @@ import com.prod.core.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.matching.R
 import com.prod.matching.model.MatchProfile
-import com.prod.matching.model.MatchingContentController
 import com.prod.matching.presentation.MainMatchingViewModel
 import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
@@ -908,9 +907,59 @@ private fun ColumnScope.BottomSheetHandle() {
 @Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 390, heightDp = 844)
 @Composable
 private fun MainMatchingScreenPreview() {
+	val previewProfiles = remember {
+		listOf(
+			MatchProfile(
+				id = "preview-current",
+				name = "Марина Орлова",
+				age = 63,
+				matchLabel = "Схожий образ жизни",
+				imageUrl = null,
+				recommendationId = "preview-rec-1"
+			),
+			MatchProfile(
+				id = "preview-next",
+				name = "Александр Белый",
+				age = 70,
+				matchLabel = "Похожие семейные ценности",
+				imageUrl = null,
+				recommendationId = "preview-rec-2"
+			)
+		)
+	}
+	var currentIndex by rememberSaveable { mutableIntStateOf(0) }
+	var isActionsSheetVisible by rememberSaveable { mutableStateOf(false) }
+	val previewController = object : MainMatchingContentController {
+		override val currentProfile: MatchProfile?
+			get() = previewProfiles.getOrNull(currentIndex)
+		override val nextProfile: MatchProfile?
+			get() = previewProfiles.getOrNull(currentIndex + 1)
+		override val isActionsSheetVisible: Boolean
+			get() = isActionsSheetVisible
+
+		override fun onMoreClick() {
+			isActionsSheetVisible = true
+		}
+
+		override fun onSwiped(direction: SwipeDirection) {
+			currentIndex += 1
+			isActionsSheetVisible = false
+		}
+
+		override fun onDismissSheet() {
+			isActionsSheetVisible = false
+		}
+	}
+
 	TmatchTheme(darkTheme = true) {
 		Scaffold {
-			MainMatchingScreen(modifier = Modifier.padding(it))
+			MainMatchingContent(
+				controller = previewController,
+				isLoading = false,
+				isLoadingMore = false,
+				error = null,
+				modifier = Modifier.padding(it)
+			)
 		}
 	}
 }
