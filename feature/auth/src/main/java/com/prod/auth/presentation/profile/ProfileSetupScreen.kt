@@ -47,6 +47,7 @@ import com.prod.ui.components.profile.SelectableProfileImage
 import com.prod.ui.components.profile.loadBitmapForCroppingFromUri
 import com.prod.ui.components.text_fields.AppTextField
 import com.prod.ui.components.text_fields.AppTextFieldWithDropdown
+import com.prod.ui.data.RussianRegions
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -187,16 +188,15 @@ fun ProfileSetupScreen(
 						)
 					}
 				)
-				AppTextField(
+				AppTextFieldWithDropdown(
 					modifier = Modifier.focusRequester(regionFocusRequester),
 					value = uiState.region,
-					onValueChange = viewModel::onRegionChange,
 					label = stringResource(R.string.profile_setup_region),
-					keyboardOptions = KeyboardOptions(
-						keyboardType = KeyboardType.Text,
-						imeAction = ImeAction.Done
-					),
-					onDone = submitProfile
+					dropdownItems = RussianRegions.all,
+					onDropdownItemSelected = viewModel::onRegionChange,
+					dropDownItem = { region ->
+						androidx.compose.material3.Text(text = region)
+					}
 				)
 				uiState.formError?.let { message ->
 					AuthFormErrorCard(
