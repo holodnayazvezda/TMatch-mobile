@@ -28,3 +28,7 @@ android {
 		targetCompatibility = JavaVersion.VERSION_11
 	}
 }
+
+dependencies {
+	api(project(":api:common"))
+}

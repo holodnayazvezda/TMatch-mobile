@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.prod.core.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.matching.R
@@ -248,7 +249,21 @@ fun MainMatchingScreen(
 	viewModel: MainMatchingViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
-	val currentProfile = uiState.currentProfile ?: return
+	val currentProfile = uiState.currentProfile
+	if (!uiState.isLoading && currentProfile == null) {
+		Box(
+			modifier = modifier.fillMaxSize(),
+			contentAlignment = Alignment.Center
+		) {
+			Text(
+				text = uiState.error ?: "Рекомендаций пока нет",
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		}
+		return
+	}
+	currentProfile ?: return
 	val controller = object : MainMatchingContentController {
 		override val currentProfile: MatchProfile = currentProfile
 		override val nextProfile: MatchProfile? = uiState.nextProfile
@@ -273,6 +288,8 @@ fun MainMatchingScreen(
 
 	MainMatchingContent(
 		controller = controller,
+		isLoading = uiState.isLoading,
+		error = uiState.error,
 		modifier = modifier
 	)
 }
@@ -292,6 +309,8 @@ private interface MainMatchingContentController {
 @Composable
 private fun MainMatchingContent(
 	controller: MainMatchingContentController,
+	isLoading: Boolean,
+	error: String?,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -301,12 +320,38 @@ private fun MainMatchingContent(
 	Box(
 		modifier = modifier.fillMaxSize()
 	) {
+		if (isLoading) {
+			Text(
+				text = "Загрузка рекомендаций",
+				modifier = Modifier.align(Alignment.Center),
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onBackground
+			)
+			return@Box
+		}
+
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
 				.padding(horizontal = dim.cardStackInset)
 		) {
 			MatchingHeader()
+			error?.let { errorText ->
+				Surface(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(top = dim.small),
+					color = MaterialTheme.colorScheme.errorContainer,
+					contentColor = MaterialTheme.colorScheme.onErrorContainer,
+					shape = RoundedCornerShape(18.dp)
+					) {
+						Text(
+							text = errorText,
+						modifier = Modifier.padding(dim.small),
+						style = MaterialTheme.typography.bodyMedium
+					)
+				}
+			}
 			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
 			SwipeCardDeck(
 				currentProfile = controller.currentProfile,
@@ -632,10 +677,13 @@ private fun ProfileCard(
 		outerShape = outerShape,
 		innerShape = innerShape
 	) {
-		Image(
-			painter = painterResource(profile.imageRes),
+		AsyncImage(
+			model = profile.imageUrl,
 			contentDescription = "Фото ${profile.name}",
 			contentScale = ContentScale.Crop,
+			placeholder = painterResource(R.drawable.match_user_placeholder),
+			error = painterResource(R.drawable.match_user_placeholder),
+			fallback = painterResource(R.drawable.match_user_placeholder),
 			modifier = Modifier.fillMaxSize()
 		)
 		if (onMoreClick != null) {
@@ -651,7 +699,7 @@ private fun ProfileCard(
 		}
 		ScrimInfoBlock {
 			Text(
-				text = "${profile.name}, ${profile.age}",
+				text = profile.age?.let { "${profile.name}, $it" } ?: profile.name,
 				style = typo.titleLarge,
 				color = extraColors.onBaseScrim
 			)

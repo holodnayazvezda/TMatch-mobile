@@ -16,6 +16,10 @@ import java.net.UnknownHostException
 internal class KtorGatewaySupport(
 	private val authSessionStore: AuthSessionStore
 ) {
+	private fun ApiErrorDto?.resolvedMessage(): String? {
+		return this?.detail ?: this?.message
+	}
+
 	fun mapErrorResponse(
 		status: HttpStatusCode,
 		responseBody: ApiErrorDto?
@@ -25,12 +29,12 @@ internal class KtorGatewaySupport(
 				authSessionStore.clear()
 				ApiOperationResult.ApiError(
 					reason = ApiErrorReason.Unauthorized,
-					message = responseBody?.detail
+					message = responseBody.resolvedMessage()
 				)
 			}
 
 			HttpStatusCode.BadRequest -> ApiOperationResult.ValidationError(
-				message = responseBody?.detail
+				message = responseBody.resolvedMessage()
 			)
 
 			HttpStatusCode.InternalServerError,
@@ -38,12 +42,12 @@ internal class KtorGatewaySupport(
 			HttpStatusCode.ServiceUnavailable,
 			HttpStatusCode.GatewayTimeout -> ApiOperationResult.ApiError(
 				reason = ApiErrorReason.ServiceUnavailable,
-				message = responseBody?.detail
+				message = responseBody.resolvedMessage()
 			)
 
 			else -> ApiOperationResult.ApiError(
 				reason = ApiErrorReason.RequestFailed,
-				message = responseBody?.detail
+				message = responseBody.resolvedMessage()
 			)
 		}
 	}
