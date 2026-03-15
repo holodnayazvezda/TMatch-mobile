@@ -7,24 +7,50 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.domain.model.MatchAction
+import com.prod.matching.domain.model.PendingMatchAction
 import com.prod.matching.domain.usecase.GetMatchingFeedUseCase
 import com.prod.matching.domain.usecase.SubmitMatchActionUseCase
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import java.util.ArrayDeque
 
 class MainMatchingViewModel(
 	private val getMatchingFeedUseCase: GetMatchingFeedUseCase,
 	private val submitMatchActionUseCase: SubmitMatchActionUseCase,
-	private val recommendationUiMapper: RecommendationUiMapper
+	private val recommendationUiMapper: RecommendationUiMapper,
+	private val pendingMatchActionStore: PendingMatchActionStore
 ) : ViewModel() {
 
-	private var isLoadMoreInFlight = false
+	// Prevents parallel pagination requests when the user reaches the end of the current deck.
+	private val loadMoreMutex = Mutex()
+	// Ensures the pending reactions queue is drained by a single coroutine at a time.
+	private val pendingActionsMutex = Mutex()
+	// Guards one-time recovery of persisted actions and initial feed loading.
+	private var isInitialized = false
+	// Navigation callback is injected from the screen because ViewModel must not own navigation.
+	private var unauthorizedHandler: (() -> Unit)? = null
+	// In-memory mirror of persisted optimistic reactions waiting to be sent to the backend.
+	private val pendingActions = ArrayDeque<PendingMatchAction>()
 
 	var uiState by mutableStateOf(MainMatchingUiState())
 		private set
 
-	init {
+	fun initialize(
+		onUnauthorized: () -> Unit
+	) {
+		unauthorizedHandler = onUnauthorized
+		if (isInitialized) {
+			return
+		}
+
+		isInitialized = true
+		// Recover optimistic actions from the previous process before talking to the network.
+		restorePendingActions()
 		loadFeed()
+		// Start draining immediately so pending reactions are not stuck until the next swipe.
+		processPendingActions()
 	}
 
 	fun onMoreClick() {
@@ -69,6 +95,12 @@ class MainMatchingViewModel(
 				}
 
 				is ApiOperationResult.ApiError -> {
+					if (result.reason == ApiErrorReason.Unauthorized) {
+						uiState = uiState.copy(isLoading = false, error = null)
+						handleUnauthorized()
+						return@launch
+					}
+
 					uiState = uiState.copy(
 						isLoading = false,
 						error = result.toMessage()
@@ -87,30 +119,17 @@ class MainMatchingViewModel(
 
 	private fun submitAction(action: MatchAction) {
 		val currentProfile = uiState.currentProfile ?: return
+		pendingActions.addLast(
+			PendingMatchAction(
+				profileId = currentProfile.id,
+				recommendationId = currentProfile.recommendationId,
+				action = action
+			)
+		)
+		// Persist before the UI advances so the swipe survives process death.
+		syncPendingActions()
 		advanceProfile()
-		viewModelScope.launch {
-			when (
-				val result = submitMatchActionUseCase(
-					profileId = currentProfile.id,
-					action = action,
-					recommendationId = currentProfile.recommendationId
-				)
-			) {
-				null -> Unit
-				is ApiOperationResult.Success -> Unit
-				is ApiOperationResult.ValidationError -> {
-					uiState = uiState.copy(error = result.message.orDefaultErrorMessage())
-				}
-
-				is ApiOperationResult.ApiError -> {
-					uiState = uiState.copy(error = result.toMessage())
-				}
-
-				ApiOperationResult.NoInternet -> {
-					uiState = uiState.copy(error = "Нет подключения к интернету")
-				}
-			}
-		}
+		processPendingActions()
 	}
 
 	private fun advanceProfile() {
@@ -123,51 +142,138 @@ class MainMatchingViewModel(
 		loadMoreIfNeeded()
 	}
 
-	private fun loadMoreIfNeeded() {
-		val remainingItems = uiState.profiles.size - uiState.currentIndex - 1
-		if (remainingItems > 2 || isLoadMoreInFlight || uiState.isLoading) {
+	private fun processPendingActions() {
+		if (pendingActions.isEmpty() || !pendingActionsMutex.tryLock()) {
 			return
 		}
 
-		isLoadMoreInFlight = true
 		viewModelScope.launch {
-			uiState = uiState.copy(isLoadingMore = true)
-			when (val result = getMatchingFeedUseCase()) {
-				is ApiOperationResult.Success -> {
-					val appendedProfiles = recommendationUiMapper.mapRecommendations(result.data)
-					val knownRecommendationIds = uiState.profiles.mapNotNull { it.recommendationId }.toHashSet()
-					val newProfiles = appendedProfiles.filterNot { profile ->
-						profile.recommendationId != null && profile.recommendationId in knownRecommendationIds
+			try {
+				// Deliver reactions in order to avoid reordering user intent across retries.
+				while (pendingActions.isNotEmpty()) {
+					val pendingAction = pendingActions.first()
+					when (
+						val result = submitMatchActionUseCase(
+							profileId = pendingAction.profileId,
+							action = pendingAction.action,
+							recommendationId = pendingAction.recommendationId
+						)
+					) {
+						null,
+						is ApiOperationResult.Success -> {
+							pendingActions.removeFirst()
+							syncPendingActions()
+						}
+
+						is ApiOperationResult.ValidationError -> {
+							pendingActions.removeFirst()
+							syncPendingActions()
+							uiState = uiState.copy(error = result.message.orDefaultErrorMessage())
+						}
+
+						is ApiOperationResult.ApiError -> {
+							if (result.reason == ApiErrorReason.Unauthorized) {
+								uiState = uiState.copy(error = null)
+								pendingActions.clear()
+								syncPendingActions()
+								handleUnauthorized()
+								break
+							}
+
+							uiState = uiState.copy(
+								error = "Не удалось синхронизировать реакцию"
+							)
+							// Keep the failed item in storage and retry later from the same queue head.
+							break
+						}
+
+						ApiOperationResult.NoInternet -> {
+							uiState = uiState.copy(
+								error = "Нет подключения к интернету"
+							)
+							// Leave the queue intact; it will be retried on the next matching entry/action.
+							break
+						}
 					}
-					uiState = uiState.copy(
-						isLoadingMore = false,
-						profiles = uiState.profiles + newProfiles
-					)
 				}
-
-				is ApiOperationResult.ValidationError -> {
-					uiState = uiState.copy(
-						isLoadingMore = false,
-						error = result.message.orDefaultErrorMessage()
-					)
-				}
-
-				is ApiOperationResult.ApiError -> {
-					uiState = uiState.copy(
-						isLoadingMore = false,
-						error = result.toMessage()
-					)
-				}
-
-				ApiOperationResult.NoInternet -> {
-					uiState = uiState.copy(
-						isLoadingMore = false,
-						error = "Нет подключения к интернету"
-					)
-				}
+			} finally {
+				pendingActionsMutex.unlock()
 			}
-			isLoadMoreInFlight = false
 		}
+	}
+
+	private fun loadMoreIfNeeded() {
+		val remainingItems = uiState.profiles.size - uiState.currentIndex - 1
+		if (remainingItems > 2 || uiState.isLoading || !loadMoreMutex.tryLock()) {
+			return
+		}
+
+		viewModelScope.launch {
+			try {
+				uiState = uiState.copy(isLoadingMore = true)
+				when (val result = getMatchingFeedUseCase()) {
+					is ApiOperationResult.Success -> {
+						val appendedProfiles = recommendationUiMapper.mapRecommendations(result.data)
+						val knownRecommendationIds = uiState.profiles.mapNotNull { it.recommendationId }.toHashSet()
+						val newProfiles = appendedProfiles.filterNot { profile ->
+							profile.recommendationId != null && profile.recommendationId in knownRecommendationIds
+						}
+						uiState = uiState.copy(
+							isLoadingMore = false,
+							profiles = uiState.profiles + newProfiles
+						)
+					}
+
+					is ApiOperationResult.ValidationError -> {
+						uiState = uiState.copy(
+							isLoadingMore = false,
+							error = result.message.orDefaultErrorMessage()
+						)
+					}
+
+					is ApiOperationResult.ApiError -> {
+						if (result.reason == ApiErrorReason.Unauthorized) {
+							uiState = uiState.copy(isLoadingMore = false, error = null)
+							handleUnauthorized()
+							return@launch
+						}
+
+						uiState = uiState.copy(
+							isLoadingMore = false,
+							error = result.toMessage()
+						)
+					}
+
+					ApiOperationResult.NoInternet -> {
+						uiState = uiState.copy(
+							isLoadingMore = false,
+							error = "Нет подключения к интернету"
+						)
+					}
+				}
+			} finally {
+				loadMoreMutex.unlock()
+			}
+		}
+	}
+
+	private fun handleUnauthorized() {
+		unauthorizedHandler?.invoke()
+	}
+
+	private fun restorePendingActions() {
+		// The in-memory queue is reconstructed on every fresh ViewModel session from local storage.
+		pendingActions.clear()
+		pendingActions.addAll(pendingMatchActionStore.getAll())
+	}
+
+	private fun syncPendingActions() {
+		if (pendingActions.isEmpty()) {
+			pendingMatchActionStore.clear()
+			return
+		}
+
+		pendingMatchActionStore.saveAll(pendingActions.toList())
 	}
 
 	private fun ApiOperationResult.ApiError.toMessage(): String {
