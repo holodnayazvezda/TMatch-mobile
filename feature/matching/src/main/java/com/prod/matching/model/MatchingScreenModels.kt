@@ -3,7 +3,7 @@ package com.prod.matching.model
 import androidx.annotation.DrawableRes
 import com.prod.matching.R
 
-internal data class MatchProfile(
+data class MatchProfile(
 	val id: String,
 	val name: String,
 	val age: Int,
@@ -11,7 +11,7 @@ internal data class MatchProfile(
 	@param:DrawableRes val imageRes: Int
 )
 
-internal object MatchingContentController {
+object MatchingContentController {
 	private val PlaceholderImageRes = R.drawable.match_user_placeholder
 
 	private val sampleProfiles = listOf(
