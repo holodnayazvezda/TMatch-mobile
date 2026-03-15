@@ -37,6 +37,7 @@ android {
 dependencies {
 	implementation(project(":api:auth"))
 	implementation(project(":api:profile"))
+	implementation(libs.androidx.security.crypto)
 	implementation(libs.koin.core)
 	implementation(libs.kotlinx.serialization.json)
 	implementation(libs.ktor.client.content.negotiation)

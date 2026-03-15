@@ -2,6 +2,8 @@ package com.prod.tmatch_api.auth.data.gateway
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.common.api.model.UserSession
 
@@ -9,8 +11,15 @@ class SharedPrefsAuthSessionStore(
 	context: Context
 ) : AuthSessionStore {
 
-	private val preferences: SharedPreferences =
-		context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+	private val preferences: SharedPreferences = EncryptedSharedPreferences.create(
+		context,
+		PREFERENCES_NAME,
+		MasterKey.Builder(context)
+			.setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+			.build(),
+		EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+		EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+	)
 
 	override fun get(): UserSession? {
 		val accessToken = preferences.getString(KEY_ACCESS_TOKEN, null)

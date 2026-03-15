@@ -13,6 +13,7 @@ import com.prod.tmatch_api.auth.data.dto.EmailSignInRequestDto
 import com.prod.tmatch_api.auth.data.dto.EmailSignUpRequestDto
 import com.prod.tmatch_api.auth.data.dto.ProfileDto
 import com.prod.tmatch_api.auth.data.dto.UpsertProfileRequestDto
+import com.prod.tmatch_api.common.data.network.KtorGatewaySupport
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
@@ -25,15 +26,13 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
-import io.ktor.util.network.UnresolvedAddressException
-import java.net.ConnectException
-import java.net.NoRouteToHostException
-import java.net.UnknownHostException
 
 class KtorAuthGateway(
 	private val httpClient: HttpClient,
 	private val authSessionStore: AuthSessionStore
 ) : AuthGateway {
+
+	private val gatewaySupport = KtorGatewaySupport(authSessionStore)
 
 	override suspend fun signInWithEmail(
 		email: String,
@@ -65,7 +64,9 @@ class KtorAuthGateway(
 		return try {
 			val response = httpClient.get("/profile") {
 				accept(ContentType.Application.Json)
-				applyAuthorizedRequest()
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
 			}
 
 			when {
@@ -77,12 +78,13 @@ class KtorAuthGateway(
 					ApiOperationResult.Success(null)
 				}
 
-				else -> mapErrorResponse(response.status, responseBody = runCatching {
-					response.body<ApiErrorDto>()
-				}.getOrNull())
+				else -> gatewaySupport.mapErrorResponse(
+					response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
 			}
 		} catch (exception: Exception) {
-			handleException(exception)
+			gatewaySupport.handleException(exception)
 		}
 	}
 
@@ -91,7 +93,9 @@ class KtorAuthGateway(
 			val response = httpClient.put("/profile") {
 				accept(ContentType.Application.Json)
 				header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-				applyAuthorizedRequest()
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
 				setBody(
 					UpsertProfileRequestDto(
 						firstName = draft.firstName,
@@ -106,13 +110,13 @@ class KtorAuthGateway(
 			if (response.status.isSuccess()) {
 				ApiOperationResult.Success(response.body<ProfileDto>().toDomain())
 			} else {
-				mapErrorResponse(
+				gatewaySupport.mapErrorResponse(
 					status = response.status,
 					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
 				)
 			}
 		} catch (exception: Exception) {
-			handleException(exception)
+			gatewaySupport.handleException(exception)
 		}
 	}
 
@@ -136,66 +140,15 @@ class KtorAuthGateway(
 					)
 				)
 			} else {
-				mapErrorResponse(
-					status = response.status,
-					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
-				)
+					gatewaySupport.mapErrorResponse(
+						status = response.status,
+						responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+					)
+				}
+			} catch (exception: Exception) {
+				gatewaySupport.handleException(exception)
 			}
-		} catch (exception: Exception) {
-			handleException(exception)
 		}
-	}
-
-	private fun mapErrorResponse(
-		status: HttpStatusCode,
-		responseBody: ApiErrorDto?
-	): ApiOperationResult<Nothing> {
-		return when (status) {
-			HttpStatusCode.Unauthorized -> {
-				authSessionStore.clear()
-				ApiOperationResult.ApiError(
-					reason = ApiErrorReason.Unauthorized,
-					message = responseBody?.detail
-				)
-			}
-
-			HttpStatusCode.BadRequest -> ApiOperationResult.ValidationError(
-				message = responseBody?.detail
-			)
-
-			HttpStatusCode.InternalServerError,
-			HttpStatusCode.BadGateway,
-			HttpStatusCode.ServiceUnavailable,
-			HttpStatusCode.GatewayTimeout -> ApiOperationResult.ApiError(
-				reason = ApiErrorReason.ServiceUnavailable,
-				message = responseBody?.detail
-			)
-
-			else -> ApiOperationResult.ApiError(
-				reason = ApiErrorReason.RequestFailed,
-				message = responseBody?.detail
-			)
-		}
-	}
-
-	private fun handleException(exception: Exception): ApiOperationResult<Nothing> {
-		return when (exception) {
-			is UnresolvedAddressException,
-			is UnknownHostException,
-			is ConnectException,
-			is NoRouteToHostException -> ApiOperationResult.NoInternet
-
-			else -> ApiOperationResult.ApiError(
-				reason = ApiErrorReason.RequestFailed,
-				message = exception.message?.takeIf { it.isNotBlank() }
-			)
-		}
-	}
-
-	private fun io.ktor.client.request.HttpRequestBuilder.applyAuthorizedRequest() {
-		val session = authSessionStore.get() ?: return
-		header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
-	}
 
 	private fun ProfileDto.toDomain(): Profile {
 		return Profile(
