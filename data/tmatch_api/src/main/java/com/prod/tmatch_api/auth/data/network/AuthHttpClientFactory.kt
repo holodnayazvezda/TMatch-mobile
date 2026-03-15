@@ -21,10 +21,19 @@ import io.ktor.client.request.setBody
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.core.readBytes
+import io.ktor.utils.io.readRemaining
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.MediaType.Companion.toMediaType
 
 private const val HTTP_LOG_TAG = "AuthHttpClient"
 
@@ -34,11 +43,19 @@ fun createAuthHttpClient(
 	enableOverrides: Boolean = false,
 	fallbackClient: HttpClient? = null
 ): HttpClient {
-	val networkClient = fallbackClient ?: createConfiguredHttpClient(
-		engine = OkHttp.create(),
-		baseUrl = baseUrl
-	)
+	if (fallbackClient == null) {
+		val engine = OkHttp.create {
+			if (enableOverrides && responseOverrideRegistry != null) {
+				addInterceptor(ApiResponseOverrideInterceptor(responseOverrideRegistry))
+			}
+		}
+		return createConfiguredHttpClient(
+			engine = engine,
+			baseUrl = baseUrl
+		)
+	}
 
+	val networkClient = fallbackClient
 	if (!enableOverrides || responseOverrideRegistry == null) {
 		return networkClient
 	}
@@ -77,10 +94,44 @@ private fun debugLog(message: String) {
 	}
 }
 
+private class ApiResponseOverrideInterceptor(
+	private val responseOverrideRegistry: ApiResponseOverrideRegistry
+) : Interceptor {
+	override fun intercept(chain: Interceptor.Chain): Response {
+		val request = chain.request()
+		val override = responseOverrideRegistry.getOverride(
+			method = io.ktor.http.HttpMethod.parse(request.method),
+			path = request.url.encodedPath
+		)
+
+		if (override == null) {
+			return chain.proceed(request)
+		}
+
+		debugLog("[MOCK] ${request.method} ${request.url.encodedPath} -> ${override.statusCode}")
+		val responseHeaders = okhttp3.Headers.Builder().apply {
+			add(HttpHeaders.ContentType, override.contentType)
+			override.headers.forEach { (name, value) ->
+				add(name, value)
+			}
+		}.build()
+
+		return Response.Builder()
+			.request(request)
+			.protocol(Protocol.HTTP_1_1)
+			.code(override.statusCode)
+			.message(HttpStatusCode.fromValue(override.statusCode).description)
+			.headers(responseHeaders)
+			.body(override.body.toByteArray().toResponseBody(override.contentType.toMediaType()))
+			.build()
+	}
+}
+
 private suspend fun MockRequestHandleScope.forwardRequest(
 	networkClient: HttpClient,
 	request: HttpRequestData
 ) = with(request) {
+	val requestBody = body
 	val response = networkClient.request {
 		method = request.method
 		url.takeFrom(request.url)
@@ -93,8 +144,26 @@ private suspend fun MockRequestHandleScope.forwardRequest(
 			}
 		}
 
-		if (body !is io.ktor.http.content.OutgoingContent.NoContent) {
-			setBody(body)
+		when (requestBody) {
+			is OutgoingContent.NoContent -> Unit
+			is OutgoingContent -> {
+				val payload = requestBody.toPayload()
+				if (payload != null) {
+					setBody(payload)
+				}
+				requestBody.headers.entries().forEach { entry ->
+					if (
+						entry.key.equals(HttpHeaders.ContentLength, ignoreCase = true) ||
+						headers.contains(entry.key)
+					) {
+						return@forEach
+					}
+					entry.value.forEach { value ->
+						headers.append(entry.key, value)
+					}
+				}
+			}
+			else -> setBody(requestBody)
 		}
 	}
 
@@ -112,6 +181,21 @@ private suspend fun MockRequestHandleScope.forwardRequest(
 		status = response.status,
 		headers = responseHeaders
 	)
+}
+
+private suspend fun OutgoingContent.toPayload(): Any? {
+	return when (this) {
+		is OutgoingContent.NoContent -> null
+		is OutgoingContent.ByteArrayContent -> bytes()
+		is OutgoingContent.ReadChannelContent -> readFrom().readRemaining().readBytes()
+		is OutgoingContent.WriteChannelContent -> {
+			val channel = ByteChannel(autoFlush = true)
+			writeTo(channel)
+			channel.close(null)
+			channel.readRemaining().readBytes()
+		}
+		is OutgoingContent.ProtocolUpgrade -> null
+	}
 }
 
 private fun createConfiguredHttpClient(

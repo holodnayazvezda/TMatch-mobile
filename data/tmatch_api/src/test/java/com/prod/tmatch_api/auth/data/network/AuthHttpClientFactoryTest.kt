@@ -8,11 +8,14 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
+import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -88,6 +91,47 @@ class AuthHttpClientFactoryTest {
 			assertEquals(HttpStatusCode.OK, response.status)
 			assertEquals("""{"userId":"real"}""", response.bodyAsText())
 			assertTrue(fallbackCalled)
+		} finally {
+			client.close()
+			fallbackClient.close()
+		}
+	}
+
+	@Test
+	fun `returns override response for post endpoint when configured`() = runBlocking {
+		val registry = InMemoryApiResponseOverrideRegistry().apply {
+			setOverride(
+				method = HttpMethod.Post,
+				path = "/auth/registration/email",
+				response = ApiResponseOverride(
+					statusCode = 201,
+					body = """{"access_token":"mock-token","user_id":"mock-user"}"""
+				)
+			)
+		}
+		var fallbackCalled = false
+		val fallbackClient = createFallbackClient {
+			fallbackCalled = true
+			respond(
+				content = """{"userId":"real"}""",
+				status = HttpStatusCode.Created,
+				headers = jsonHeaders()
+			)
+		}
+
+		val client = createAuthHttpClient(
+			baseUrl = "https://example.com/",
+			responseOverrideRegistry = registry,
+			enableOverrides = true,
+			fallbackClient = fallbackClient
+		)
+
+		try {
+			val response = client.post("/auth/registration/email")
+
+			assertEquals(HttpStatusCode.Created, response.status)
+			assertEquals("""{"access_token":"mock-token","user_id":"mock-user"}""", response.bodyAsText())
+			assertFalse(fallbackCalled)
 		} finally {
 			client.close()
 			fallbackClient.close()
