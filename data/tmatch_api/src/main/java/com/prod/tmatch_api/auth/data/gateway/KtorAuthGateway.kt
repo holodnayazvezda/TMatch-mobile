@@ -3,6 +3,7 @@ package com.prod.tmatch_api.auth.data.gateway
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.model.Gender
+import com.prod.auth.domain.model.JuryPreviewUser
 import com.prod.auth.domain.model.Profile
 import com.prod.auth.domain.model.ProfileDraft
 import com.prod.common.api.model.ApiErrorReason
@@ -12,6 +13,8 @@ import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import com.prod.tmatch_api.auth.data.dto.AuthResponseDto
 import com.prod.tmatch_api.auth.data.dto.EmailSignInRequestDto
 import com.prod.tmatch_api.auth.data.dto.EmailSignUpRequestDto
+import com.prod.tmatch_api.auth.data.dto.PreviewCardsResponseDto
+import com.prod.tmatch_api.auth.data.dto.PreviewProfileDto
 import com.prod.tmatch_api.auth.data.dto.ProfileDto
 import com.prod.tmatch_api.auth.data.dto.UpsertProfileRequestDto
 import com.prod.tmatch_api.common.data.network.KtorGatewaySupport
@@ -81,6 +84,29 @@ class KtorAuthGateway(
 
 				else -> gatewaySupport.mapErrorResponse(
 					response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			gatewaySupport.handleException(exception)
+		}
+	}
+
+	override suspend fun getJuryPreviewUsers(): ApiOperationResult<List<JuryPreviewUser>> {
+		return try {
+			val response = httpClient.get("/preview/cards") {
+				accept(ContentType.Application.Json)
+			}
+
+			if (response.status.isSuccess()) {
+				ApiOperationResult.Success(
+					response.body<PreviewCardsResponseDto>().cards.mapNotNull { card ->
+						card.profile?.toDomainOrNull(card.userId)
+					}
+				)
+			} else {
+				gatewaySupport.mapErrorResponse(
+					status = response.status,
 					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
 				)
 			}
@@ -161,6 +187,19 @@ class KtorAuthGateway(
 			gender = gender.toDomainGender(),
 			region = region,
 			avatarUrl = avatarUrl
+		)
+	}
+
+	private fun PreviewProfileDto.toDomainOrNull(userId: String): JuryPreviewUser? {
+		val normalizedFirstName = firstName.trim()
+		if (normalizedFirstName.isBlank()) {
+			return null
+		}
+
+		return JuryPreviewUser(
+			userId = userId,
+			firstName = normalizedFirstName,
+			lastName = lastName?.trim()?.takeIf { it.isNotBlank() }
 		)
 	}
 

@@ -1,7 +1,9 @@
 package com.prod.auth.di
 
 import com.prod.auth.domain.usecase.CreateJurySignUpCredentialsUseCase
+import com.prod.auth.domain.usecase.CreateJuryProfileDraftUseCase
 import com.prod.auth.domain.usecase.GetOwnProfileUseCase
+import com.prod.auth.domain.usecase.GetJuryPreviewUsersUseCase
 import com.prod.auth.domain.usecase.SignInWithEmailUseCase
 import com.prod.auth.domain.usecase.SignUpWithEmailUseCase
 import com.prod.auth.domain.usecase.UpsertOwnProfileUseCase
@@ -23,9 +25,11 @@ val authFeatureModule = module {
 	single { ConfirmPasswordValidator() }
 	single { AuthOperationResultUiMapper() }
 	single { CreateJurySignUpCredentialsUseCase() }
+	single { CreateJuryProfileDraftUseCase() }
 	single { SignInWithEmailUseCase(authGateway = get()) }
 	single { SignUpWithEmailUseCase(authGateway = get()) }
 	single { GetOwnProfileUseCase(authGateway = get()) }
+	single { GetJuryPreviewUsersUseCase(authGateway = get()) }
 	single { UpsertOwnProfileUseCase(authGateway = get()) }
 	single { UploadDatingPhotoUseCase(profileGateway = get()) }
 
@@ -33,6 +37,7 @@ val authFeatureModule = module {
 	viewModel {
 		SignInViewModel(
 			signInWithEmailUseCase = get(),
+			getJuryPreviewUsersUseCase = get(),
 			emailValidator = get(),
 			passwordValidator = get(),
 			authOperationResultUiMapper = get()
@@ -53,6 +58,7 @@ val authFeatureModule = module {
 			getOwnProfileUseCase = get(),
 			upsertOwnProfileUseCase = get(),
 			uploadDatingPhotoUseCase = get(),
+			createJuryProfileDraftUseCase = get(),
 			authOperationResultUiMapper = get()
 		)
 	}

@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.prod.auth.R
 import com.prod.auth.domain.model.Gender
 import com.prod.auth.domain.model.ProfileDraft
+import com.prod.auth.domain.usecase.CreateJuryProfileDraftUseCase
 import com.prod.auth.domain.usecase.GetOwnProfileUseCase
 import com.prod.auth.domain.usecase.UpsertOwnProfileUseCase
 import com.prod.auth.domain.usecase.UploadDatingPhotoUseCase
@@ -26,6 +27,7 @@ class ProfileSetupViewModel(
 	private val getOwnProfileUseCase: GetOwnProfileUseCase,
 	private val upsertOwnProfileUseCase: UpsertOwnProfileUseCase,
 	private val uploadDatingPhotoUseCase: UploadDatingPhotoUseCase,
+	private val createJuryProfileDraftUseCase: CreateJuryProfileDraftUseCase,
 	private val authOperationResultUiMapper: AuthOperationResultUiMapper
 ) : ViewModel() {
 
@@ -86,6 +88,23 @@ class ProfileSetupViewModel(
 		uiState = uiState.copy(
 			gender = value,
 			genderDisplay = value.toDisplayValue(),
+			genderError = null,
+			formError = null
+		)
+	}
+
+	fun applyJuryProfileDraft() {
+		val draft = createJuryProfileDraftUseCase()
+		uiState = uiState.copy(
+			firstName = draft.firstName,
+			lastName = draft.lastName.orEmpty(),
+			birthDateIso = draft.birthDate,
+			birthDateDisplay = draft.birthDate.toDisplayDateFromIso(),
+			gender = draft.gender,
+			genderDisplay = draft.gender.toDisplayValue(),
+			region = draft.region.orEmpty(),
+			firstNameError = null,
+			birthDateError = null,
 			genderError = null,
 			formError = null
 		)
@@ -294,6 +313,11 @@ class ProfileSetupViewModel(
 		} catch (_: DateTimeParseException) {
 			return this
 		}
+		return parsed.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+	}
+
+	private fun String.toDisplayDateFromIso(): String {
+		val parsed = runCatching { LocalDate.parse(this) }.getOrNull() ?: return this
 		return parsed.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
 	}
 
