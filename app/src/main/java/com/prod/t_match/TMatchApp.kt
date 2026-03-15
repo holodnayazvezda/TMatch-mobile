@@ -95,6 +95,7 @@ fun TMatchApp() {
 					)
 					profileGraph(
 						onUnauthorized = authGraphState::onUnauthorized,
+						onLogout = authGraphState::onLogout,
 						onRequestNoInternet = authGraphState::onRequestNoInternet
 					)
 					matchingGraph()

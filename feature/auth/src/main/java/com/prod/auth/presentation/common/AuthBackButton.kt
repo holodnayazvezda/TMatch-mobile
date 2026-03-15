@@ -29,7 +29,7 @@ fun AuthBackButton(
 			.clip(RoundedCornerShape(16.dp))
 			.clickable(onClick = onClick)
 			.defaultMinSize(minWidth = 96.dp, minHeight = 48.dp)
-			.padding(horizontal = 14.dp, vertical = 12.dp),
+			.padding(vertical = 12.dp),
 		verticalAlignment = Alignment.CenterVertically
 	) {
 		Icon(

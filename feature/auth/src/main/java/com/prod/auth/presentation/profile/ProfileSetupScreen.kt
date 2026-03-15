@@ -24,6 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -53,9 +57,13 @@ fun ProfileSetupScreen(
 ) {
 	val uiState = viewModel.uiState
 	val context = LocalContext.current
+	val focusManager = LocalFocusManager.current
 	var showDatePicker by remember { mutableStateOf(false) }
 	var avatarBitmap by remember { mutableStateOf<Bitmap?>(null) }
 	var cropSourceBitmap by remember { mutableStateOf<Bitmap?>(null) }
+	val lastNameFocusRequester = remember { FocusRequester() }
+	val birthDateFocusRequester = remember { FocusRequester() }
+	val regionFocusRequester = remember { FocusRequester() }
 
 	LaunchedEffect(Unit) {
 		viewModel.initialize(
@@ -69,6 +77,16 @@ fun ProfileSetupScreen(
 		contract = ActivityResultContracts.PickVisualMedia()
 	) { uri ->
 		cropSourceBitmap = uri?.let { context.loadBitmapForCroppingFromUri(it) }
+	}
+
+	val submitProfile = {
+		focusManager.clearFocus(force = true)
+		viewModel.submit(
+			avatarBitmap = avatarBitmap,
+			onSuccess = onProfileCompleted,
+			onNoInternet = onRequestNoInternet,
+			onUnauthorized = onUnauthorized
+		)
 	}
 
 	Box(
@@ -113,18 +131,28 @@ fun ProfileSetupScreen(
 					keyboardOptions = KeyboardOptions(
 						keyboardType = KeyboardType.Text,
 						imeAction = ImeAction.Next
-					)
+					),
+					onNext = { lastNameFocusRequester.requestFocus() }
 				)
 				AppTextField(
+					modifier = Modifier.focusRequester(lastNameFocusRequester),
 					value = uiState.lastName,
 					onValueChange = viewModel::onLastNameChange,
 					label = stringResource(R.string.profile_setup_last_name),
 					keyboardOptions = KeyboardOptions(
 						keyboardType = KeyboardType.Text,
 						imeAction = ImeAction.Next
-					)
+					),
+					onNext = { birthDateFocusRequester.requestFocus() }
 				)
 				AppTextField(
+					modifier = Modifier
+						.focusRequester(birthDateFocusRequester)
+						.onFocusChanged { focusState ->
+							if (focusState.isFocused && !showDatePicker) {
+								showDatePicker = true
+							}
+						},
 					value = uiState.birthDateDisplay,
 					onValueChange = {},
 					readOnly = true,
@@ -134,16 +162,19 @@ fun ProfileSetupScreen(
 					keyboardOptions = KeyboardOptions(
 						keyboardType = KeyboardType.Number,
 						imeAction = ImeAction.Next
-					)
+					),
+					onNext = { showDatePicker = true }
 				)
 				AppTextField(
+					modifier = Modifier.focusRequester(regionFocusRequester),
 					value = uiState.region,
 					onValueChange = viewModel::onRegionChange,
 					label = stringResource(R.string.profile_setup_region),
 					keyboardOptions = KeyboardOptions(
 						keyboardType = KeyboardType.Text,
 						imeAction = ImeAction.Done
-					)
+					),
+					onDone = submitProfile
 				)
 				uiState.formError?.let { message ->
 					AuthFormErrorCard(
@@ -154,14 +185,7 @@ fun ProfileSetupScreen(
 				AppBigButton(
 					buttonText = stringResource(R.string.profile_setup_submit),
 					isLoading = uiState.isSubmitting,
-					onClick = {
-						viewModel.submit(
-							avatarBitmap = avatarBitmap,
-							onSuccess = onProfileCompleted,
-							onNoInternet = onRequestNoInternet,
-							onUnauthorized = onUnauthorized
-						)
-					}
+					onClick = submitProfile
 				)
 			}
 		}
@@ -170,7 +194,10 @@ fun ProfileSetupScreen(
 	if (showDatePicker) {
 		AppDatePickerDialog(
 			onDismissRequest = { showDatePicker = false },
-			onDateSelected = viewModel::onBirthDateSelected
+			onDateSelected = { selectedDate ->
+				viewModel.onBirthDateSelected(selectedDate)
+				regionFocusRequester.requestFocus()
+			}
 		)
 	}
 

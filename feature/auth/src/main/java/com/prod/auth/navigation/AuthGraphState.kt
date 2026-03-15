@@ -38,6 +38,13 @@ class AuthGraphState(
 		backStack.add(OnboardingNavKey())
 	}
 
+	fun onLogout() {
+		authSessionStore.clear()
+		backStack.clear()
+		backStack.add(OnboardingNavKey())
+		backStack.add(SignInNavKey())
+	}
+
 	fun onRequestNoInternet(retryAction: () -> Unit) = requestNoInternetInternal(retryAction)
 
 	fun consumeRetryAction(): (() -> Unit)? = consumeRetryActionInternal()

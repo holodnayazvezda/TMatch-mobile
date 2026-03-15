@@ -52,6 +52,7 @@ fun AppTextField(
         imeAction = ImeAction.Next
     ),
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    onNext: (() -> Unit)? = null,
     onDone: (() -> Unit)? = null,
     trailingIcon: @Composable () -> Unit = {}
 ) {
@@ -117,6 +118,9 @@ fun AppTextField(
             },
             keyboardOptions = keyboardOptions,
             keyboardActions = KeyboardActions(
+                onNext = {
+                    onNext?.invoke()
+                },
                 onDone = {
                     onDone?.invoke()
                 }
