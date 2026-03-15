@@ -64,6 +64,7 @@ import java.net.URL
 fun ProfileScreen(
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	onOpenDebugTools: (() -> Unit)? = null,
 	modifier: Modifier = Modifier,
 	viewModel: ProfileViewModel = koinViewModel()
 ) {
@@ -108,6 +109,7 @@ fun ProfileScreen(
 							PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
 						)
 					},
+					onOpenDebugTools = onOpenDebugTools,
 					modifier = Modifier.fillMaxSize()
 				)
 			}
@@ -166,6 +168,7 @@ private fun ProfileCardScene(
 	isSubmitting: Boolean,
 	error: String?,
 	onChangePhotoClick: () -> Unit,
+	onOpenDebugTools: (() -> Unit)?,
 	modifier: Modifier = Modifier
 ) {
 	Column(
@@ -211,6 +214,14 @@ private fun ProfileCardScene(
 			isLoading = isSubmitting,
 			onClick = onChangePhotoClick
 		)
+
+		if (onOpenDebugTools != null) {
+			AppMediumButton(
+				buttonText = "Debug API Overrides",
+				isLoading = false,
+				onClick = onOpenDebugTools
+			)
+		}
 
 		Spacer(modifier = Modifier.height(12.dp))
 	}

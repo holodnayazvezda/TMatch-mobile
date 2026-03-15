@@ -28,6 +28,8 @@ import com.prod.match.navigation.MatchingNavKey
 import com.prod.matching.navigation.matchingGraph
 import com.prod.profile.navigation.ProfileNavKey
 import com.prod.profile.navigation.profileGraph
+import com.prod.t_match.debug.DebugNetworkOverridesNavKey
+import com.prod.t_match.debug.DebugNetworkOverridesScreen
 import com.prod.ui.components.rememberAppGradientBrush
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
@@ -95,12 +97,28 @@ fun TMatchApp() {
 					)
 					profileGraph(
 						onUnauthorized = authGraphState::onUnauthorized,
-						onRequestNoInternet = authGraphState::onRequestNoInternet
+						onRequestNoInternet = authGraphState::onRequestNoInternet,
+						onOpenDebugTools = if (BuildConfig.DEBUG) {
+							{
+								backStack.add(DebugNetworkOverridesNavKey())
+							}
+						} else {
+							null
+						}
 					)
 					matchingGraph(
 						onUnauthorized = authGraphState::onUnauthorized
 					)
 					chatsGraph()
+					entry<DebugNetworkOverridesNavKey> {
+						DebugNetworkOverridesScreen(
+							onBack = {
+								if (backStack.size > 1) {
+									backStack.removeLastOrNull()
+								}
+							}
+						)
+					}
 					commonUiGraph(
 						backStack = backStack,
 						consumeRetryAction = authGraphState::consumeRetryAction

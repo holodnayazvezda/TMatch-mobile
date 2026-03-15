@@ -5,12 +5,14 @@ import com.prod.profile.presentation.ProfileScreen
 
 fun EntryProviderScope<Any>.profileGraph(
 	onUnauthorized: () -> Unit,
-	onRequestNoInternet: (retryAction: () -> Unit) -> Unit
+	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	onOpenDebugTools: (() -> Unit)? = null
 ) {
 	entry<ProfileNavKey> {
 		ProfileScreen(
 			onUnauthorized = onUnauthorized,
-			onRequestNoInternet = onRequestNoInternet
+			onRequestNoInternet = onRequestNoInternet,
+			onOpenDebugTools = onOpenDebugTools
 		)
 	}
 }
