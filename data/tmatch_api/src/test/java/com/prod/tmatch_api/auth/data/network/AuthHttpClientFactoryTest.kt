@@ -9,14 +9,19 @@ import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.header
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
 import io.ktor.utils.io.readRemaining
+import io.ktor.utils.io.core.readBytes
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -138,6 +143,40 @@ class AuthHttpClientFactoryTest {
 		}
 	}
 
+	@Test
+	fun `forwards post body to fallback client when no override exists`() = runBlocking {
+		val registry = InMemoryApiResponseOverrideRegistry()
+		var forwardedBody = ""
+		val fallbackClient = createFallbackClient { request ->
+			forwardedBody = request.body.readBodyAsText()
+			respond(
+				content = """{"status":"ok"}""",
+				status = HttpStatusCode.OK,
+				headers = jsonHeaders()
+			)
+		}
+
+		val client = createAuthHttpClient(
+			baseUrl = "https://example.com/",
+			responseOverrideRegistry = registry,
+			enableOverrides = true,
+			fallbackClient = fallbackClient
+		)
+
+		try {
+			client.post("/auth/registration/email") {
+				header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+				setBody(SignUpPayload(email = "max@example.com", password = "secret"))
+			}
+
+			assertTrue(forwardedBody.contains("max@example.com"))
+			assertTrue(forwardedBody.contains("secret"))
+		} finally {
+			client.close()
+			fallbackClient.close()
+		}
+	}
+
 	private fun createFallbackClient(
 		handler: suspend io.ktor.client.engine.mock.MockRequestHandleScope.(HttpRequestData) -> HttpResponseData
 	): HttpClient {
@@ -147,5 +186,26 @@ class AuthHttpClientFactoryTest {
 	private fun jsonHeaders() = headersOf(
 		name = io.ktor.http.HttpHeaders.ContentType,
 		values = listOf(ContentType.Application.Json.toString())
+	)
+
+	private suspend fun Any.readBodyAsText(): String {
+		return when (this) {
+			is OutgoingContent.ByteArrayContent -> bytes().decodeToString()
+			is OutgoingContent.ReadChannelContent -> readFrom().readRemaining().readBytes().decodeToString()
+			is OutgoingContent.WriteChannelContent -> {
+				val channel = io.ktor.utils.io.ByteChannel(autoFlush = true)
+				writeTo(channel)
+				channel.close(null)
+				channel.readRemaining().readBytes().decodeToString()
+			}
+			is OutgoingContent.NoContent -> ""
+			else -> toString()
+		}
+	}
+
+	@Serializable
+	private data class SignUpPayload(
+		val email: String,
+		val password: String
 	)
 }

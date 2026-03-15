@@ -50,8 +50,7 @@ class SharedPrefsAuthSessionStore(
 		return if (preferences.contains(KEY_PROFILE_COMPLETED)) {
 			preferences.getBoolean(KEY_PROFILE_COMPLETED, false)
 		} else {
-			// Preserve existing signed-in users after upgrade.
-			true
+			false
 		}
 	}
 

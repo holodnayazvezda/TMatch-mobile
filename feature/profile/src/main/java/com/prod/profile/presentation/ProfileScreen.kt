@@ -70,6 +70,7 @@ import java.io.File
 @Composable
 fun ProfileScreen(
 	onUnauthorized: () -> Unit,
+	onProfileMissing: () -> Unit,
 	onLogout: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	onOpenDebugTools: (() -> Unit)? = null,
@@ -92,6 +93,7 @@ fun ProfileScreen(
 	LaunchedEffect(Unit) {
 		viewModel.initialize(
 			onUnauthorized = onUnauthorized,
+			onProfileMissing = onProfileMissing,
 			onNoInternet = onRequestNoInternet
 		)
 	}
@@ -130,6 +132,7 @@ fun ProfileScreen(
 					onRetry = {
 						viewModel.retry(
 							onUnauthorized = onUnauthorized,
+							onProfileMissing = onProfileMissing,
 							onNoInternet = onRequestNoInternet
 						)
 					},

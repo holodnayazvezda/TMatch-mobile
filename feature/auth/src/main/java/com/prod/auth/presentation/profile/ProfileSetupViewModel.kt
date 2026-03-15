@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prod.auth.R
+import com.prod.auth.domain.model.Gender
 import com.prod.auth.domain.model.ProfileDraft
 import com.prod.auth.domain.usecase.GetOwnProfileUseCase
 import com.prod.auth.domain.usecase.UpsertOwnProfileUseCase
@@ -81,6 +82,15 @@ class ProfileSetupViewModel(
 		)
 	}
 
+	fun onGenderSelected(value: Gender) {
+		uiState = uiState.copy(
+			gender = value,
+			genderDisplay = value.toDisplayValue(),
+			genderError = null,
+			formError = null
+		)
+	}
+
 	fun submit(
 		avatarBitmap: Bitmap?,
 		onSuccess: () -> Unit,
@@ -90,6 +100,7 @@ class ProfileSetupViewModel(
 		val firstName = uiState.firstName.trim()
 		val lastName = uiState.lastName.trim().ifBlank { null }
 		val birthDate = uiState.birthDateIso
+		val gender = uiState.gender
 		val region = uiState.region.trim().ifBlank { null }
 
 		val firstNameError = if (firstName.isBlank()) {
@@ -102,14 +113,20 @@ class ProfileSetupViewModel(
 		} else {
 			null
 		}
+		val genderError = if (gender == null) {
+			UiText.StringResource(R.string.profile_setup_gender_required)
+		} else {
+			null
+		}
 
 		uiState = uiState.copy(
 			firstNameError = firstNameError,
 			birthDateError = birthDateError,
+			genderError = genderError,
 			formError = null
 		)
 
-		if (firstNameError != null || birthDateError != null || birthDate == null) {
+		if (firstNameError != null || birthDateError != null || genderError != null || birthDate == null || gender == null) {
 			return
 		}
 
@@ -169,6 +186,7 @@ class ProfileSetupViewModel(
 						firstName = firstName,
 						lastName = lastName,
 						birthDate = birthDate,
+						gender = gender,
 						region = region,
 						avatarUrl = avatarUrl
 					)
@@ -277,6 +295,13 @@ class ProfileSetupViewModel(
 			return this
 		}
 		return parsed.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+	}
+
+	private fun Gender.toDisplayValue(): String {
+		return when (this) {
+			Gender.Male -> "Мужской"
+			Gender.Female -> "Женский"
+		}
 	}
 
 	private fun Bitmap.toPngByteArray(): ByteArray {

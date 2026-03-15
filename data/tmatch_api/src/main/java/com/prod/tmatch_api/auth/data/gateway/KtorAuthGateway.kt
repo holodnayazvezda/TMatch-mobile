@@ -2,6 +2,7 @@ package com.prod.tmatch_api.auth.data.gateway
 
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.domain.gateway.AuthGateway
+import com.prod.auth.domain.model.Gender
 import com.prod.auth.domain.model.Profile
 import com.prod.auth.domain.model.ProfileDraft
 import com.prod.common.api.model.ApiErrorReason
@@ -101,6 +102,7 @@ class KtorAuthGateway(
 						firstName = draft.firstName,
 						lastName = draft.lastName,
 						birthDate = draft.birthDate,
+						gender = draft.gender.toApiValue(),
 						region = draft.region,
 						avatarUrl = draft.avatarUrl
 					)
@@ -156,8 +158,24 @@ class KtorAuthGateway(
 			firstName = firstName,
 			lastName = lastName,
 			birthDate = birthDate,
+			gender = gender.toDomainGender(),
 			region = region,
 			avatarUrl = avatarUrl
 		)
+	}
+
+	private fun String.toDomainGender(): Gender {
+		return when (this) {
+			"male" -> Gender.Male
+			"female" -> Gender.Female
+			else -> error("Unsupported gender: $this")
+		}
+	}
+
+	private fun Gender.toApiValue(): String {
+		return when (this) {
+			Gender.Male -> "male"
+			Gender.Female -> "female"
+		}
 	}
 }

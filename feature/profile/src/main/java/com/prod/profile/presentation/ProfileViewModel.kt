@@ -34,22 +34,26 @@ class ProfileViewModel(
 
 	fun initialize(
 		onUnauthorized: () -> Unit,
+		onProfileMissing: () -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		if (isInitialized) return
 		isInitialized = true
 		loadProfileCard(
 			onUnauthorized = onUnauthorized,
+			onProfileMissing = onProfileMissing,
 			onNoInternet = onNoInternet
 		)
 	}
 
 	fun retry(
 		onUnauthorized: () -> Unit,
+		onProfileMissing: () -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		loadProfileCard(
 			onUnauthorized = onUnauthorized,
+			onProfileMissing = onProfileMissing,
 			onNoInternet = onNoInternet
 		)
 	}
@@ -170,6 +174,7 @@ class ProfileViewModel(
 
 	private fun loadProfileCard(
 		onUnauthorized: () -> Unit,
+		onProfileMissing: () -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		viewModelScope.launch {
@@ -178,10 +183,8 @@ class ProfileViewModel(
 			val accountProfile = when (val ownProfileResult = getOwnAccountProfileUseCase()) {
 				is ApiOperationResult.Success -> {
 					ownProfileResult.data ?: run {
-						uiState = uiState.copy(
-							isLoading = false,
-							error = "Не удалось загрузить данные анкеты"
-						)
+						uiState = uiState.copy(isLoading = false)
+						onProfileMissing()
 						return@launch
 					}
 				}
@@ -213,6 +216,7 @@ class ProfileViewModel(
 					onNoInternet {
 						loadProfileCard(
 							onUnauthorized = onUnauthorized,
+							onProfileMissing = onProfileMissing,
 							onNoInternet = onNoInternet
 						)
 					}
@@ -254,6 +258,7 @@ class ProfileViewModel(
 					onNoInternet {
 						loadProfileCard(
 							onUnauthorized = onUnauthorized,
+							onProfileMissing = onProfileMissing,
 							onNoInternet = onNoInternet
 						)
 					}

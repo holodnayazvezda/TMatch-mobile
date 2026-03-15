@@ -622,14 +622,14 @@ private val debugEndpointDefinitions = listOf(
 		title = "Sign In",
 		method = HttpMethod.Post,
 		path = "/auth/signing/email",
-		defaultStatusCode = 200,
+		defaultStatusCode = 201,
 		defaultBody = """{"access_token":"debug-token","user_id":"debug-user"}"""
 	),
 	DebugEndpointDefinition(
 		title = "Sign Up",
 		method = HttpMethod.Post,
 		path = "/auth/registration/email",
-		defaultStatusCode = 200,
+		defaultStatusCode = 201,
 		defaultBody = """{"access_token":"debug-token","user_id":"debug-user"}"""
 	),
 	DebugEndpointDefinition(
@@ -637,34 +637,34 @@ private val debugEndpointDefinitions = listOf(
 		method = HttpMethod.Get,
 		path = "/profile",
 		defaultStatusCode = 200,
-		defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
+		defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","gender":"male","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
 	),
 	DebugEndpointDefinition(
 		title = "Upsert Own Profile",
 		method = HttpMethod.Put,
 		path = "/profile",
 		defaultStatusCode = 200,
-		defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
+		defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","gender":"male","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
 	),
 	DebugEndpointDefinition(
 		title = "Get Dating Profile",
 		method = HttpMethod.Get,
 		path = "/dating-profile/me",
 		defaultStatusCode = 200,
-		defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"]}"""
+		defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"],"traits":[]}"""
 	),
 	DebugEndpointDefinition(
 		title = "Upsert Dating Profile",
 		method = HttpMethod.Put,
 		path = "/dating-profile/me",
 		defaultStatusCode = 200,
-		defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"]}"""
+		defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"],"traits":[]}"""
 	),
 	DebugEndpointDefinition(
 		title = "Upload Dating Photo",
 		method = HttpMethod.Post,
 		path = "/dating-profile/me/photos",
-		defaultStatusCode = 200,
+		defaultStatusCode = 201,
 		defaultBody = """{"photo_url":"$DefaultMockImageUrl"}"""
 	),
 	DebugEndpointDefinition(
@@ -672,13 +672,13 @@ private val debugEndpointDefinitions = listOf(
 		method = HttpMethod.Get,
 		path = "/recommendations",
 		defaultStatusCode = 200,
-		defaultBody = """{"items":[{"ml_recommendation_id":"rec-1","user_id":"debug-user","candidate_user_id":"candidate-1","reasons":{"lifestyle":0.98},"candidate_card":{"user_id":"candidate-1","profile":{"first_name":"Anna","last_name":"Smirnova","birth_date":"1997-04-03","region":"Saint Petersburg","avatar_url":"$DefaultMockImageUrl"},"dating_profile":{"photos":["$DefaultMockImageUrl"]}}}]}"""
+		defaultBody = """{"items":[{"ml_recommendation_id":"rec-1","user_id":"debug-user","candidate_user_id":"candidate-1","reasons":{"lifestyle":0.98},"candidate_card":{"user_id":"candidate-1","profile":{"first_name":"Anna","last_name":"Smirnova","birth_date":"1997-04-03","region":"Saint Petersburg","avatar_url":"$DefaultMockImageUrl"},"dating_profile":{"photos":["$DefaultMockImageUrl"],"traits":[]}}}]}"""
 	),
 	DebugEndpointDefinition(
 		title = "Create Interaction",
 		method = HttpMethod.Post,
 		path = "/interactions",
-		defaultStatusCode = 200,
+		defaultStatusCode = 201,
 		defaultBody = """{"interaction_id":"interaction-1","actor_user_id":"debug-user","candidate_user_id":"candidate-1","action":"like","created_at":"2026-03-15T12:00:00Z","ml_recommendation_id":"rec-1"}"""
 	)
 )

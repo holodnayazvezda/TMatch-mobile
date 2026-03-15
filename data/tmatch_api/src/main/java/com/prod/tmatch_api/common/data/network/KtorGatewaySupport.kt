@@ -37,6 +37,11 @@ internal class KtorGatewaySupport(
 				message = responseBody.resolvedMessage()
 			)
 
+			HttpStatusCode.Conflict,
+			HttpStatusCode.UnprocessableEntity -> ApiOperationResult.ValidationError(
+				message = responseBody.resolvedMessage()
+			)
+
 			HttpStatusCode.InternalServerError,
 			HttpStatusCode.BadGateway,
 			HttpStatusCode.ServiceUnavailable,

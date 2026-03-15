@@ -13,6 +13,7 @@ data class ProfileDto(
 	val lastName: String? = null,
 	@SerialName("birth_date")
 	val birthDate: String,
+	val gender: String,
 	val region: String? = null,
 	@SerialName("avatar_url")
 	val avatarUrl: String? = null

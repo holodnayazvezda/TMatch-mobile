@@ -30,6 +30,7 @@ class RecommendationUiMapper {
 	private fun RecommendationReason.toLabel(): String {
 		return when (reasonType) {
 			RecommendationReasonType.Lifestyle -> "Схожий образ жизни"
+			RecommendationReasonType.Unknown -> "Есть потенциальное совпадение"
 		}
 	}
 

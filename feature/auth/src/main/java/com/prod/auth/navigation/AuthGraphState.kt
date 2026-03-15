@@ -21,14 +21,9 @@ class AuthGraphState(
 ) {
 	fun onSignInSuccess(session: UserSession) {
 		authSessionStore.save(session)
+		authSessionStore.setProfileCompleted(false)
 		backStack.clear()
-		backStack.add(
-			if (authSessionStore.isProfileCompleted()) {
-				ProfileNavKey()
-			} else {
-				ProfileSetupNavKey()
-			}
-		)
+		backStack.add(ProfileSetupNavKey())
 	}
 
 	fun onSignUpSuccess(session: UserSession) {
@@ -42,6 +37,12 @@ class AuthGraphState(
 		authSessionStore.setProfileCompleted(true)
 		backStack.clear()
 		backStack.add(ProfileNavKey())
+	}
+
+	fun onProfileMissing() {
+		authSessionStore.setProfileCompleted(false)
+		backStack.clear()
+		backStack.add(ProfileSetupNavKey())
 	}
 
 	fun onUnauthorized() {

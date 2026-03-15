@@ -7,5 +7,6 @@ import kotlinx.serialization.Serializable
 data class DatingProfileDto(
 	@SerialName("user_id")
 	val userId: String,
-	val photos: List<String>
+	val photos: List<String>,
+	val traits: List<DatingTraitDto> = emptyList()
 )

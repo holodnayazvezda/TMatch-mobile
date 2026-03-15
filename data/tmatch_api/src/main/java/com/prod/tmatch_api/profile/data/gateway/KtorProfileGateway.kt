@@ -7,10 +7,12 @@ import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import com.prod.tmatch_api.auth.data.dto.UploadDatingPhotoResponseDto
 import com.prod.tmatch_api.common.data.network.KtorGatewaySupport
 import com.prod.tmatch_api.profile.data.dto.DatingProfileDto
+import com.prod.tmatch_api.profile.data.dto.DatingTraitDto
 import com.prod.tmatch_api.profile.data.dto.UpsertDatingProfileRequestDto
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
+import com.prod.profile.domain.model.DatingTrait
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
@@ -115,7 +117,16 @@ class KtorProfileGateway(
 	private fun DatingProfileDto.toDomain(): DatingProfile {
 		return DatingProfile(
 			userId = userId,
-			photos = photos
+			photos = photos,
+			traits = traits.map { it.toDomain() }
+		)
+	}
+
+	private fun DatingTraitDto.toDomain(): DatingTrait {
+		return DatingTrait(
+			traitCode = traitCode,
+			score = score,
+			isHidden = isHidden
 		)
 	}
 }

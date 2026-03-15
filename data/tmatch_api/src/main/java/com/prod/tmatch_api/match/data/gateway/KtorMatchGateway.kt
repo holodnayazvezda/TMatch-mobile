@@ -1,6 +1,7 @@
 package com.prod.tmatch_api.match.data.gateway
 
 import com.prod.auth.domain.gateway.AuthSessionStore
+import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.match.domain.gateway.MatchGateway
 import com.prod.match.domain.model.Interaction
@@ -8,6 +9,7 @@ import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.Recommendation
 import com.prod.match.domain.model.RecommendationCandidateCard
 import com.prod.match.domain.model.RecommendationCandidateDatingProfile
+import com.prod.match.domain.model.RecommendationCandidateDatingTrait
 import com.prod.match.domain.model.RecommendationCandidateProfile
 import com.prod.match.domain.model.RecommendationReason
 import com.prod.match.domain.model.RecommendationReasonType
@@ -17,6 +19,7 @@ import com.prod.tmatch_api.match.data.dto.CreateInteractionRequestDto
 import com.prod.tmatch_api.match.data.dto.InteractionResponseDto
 import com.prod.tmatch_api.match.data.dto.RecommendationCandidateCardDto
 import com.prod.tmatch_api.match.data.dto.RecommendationCandidateDatingProfileDto
+import com.prod.tmatch_api.match.data.dto.RecommendationCandidateDatingTraitDto
 import com.prod.tmatch_api.match.data.dto.RecommendationCandidateProfileDto
 import com.prod.tmatch_api.match.data.dto.RecommendationDto
 import com.prod.tmatch_api.match.data.dto.RecommendationsResponseDto
@@ -84,7 +87,12 @@ class KtorMatchGateway(
 			}
 
 			if (response.status.isSuccess()) {
-				ApiOperationResult.Success(response.body<InteractionResponseDto>().toDomain())
+				val interaction = response.body<InteractionResponseDto>().toDomainOrNull()
+					?: return ApiOperationResult.ApiError(
+						reason = ApiErrorReason.RequestFailed,
+						message = "Unsupported interaction action in response"
+					)
+				ApiOperationResult.Success(interaction)
 			} else {
 				gatewaySupport.mapErrorResponse(
 					status = response.status,
@@ -97,18 +105,18 @@ class KtorMatchGateway(
 	}
 
 	private fun RecommendationDto.toDomain(): Recommendation {
-		return Recommendation(
-			mlRecommendationId = mlRecommendationId,
-			userId = userId,
-			candidateUserId = candidateUserId,
-			reasons = reasons.map { (featureName, score) ->
-				RecommendationReason(
-					score = score,
-					reasonType = featureName.toRecommendationReasonType()
-				)
-			},
-			candidateCard = candidateCard?.toDomain()
-		)
+			return Recommendation(
+				mlRecommendationId = mlRecommendationId,
+				userId = userId,
+				candidateUserId = candidateUserId,
+				reasons = reasons.map { (featureName, score) ->
+					RecommendationReason(
+						score = score,
+						reasonType = featureName.toRecommendationReasonType()
+					)
+				}.sortedByDescending { it.score },
+				candidateCard = candidateCard?.toDomain()
+			)
 	}
 
 	private fun RecommendationCandidateCardDto.toDomain(): RecommendationCandidateCard {
@@ -131,23 +139,33 @@ class KtorMatchGateway(
 
 	private fun RecommendationCandidateDatingProfileDto.toDomain(): RecommendationCandidateDatingProfile {
 		return RecommendationCandidateDatingProfile(
-			photos = photos
+			photos = photos,
+			traits = traits.map { it.toDomain() }
+		)
+	}
+
+	private fun RecommendationCandidateDatingTraitDto.toDomain(): RecommendationCandidateDatingTrait {
+		return RecommendationCandidateDatingTrait(
+			traitCode = traitCode,
+			score = score,
+			isHidden = isHidden
 		)
 	}
 
 	private fun String.toRecommendationReasonType(): RecommendationReasonType {
 		return when (this) {
 			"lifestyle" -> RecommendationReasonType.Lifestyle
-			else -> error("Unsupported recommendation reason type: $this")
+			else -> RecommendationReasonType.Unknown
 		}
 	}
 
-	private fun InteractionResponseDto.toDomain(): Interaction {
+	private fun InteractionResponseDto.toDomainOrNull(): Interaction? {
+		val domainAction = action.toDomainActionOrNull() ?: return null
 		return Interaction(
 			interactionId = interactionId,
 			actorUserId = actorUserId,
 			candidateUserId = candidateUserId,
-			action = action.toDomainAction(),
+			action = domainAction,
 			createdAt = createdAt,
 			mlRecommendationId = mlRecommendationId
 		)
@@ -160,11 +178,11 @@ class KtorMatchGateway(
 		}
 	}
 
-	private fun String.toDomainAction(): InteractionAction {
+	private fun String.toDomainActionOrNull(): InteractionAction? {
 		return when (this) {
 			"dislike" -> InteractionAction.Dislike
 			"like" -> InteractionAction.Like
-			else -> error("Unsupported interaction action: $this")
+			else -> null
 		}
 	}
 }

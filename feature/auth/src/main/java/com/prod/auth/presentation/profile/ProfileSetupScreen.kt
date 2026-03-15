@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.prod.auth.R
+import com.prod.auth.domain.model.Gender
 import com.prod.auth.presentation.common.AuthFormErrorCard
 import com.prod.auth.presentation.common.AuthScreenHeadlineTitle
 import com.prod.auth.presentation.common.asString
@@ -45,6 +46,7 @@ import com.prod.ui.components.profile.ProfileImageStyle
 import com.prod.ui.components.profile.SelectableProfileImage
 import com.prod.ui.components.profile.loadBitmapForCroppingFromUri
 import com.prod.ui.components.text_fields.AppTextField
+import com.prod.ui.components.text_fields.AppTextFieldWithDropdown
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -63,6 +65,7 @@ fun ProfileSetupScreen(
 	var cropSourceBitmap by remember { mutableStateOf<Bitmap?>(null) }
 	val lastNameFocusRequester = remember { FocusRequester() }
 	val birthDateFocusRequester = remember { FocusRequester() }
+	val genderFocusRequester = remember { FocusRequester() }
 	val regionFocusRequester = remember { FocusRequester() }
 
 	LaunchedEffect(Unit) {
@@ -165,6 +168,25 @@ fun ProfileSetupScreen(
 					),
 					onNext = { showDatePicker = true }
 				)
+				AppTextFieldWithDropdown(
+					modifier = Modifier.focusRequester(genderFocusRequester),
+					value = uiState.genderDisplay,
+					label = stringResource(R.string.profile_setup_gender),
+					error = uiState.genderError.asStringOrNull(),
+					dropdownItems = Gender.entries,
+					onDropdownItemSelected = { selectedGender ->
+						viewModel.onGenderSelected(selectedGender)
+						regionFocusRequester.requestFocus()
+					},
+					dropDownItem = { option ->
+						androidx.compose.material3.Text(
+							text = when (option) {
+								Gender.Male -> stringResource(R.string.profile_setup_gender_male)
+								Gender.Female -> stringResource(R.string.profile_setup_gender_female)
+							}
+						)
+					}
+				)
 				AppTextField(
 					modifier = Modifier.focusRequester(regionFocusRequester),
 					value = uiState.region,
@@ -196,7 +218,7 @@ fun ProfileSetupScreen(
 			onDismissRequest = { showDatePicker = false },
 			onDateSelected = { selectedDate ->
 				viewModel.onBirthDateSelected(selectedDate)
-				regionFocusRequester.requestFocus()
+				genderFocusRequester.requestFocus()
 			}
 		)
 	}

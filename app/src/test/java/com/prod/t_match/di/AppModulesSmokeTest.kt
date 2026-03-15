@@ -3,6 +3,7 @@ package com.prod.t_match.di
 import com.prod.auth.di.authFeatureModule
 import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.gateway.AuthSessionStore
+import com.prod.auth.domain.model.Gender
 import com.prod.auth.domain.model.Profile
 import com.prod.auth.domain.model.ProfileDraft
 import com.prod.auth.presentation.signin.SignInViewModel

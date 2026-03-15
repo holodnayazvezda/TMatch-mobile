@@ -4,5 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RecommendationCandidateDatingProfileDto(
-	val photos: List<String> = emptyList()
+	val photos: List<String> = emptyList(),
+	val traits: List<RecommendationCandidateDatingTraitDto> = emptyList()
 )

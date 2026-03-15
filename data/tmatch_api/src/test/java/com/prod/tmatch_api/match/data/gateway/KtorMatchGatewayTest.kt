@@ -1,0 +1,127 @@
+package com.prod.tmatch_api.match.data.gateway
+
+import com.prod.auth.domain.gateway.AuthSessionStore
+import com.prod.common.api.model.ApiErrorReason
+import com.prod.common.api.model.ApiOperationResult
+import com.prod.common.api.model.UserSession
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class KtorMatchGatewayTest {
+
+	@Test
+	fun `maps unknown recommendation reasons without crashing`() = runBlocking {
+		val gateway = KtorMatchGateway(
+			httpClient = createHttpClient(
+				status = HttpStatusCode.OK,
+				body = """
+					{
+					  "items": [
+					    {
+					      "ml_recommendation_id": "rec-1",
+					      "user_id": "user-1",
+					      "candidate_user_id": "candidate-1",
+					      "reasons": {
+					        "new_backend_reason": 0.91,
+					        "lifestyle": 0.42
+					      }
+					    }
+					  ]
+					}
+				""".trimIndent()
+			),
+			authSessionStore = FakeAuthSessionStore()
+		)
+
+		val result = gateway.getRecommendations()
+
+		assertTrue(result is ApiOperationResult.Success)
+		val recommendations = (result as ApiOperationResult.Success).data
+		assertEquals(1, recommendations.size)
+		assertEquals(2, recommendations.single().reasons.size)
+	}
+
+	@Test
+	fun `returns request failed instead of crashing on unknown interaction action`() = runBlocking {
+		val gateway = KtorMatchGateway(
+			httpClient = createHttpClient(
+				status = HttpStatusCode.OK,
+				body = """
+					{
+					  "interaction_id": "interaction-1",
+					  "actor_user_id": "user-1",
+					  "candidate_user_id": "candidate-1",
+					  "action": "super_like",
+					  "created_at": "2026-03-15T12:00:00Z"
+					}
+				""".trimIndent()
+			),
+			authSessionStore = FakeAuthSessionStore()
+		)
+
+		val result = gateway.createInteraction(
+			candidateUserId = "candidate-1",
+			action = com.prod.match.domain.model.InteractionAction.Like,
+			mlRecommendationId = null
+		)
+
+		assertEquals(
+			ApiOperationResult.ApiError(
+				reason = ApiErrorReason.RequestFailed,
+				message = "Unsupported interaction action in response"
+			),
+			result
+		)
+	}
+
+	private fun createHttpClient(
+		status: HttpStatusCode,
+		body: String
+	): HttpClient {
+		return HttpClient(
+			MockEngine {
+				respond(
+					content = body,
+					status = status,
+					headers = headersOf(
+						HttpHeaders.ContentType,
+						listOf(ContentType.Application.Json.toString())
+					)
+				)
+			}
+		) {
+			install(ContentNegotiation) {
+				json(
+					Json {
+						ignoreUnknownKeys = true
+						explicitNulls = false
+					}
+				)
+			}
+		}
+	}
+
+	private class FakeAuthSessionStore : AuthSessionStore {
+		override fun get(): UserSession? = UserSession(accessToken = "token", userId = "user-1")
+
+		override fun save(session: UserSession) = Unit
+
+		override fun isProfileCompleted(): Boolean = false
+
+		override fun setProfileCompleted(isCompleted: Boolean) = Unit
+
+		override fun clear() = Unit
+	}
+}

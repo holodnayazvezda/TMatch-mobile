@@ -54,6 +54,9 @@
     <string name="profile_setup_first_name">Имя</string>
     <string name="profile_setup_last_name">Фамилия</string>
     <string name="profile_setup_birth_date">Дата рождения</string>
+    <string name="profile_setup_gender">Пол</string>
+    <string name="profile_setup_gender_male">Мужской</string>
+    <string name="profile_setup_gender_female">Женский</string>
     <string name="profile_setup_region">Регион</string>
     <string name="profile_setup_submit">Сохранить профиль</string>
     <string name="profile_setup_pick_avatar">Выбрать фото</string>
@@ -65,4 +68,5 @@
     <string name="profile_setup_apply_crop">Применить</string>
     <string name="profile_setup_first_name_required">Введите имя</string>
     <string name="profile_setup_birth_date_required">Выберите дату рождения</string>
+    <string name="profile_setup_gender_required">Выберите пол</string>
 </resources>

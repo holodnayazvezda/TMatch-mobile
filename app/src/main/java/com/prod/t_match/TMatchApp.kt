@@ -4,22 +4,26 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.gateway.AuthSessionStore
-import com.prod.auth.navigation.OnboardingNavKey
-import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.auth.navigation.authGraph
 import com.prod.auth.navigation.rememberAuthGraphState
 import com.prod.chats.navigation.ChatsNavKey
@@ -31,6 +35,7 @@ import com.prod.profile.navigation.profileGraph
 import com.prod.t_match.debug.DebugNetworkOverridesNavKey
 import com.prod.t_match.debug.DebugNetworkOverridesScreen
 import com.prod.t_match.debug.DebugShakeToOpenEffect
+import com.prod.t_match.navigation.AppStartDestinationResolver
 import com.prod.ui.components.rememberAppGradientBrush
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
@@ -40,16 +45,30 @@ import org.koin.compose.koinInject
 fun TMatchApp() {
 	TmatchTheme {
 		val authSessionStore = koinInject<AuthSessionStore>()
-		val startDestination = remember(authSessionStore) {
-			if (authSessionStore.get() == null) {
-				OnboardingNavKey()
-			} else if (authSessionStore.isProfileCompleted()) {
-				ProfileNavKey()
-			} else {
-				ProfileSetupNavKey()
-			}
+		val authGateway = koinInject<AuthGateway>()
+		val startDestination by produceState<Any?>(
+			initialValue = null,
+			authSessionStore,
+			authGateway
+		) {
+			value = AppStartDestinationResolver(
+				authSessionStore = authSessionStore,
+				authGateway = authGateway
+			).resolve()
 		}
-		val backStack = remember(startDestination) { mutableStateListOf<Any>(startDestination) }
+		if (startDestination == null) {
+			Box(
+				modifier = Modifier.fillMaxSize(),
+				contentAlignment = Alignment.Center
+			) {
+				CircularProgressIndicator()
+			}
+			return@TmatchTheme
+		}
+		val resolvedStartDestination = requireNotNull(startDestination)
+		val backStack = remember(resolvedStartDestination) {
+			mutableStateListOf<Any>(resolvedStartDestination)
+		}
 		val authGraphState = rememberAuthGraphState(
 			backStack = backStack,
 			authSessionStore = authSessionStore
@@ -108,6 +127,7 @@ fun TMatchApp() {
 					)
 					profileGraph(
 						onUnauthorized = authGraphState::onUnauthorized,
+						onProfileMissing = authGraphState::onProfileMissing,
 						onLogout = authGraphState::onLogout,
 						onRequestNoInternet = authGraphState::onRequestNoInternet,
 						onOpenDebugTools = if (BuildConfig.DEBUG) {
