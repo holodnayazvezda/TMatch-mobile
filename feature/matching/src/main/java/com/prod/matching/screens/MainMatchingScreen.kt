@@ -449,11 +449,7 @@ private fun SwipeCardDeck(
 			)
 		} else {
 			MatchingDeckPlaceholderCard(
-				message = if (isLoadingMore) {
-					"Подбираем новых пользователей"
-				} else {
-					"Вы просмотрели всех пользователей.\nЗагляните позже за новыми рекомендациями."
-				},
+				message = "Вы просмотрели всех пользователей.\nНовые рекомендации появятся позже.",
 				modifier = Modifier
 					.fillMaxSize()
 					.padding(horizontal = dim.extraSmall / 2)
