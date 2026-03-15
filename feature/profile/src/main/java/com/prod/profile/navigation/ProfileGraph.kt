@@ -7,16 +7,14 @@ fun EntryProviderScope<Any>.profileGraph(
 	onUnauthorized: () -> Unit,
 	onProfileMissing: () -> Unit,
 	onLogout: () -> Unit,
-	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
-	onOpenDebugTools: (() -> Unit)? = null
+	onRequestNoInternet: (retryAction: () -> Unit) -> Unit
 ) {
 	entry<ProfileNavKey> {
 		ProfileScreen(
 			onUnauthorized = onUnauthorized,
 			onProfileMissing = onProfileMissing,
 			onLogout = onLogout,
-			onRequestNoInternet = onRequestNoInternet,
-			onOpenDebugTools = onOpenDebugTools
+			onRequestNoInternet = onRequestNoInternet
 		)
 	}
 }

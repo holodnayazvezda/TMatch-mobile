@@ -66,7 +66,7 @@ class SignUpViewModel(
 	}
 
 	fun submit(
-		onSuccess: (UserSession) -> Unit,
+		onSuccess: suspend (UserSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		submitCredentials(
@@ -77,7 +77,7 @@ class SignUpViewModel(
 	}
 
 	fun submitJuryRegistration(
-		onSuccess: (UserSession) -> Unit,
+		onSuccess: suspend (UserSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		val credentials = createJurySignUpCredentialsUseCase()
@@ -112,7 +112,7 @@ class SignUpViewModel(
 	// Обычная форма и shortcut для жюри проходят через один и тот же путь валидации и отправки.
 	private fun submitCredentials(
 		credentials: SignUpCredentials,
-		onSuccess: (UserSession) -> Unit,
+		onSuccess: suspend (UserSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		val emailError = emailValidator.validate(credentials.email)
@@ -137,8 +137,8 @@ class SignUpViewModel(
 			uiState = uiState.copy(isLoading = true)
 			when (val result = signUpWithEmailUseCase(credentials.email.trim(), credentials.password)) {
 				is ApiOperationResult.Success -> {
-					uiState = uiState.copy(isLoading = false)
 					onSuccess(result.data)
+					uiState = uiState.copy(isLoading = false)
 				}
 
 				is ApiOperationResult.ValidationError -> {

@@ -16,17 +16,18 @@ import com.prod.ui.navigation.NoInternetNavKey
 class AuthGraphState(
 	private val backStack: SnapshotStateList<Any>,
 	private val authSessionStore: AuthSessionStore,
+	private val resolveSignedInDestination: suspend () -> Any,
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
 	private val requestNoInternetInternal: (retryAction: () -> Unit) -> Unit
 ) {
-	fun onSignInSuccess(session: UserSession) {
+	suspend fun onSignInSuccess(session: UserSession) {
 		authSessionStore.save(session)
-		authSessionStore.setProfileCompleted(false)
+		val destination = resolveSignedInDestination()
 		backStack.clear()
-		backStack.add(ProfileSetupNavKey())
+		backStack.add(destination)
 	}
 
-	fun onSignUpSuccess(session: UserSession) {
+	suspend fun onSignUpSuccess(session: UserSession) {
 		authSessionStore.save(session)
 		authSessionStore.setProfileCompleted(false)
 		backStack.clear()
@@ -66,7 +67,8 @@ class AuthGraphState(
 @Composable
 fun rememberAuthGraphState(
 	backStack: SnapshotStateList<Any>,
-	authSessionStore: AuthSessionStore
+	authSessionStore: AuthSessionStore,
+	resolveSignedInDestination: suspend () -> Any
 ): AuthGraphState {
 	var nextRetryRequestId by rememberSaveable { mutableStateOf(0L) }
 	var retryAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -80,6 +82,7 @@ fun rememberAuthGraphState(
 	return AuthGraphState(
 		backStack = backStack,
 		authSessionStore = authSessionStore,
+		resolveSignedInDestination = resolveSignedInDestination,
 		consumeRetryActionInternal = {
 			val callback = retryAction
 			retryAction = null

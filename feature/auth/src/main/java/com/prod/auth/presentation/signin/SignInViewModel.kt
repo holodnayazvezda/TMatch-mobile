@@ -52,7 +52,7 @@ class SignInViewModel(
 	}
 
 	fun submit(
-		onSuccess: (UserSession) -> Unit,
+		onSuccess: suspend (UserSession) -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		val emailError = emailValidator.validate(uiState.email)
@@ -72,8 +72,8 @@ class SignInViewModel(
 			uiState = uiState.copy(isLoading = true)
 			when (val result = signInWithEmailUseCase(uiState.email.trim(), uiState.password)) {
 				is ApiOperationResult.Success -> {
-					uiState = uiState.copy(isLoading = false)
 					onSuccess(result.data)
+					uiState = uiState.copy(isLoading = false)
 				}
 
 				is ApiOperationResult.ValidationError -> {

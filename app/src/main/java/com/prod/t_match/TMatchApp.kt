@@ -22,7 +22,6 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.navigation.authGraph
 import com.prod.auth.navigation.rememberAuthGraphState
@@ -30,6 +29,7 @@ import com.prod.chats.navigation.ChatsNavKey
 import com.prod.chats.navigation.chatsGraph
 import com.prod.match.navigation.MatchingNavKey
 import com.prod.matching.navigation.matchingGraph
+import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.navigation.ProfileNavKey
 import com.prod.profile.navigation.profileGraph
 import com.prod.t_match.debug.DebugNetworkOverridesNavKey
@@ -45,20 +45,23 @@ import org.koin.compose.koinInject
 fun TMatchApp() {
 	TmatchTheme {
 		val authSessionStore = koinInject<AuthSessionStore>()
-		val authGateway = koinInject<AuthGateway>()
+		val profileGateway = koinInject<ProfileGateway>()
 		val startDestination by produceState<Any?>(
 			initialValue = null,
 			authSessionStore,
-			authGateway
+			profileGateway
 		) {
 			value = AppStartDestinationResolver(
 				authSessionStore = authSessionStore,
-				authGateway = authGateway
+				profileGateway = profileGateway
 			).resolve()
 		}
+		val backgroundBrush = rememberAppGradientBrush()
 		if (startDestination == null) {
 			Box(
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier
+					.fillMaxSize()
+					.background(backgroundBrush),
 				contentAlignment = Alignment.Center
 			) {
 				CircularProgressIndicator()
@@ -71,9 +74,14 @@ fun TMatchApp() {
 		}
 		val authGraphState = rememberAuthGraphState(
 			backStack = backStack,
-			authSessionStore = authSessionStore
+			authSessionStore = authSessionStore,
+			resolveSignedInDestination = {
+				AppStartDestinationResolver(
+					authSessionStore = authSessionStore,
+					profileGateway = profileGateway
+				).resolveAuthenticatedDestination()
+			}
 		)
-		val backgroundBrush = rememberAppGradientBrush()
 		val saveableStateHolder = rememberSaveableStateHolder()
 		val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current)
 		val currentDestination = backStack.lastOrNull()
@@ -129,14 +137,7 @@ fun TMatchApp() {
 						onUnauthorized = authGraphState::onUnauthorized,
 						onProfileMissing = authGraphState::onProfileMissing,
 						onLogout = authGraphState::onLogout,
-						onRequestNoInternet = authGraphState::onRequestNoInternet,
-						onOpenDebugTools = if (BuildConfig.DEBUG) {
-							{
-								backStack.add(DebugNetworkOverridesNavKey())
-							}
-						} else {
-							null
-						}
+						onRequestNoInternet = authGraphState::onRequestNoInternet
 					)
 					matchingGraph(
 						onUnauthorized = authGraphState::onUnauthorized,

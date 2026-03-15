@@ -33,7 +33,7 @@ import org.koin.androidx.compose.koinViewModel
 fun SignUpScreen(
 	onBack: () -> Unit,
 	onSwitchToSignIn: (String) -> Unit,
-	onAuthSuccess: (UserSession) -> Unit,
+	onAuthSuccess: suspend (UserSession) -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	prefilledEmail: String = "",
 	modifier: Modifier = Modifier,

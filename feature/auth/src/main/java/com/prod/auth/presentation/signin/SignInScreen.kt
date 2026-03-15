@@ -29,7 +29,7 @@ fun SignInScreen(
 	modifier: Modifier = Modifier,
 	onBack: () -> Unit,
 	onSwitchToSignUp: (String) -> Unit,
-	onAuthSuccess: (UserSession) -> Unit,
+	onAuthSuccess: suspend (UserSession) -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	prefilledEmail: String = "",
 	viewModel: SignInViewModel = koinViewModel()

@@ -21,6 +21,7 @@ import com.prod.matching.presentation.MainMatchingViewModel
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
+import com.prod.profile.domain.model.OwnCard
 import com.prod.profile.di.profileFeatureModule
 import com.prod.profile.presentation.ProfileViewModel
 import org.junit.After
@@ -103,6 +104,16 @@ class AppModulesSmokeTest {
 	}
 
 	private class FakeProfileGateway : ProfileGateway {
+		override suspend fun getOwnCard(): ApiOperationResult<OwnCard> {
+			return ApiOperationResult.Success(
+				OwnCard(
+					userId = "user",
+					hasAccountProfile = true,
+					hasDatingProfile = true
+				)
+			)
+		}
+
 		override suspend fun getOwnDatingProfile(): ApiOperationResult<DatingProfile?> =
 			ApiOperationResult.Success(null)
 

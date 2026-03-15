@@ -1,25 +1,29 @@
 package com.prod.t_match.navigation
 
-import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.navigation.OnboardingNavKey
 import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.navigation.ProfileNavKey
 
 class AppStartDestinationResolver(
 	private val authSessionStore: AuthSessionStore,
-	private val authGateway: AuthGateway
+	private val profileGateway: ProfileGateway
 ) {
 	suspend fun resolve(): Any {
 		if (authSessionStore.get() == null) {
 			return OnboardingNavKey()
 		}
 
-		return when (val result = authGateway.getOwnProfile()) {
+		return resolveAuthenticatedDestination()
+	}
+
+	suspend fun resolveAuthenticatedDestination(): Any {
+		return when (val result = profileGateway.getOwnCard()) {
 			is ApiOperationResult.Success -> {
-				val isProfileCompleted = result.data != null
+				val isProfileCompleted = result.data.hasAccountProfile
 				authSessionStore.setProfileCompleted(isProfileCompleted)
 				if (isProfileCompleted) {
 					ProfileNavKey(source = "startup_resolver")

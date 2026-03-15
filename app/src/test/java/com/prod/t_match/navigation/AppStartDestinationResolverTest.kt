@@ -1,15 +1,15 @@
 package com.prod.t_match.navigation
 
-import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.auth.domain.gateway.AuthSessionStore
-import com.prod.auth.domain.model.Gender
-import com.prod.auth.domain.model.Profile
-import com.prod.auth.domain.model.ProfileDraft
 import com.prod.auth.navigation.OnboardingNavKey
 import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
+import com.prod.profile.domain.gateway.ProfileGateway
+import com.prod.profile.domain.model.DatingProfile
+import com.prod.profile.domain.model.DatingProfileDraft
+import com.prod.profile.domain.model.OwnCard
 import com.prod.profile.navigation.ProfileNavKey
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -24,7 +24,7 @@ class AppStartDestinationResolverTest {
 		val sessionStore = FakeAuthSessionStore()
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
-			authGateway = FakeAuthGateway()
+			profileGateway = FakeProfileGateway()
 		)
 
 		val destination = resolver.resolve()
@@ -33,23 +33,19 @@ class AppStartDestinationResolverTest {
 	}
 
 	@Test
-	fun `returns profile when backend confirms existing profile`() = runBlocking {
+	fun `returns profile when account profile exists without dating profile`() = runBlocking {
 		val sessionStore = FakeAuthSessionStore().apply {
 			save(UserSession(accessToken = "token", userId = "user"))
 			setProfileCompleted(false)
 		}
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
-			authGateway = FakeAuthGateway(
-				ownProfileResult = ApiOperationResult.Success(
-					Profile(
+			profileGateway = FakeProfileGateway(
+				ownCardResult = ApiOperationResult.Success(
+					OwnCard(
 						userId = "user",
-						firstName = "Max",
-						lastName = null,
-						birthDate = "2000-01-01",
-						gender = Gender.Male,
-						region = null,
-						avatarUrl = null
+						hasAccountProfile = true,
+						hasDatingProfile = false
 					)
 				)
 			)
@@ -62,15 +58,46 @@ class AppStartDestinationResolverTest {
 	}
 
 	@Test
-	fun `returns profile setup when backend reports missing profile`() = runBlocking {
+	fun `returns profile when account and dating profiles both exist`() = runBlocking {
+		val sessionStore = FakeAuthSessionStore().apply {
+			save(UserSession(accessToken = "token", userId = "user"))
+			setProfileCompleted(false)
+		}
+		val resolver = AppStartDestinationResolver(
+			authSessionStore = sessionStore,
+			profileGateway = FakeProfileGateway(
+				ownCardResult = ApiOperationResult.Success(
+					OwnCard(
+						userId = "user",
+						hasAccountProfile = true,
+						hasDatingProfile = true
+					)
+				)
+			)
+		)
+
+		val destination = resolver.resolve()
+
+		assertEquals(ProfileNavKey(source = "startup_resolver"), destination)
+		assertTrue(sessionStore.isProfileCompleted())
+	}
+
+	@Test
+	fun `returns profile setup when account profile is missing`() = runBlocking {
 		val sessionStore = FakeAuthSessionStore().apply {
 			save(UserSession(accessToken = "token", userId = "user"))
 			setProfileCompleted(true)
 		}
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
-			authGateway = FakeAuthGateway(
-				ownProfileResult = ApiOperationResult.Success(null)
+			profileGateway = FakeProfileGateway(
+				ownCardResult = ApiOperationResult.Success(
+					OwnCard(
+						userId = "user",
+						hasAccountProfile = false,
+						hasDatingProfile = false
+					)
+				)
 			)
 		)
 
@@ -88,8 +115,8 @@ class AppStartDestinationResolverTest {
 		}
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
-			authGateway = FakeAuthGateway(
-				ownProfileResult = ApiOperationResult.NoInternet
+			profileGateway = FakeProfileGateway(
+				ownCardResult = ApiOperationResult.NoInternet
 			)
 		)
 
@@ -106,8 +133,8 @@ class AppStartDestinationResolverTest {
 		}
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
-			authGateway = FakeAuthGateway(
-				ownProfileResult = ApiOperationResult.ApiError(ApiErrorReason.Unauthorized)
+			profileGateway = FakeProfileGateway(
+				ownCardResult = ApiOperationResult.ApiError(ApiErrorReason.Unauthorized)
 			)
 		)
 
@@ -139,24 +166,22 @@ class AppStartDestinationResolverTest {
 		}
 	}
 
-	private class FakeAuthGateway(
-		private val ownProfileResult: ApiOperationResult<Profile?> =
+	private class FakeProfileGateway(
+		private val ownCardResult: ApiOperationResult<OwnCard> =
 			ApiOperationResult.ValidationError()
-	) : AuthGateway {
-		override suspend fun signInWithEmail(
-			email: String,
-			password: String
-		) = ApiOperationResult.ValidationError()
+	) : ProfileGateway {
+		override suspend fun getOwnCard(): ApiOperationResult<OwnCard> = ownCardResult
 
-		override suspend fun signUpWithEmail(
-			email: String,
-			password: String
-		) = ApiOperationResult.ValidationError()
+		override suspend fun getOwnDatingProfile(): ApiOperationResult<DatingProfile?> =
+			ApiOperationResult.Success(null)
 
-		override suspend fun getOwnProfile(): ApiOperationResult<Profile?> = ownProfileResult
+		override suspend fun upsertOwnDatingProfile(
+			draft: DatingProfileDraft
+		): ApiOperationResult<DatingProfile> = ApiOperationResult.ValidationError()
 
-		override suspend fun upsertOwnProfile(
-			draft: ProfileDraft
-		): ApiOperationResult<Profile> = ApiOperationResult.ValidationError()
+		override suspend fun uploadDatingProfilePhoto(
+			contentType: String,
+			bytes: ByteArray
+		): ApiOperationResult<String> = ApiOperationResult.ValidationError()
 	}
 }
