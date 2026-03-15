@@ -2,6 +2,7 @@ package com.prod.ui.components.buttons
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,7 +38,11 @@ fun AppMediumButton(
         )
     ){
         if (isLoading) {
-            CircularProgressIndicator(color = colorScheme.onSecondaryContainer)
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = colorScheme.onSecondaryContainer,
+                strokeWidth = 2.5.dp
+            )
         } else {
             Text(
                 text = buttonText,

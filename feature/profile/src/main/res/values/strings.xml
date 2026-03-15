@@ -1,4 +1,9 @@
 <resources>
+    <string name="profile_screen_title">Профиль</string>
+    <string name="profile_screen_logout_button">Выйти</string>
+    <string name="profile_screen_logout_dialog_title">Выйти из аккаунта?</string>
+    <string name="profile_screen_logout_confirm">Выйти</string>
+    <string name="profile_screen_logout_cancel">Отмена</string>
     <string name="profile_screen_change_photo_button">Выбрать новое фото</string>
     <string name="profile_screen_retry_button">Повторить</string>
     <string name="profile_screen_name_label">Имя</string>
@@ -9,4 +14,6 @@
     <string name="profile_screen_crop_title">Обрежьте dating-фото</string>
     <string name="profile_screen_crop_cancel">Отмена</string>
     <string name="profile_screen_crop_apply">Применить</string>
+    <string name="profile_screen_empty_photo_prompt">Загрузите фото для анкеты</string>
+    <string name="profile_screen_uploading_photo">Загружаем фото...</string>
 </resources>

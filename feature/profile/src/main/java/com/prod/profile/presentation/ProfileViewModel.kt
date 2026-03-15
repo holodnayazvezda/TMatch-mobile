@@ -57,7 +57,6 @@ class ProfileViewModel(
 	fun replaceDatingPhoto(
 		selectedPhotoIndex: Int,
 		imageBytes: ByteArray,
-		onSaved: () -> Unit,
 		onUnauthorized: () -> Unit,
 		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
@@ -94,7 +93,6 @@ class ProfileViewModel(
 								profileCard = currentCard.copy(datingPhotoUrls = createResult.data.photos),
 								error = null
 							)
-							onSaved()
 						}
 
 						is ApiOperationResult.ValidationError -> {
@@ -125,7 +123,6 @@ class ProfileViewModel(
 								replaceDatingPhoto(
 									selectedPhotoIndex = selectedPhotoIndex,
 									imageBytes = imageBytes,
-									onSaved = onSaved,
 									onUnauthorized = onUnauthorized,
 									onNoInternet = onNoInternet
 								)
@@ -162,7 +159,6 @@ class ProfileViewModel(
 						replaceDatingPhoto(
 							selectedPhotoIndex = selectedPhotoIndex,
 							imageBytes = imageBytes,
-							onSaved = onSaved,
 							onUnauthorized = onUnauthorized,
 							onNoInternet = onNoInternet
 						)
