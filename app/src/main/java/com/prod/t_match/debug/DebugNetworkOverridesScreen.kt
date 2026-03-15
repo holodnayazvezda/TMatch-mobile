@@ -1,24 +1,32 @@
 package com.prod.t_match.debug
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -42,12 +50,14 @@ fun DebugNetworkOverridesScreen(
 	modifier: Modifier = Modifier,
 	registry: ApiResponseOverrideRegistry = koinInject()
 ) {
-	val editorStates = remember(registry) {
-		mutableStateListOf<EndpointOverrideEditorState>().apply {
+	val endpointDefinitions = remember { debugEndpointDefinitions }
+	val itemStateHolders = remember(registry) {
+		mutableStateListOf<EndpointOverrideItemStateHolder>().apply {
 			addAll(
-				debugEndpointDefinitions().map { definition ->
+				endpointDefinitions.map { definition ->
 					val override = registry.getOverride(definition.method, definition.path)
-						EndpointOverrideEditorState(
+					EndpointOverrideItemStateHolder(
+						initialState = EndpointOverrideEditorState(
 							definition = definition,
 							enabled = override != null,
 							statusCode = override?.statusCode?.toString() ?: definition.defaultStatusCode.toString(),
@@ -57,130 +67,182 @@ fun DebugNetworkOverridesScreen(
 							selectedPresetLabel = null,
 							error = null
 						)
+					)
 				}
 			)
 		}
 	}
+	var selectedKey by remember { mutableStateOf<String?>(null) }
+	val selectedHolder = itemStateHolders.firstOrNull { it.key == selectedKey }
 
-	Column(
-		modifier = modifier
-			.fillMaxSize()
-			.safeDrawingPadding()
-			.verticalScroll(rememberScrollState())
-			.padding(horizontal = 20.dp, vertical = 16.dp),
+	BackHandler(enabled = selectedHolder != null) {
+		selectedKey = null
+	}
+
+	if (selectedHolder == null) {
+		DebugOverridesListScreen(
+			modifier = modifier,
+			itemStateHolders = itemStateHolders,
+			onBack = onBack,
+			onClearAll = {
+				registry.clear()
+				itemStateHolders.forEachIndexed { index, holder ->
+					val definition = endpointDefinitions[index]
+					holder.state = EndpointOverrideEditorState(
+						definition = definition,
+						enabled = false,
+						statusCode = definition.defaultStatusCode.toString(),
+						savedStatusCode = null,
+						body = definition.defaultBody.toPrettyJson(),
+						savedBody = null,
+						selectedPresetLabel = null,
+						error = null
+					)
+				}
+				selectedKey = null
+			},
+			onToggleEnabled = { holder, isEnabled ->
+				val state = holder.state
+				holder.state = state.copy(
+					enabled = isEnabled,
+					statusCode = if (isEnabled) state.savedStatusCode ?: state.statusCode else state.statusCode,
+					body = if (isEnabled) state.savedBody ?: state.body else state.body,
+					selectedPresetLabel = null,
+					error = null
+				)
+			},
+			onOpenConfig = { holder ->
+				selectedKey = holder.key
+			}
+		)
+	} else {
+		DebugOverrideEditorScreen(
+			modifier = modifier,
+			state = selectedHolder.state,
+			onBack = { selectedKey = null },
+			onStateChange = { updatedState ->
+				selectedHolder.state = updatedState
+			},
+			onApply = {
+				val state = selectedHolder.state
+				val statusCode = state.statusCode.toIntOrNull()
+				if (statusCode == null || statusCode !in 100..599) {
+					selectedHolder.state = state.copy(error = "Укажи HTTP status в диапазоне 100..599")
+					return@DebugOverrideEditorScreen
+				}
+
+				if (state.enabled) {
+					registry.setOverride(
+						method = state.definition.method,
+						path = state.definition.path,
+						response = ApiResponseOverride(
+							statusCode = statusCode,
+							body = state.body
+						)
+					)
+					selectedHolder.state = state.copy(
+						savedStatusCode = statusCode.toString(),
+						savedBody = state.body,
+						error = null
+					)
+				} else {
+					registry.removeOverride(
+						method = state.definition.method,
+						path = state.definition.path
+					)
+					selectedHolder.state = state.copy(
+						savedStatusCode = null,
+						savedBody = null,
+						error = null
+					)
+				}
+			}
+		)
+	}
+}
+
+@Composable
+private fun DebugOverridesListScreen(
+	modifier: Modifier,
+	itemStateHolders: List<EndpointOverrideItemStateHolder>,
+	onBack: () -> Unit,
+	onClearAll: () -> Unit,
+	onToggleEnabled: (EndpointOverrideItemStateHolder, Boolean) -> Unit,
+	onOpenConfig: (EndpointOverrideItemStateHolder) -> Unit
+) {
+	LazyColumn(
+		modifier = modifier.fillMaxSize(),
+		contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
 		verticalArrangement = Arrangement.spacedBy(16.dp)
 	) {
-		Surface(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.surfaceContainerHigh,
-			shape = MaterialTheme.shapes.large
-		) {
-			Column(
-				modifier = Modifier.padding(16.dp),
-				verticalArrangement = Arrangement.spacedBy(8.dp)
+		item(key = "header") {
+			Surface(
+				modifier = Modifier.fillMaxWidth(),
+				color = MaterialTheme.colorScheme.surfaceContainerHigh,
+				shape = MaterialTheme.shapes.large
 			) {
-				Text(
-					text = "Debug API Overrides",
-					style = MaterialTheme.typography.headlineMedium,
-					fontWeight = FontWeight.SemiBold,
-					color = MaterialTheme.colorScheme.onSurface
+				Column(
+					modifier = Modifier.padding(16.dp),
+					verticalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					Text(
+						text = "Debug API Overrides",
+						style = MaterialTheme.typography.headlineMedium,
+						fontWeight = FontWeight.SemiBold
+					)
+					Text(
+						text = "Список ручек и быстрые переключатели. Детальная настройка открывается отдельно для одной ручки.",
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
+			}
+		}
+
+		item(key = "actions") {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(12.dp)
+			) {
+				AppMediumButton(
+					modifier = Modifier.weight(1f),
+					onClick = onBack,
+					buttonText = "Назад",
+					isLoading = false
 				)
-				Text(
-					text = "Для каждой ручки можно включить override, задать HTTP-статус и тело ответа. Если override выключен, запрос идет в реальный backend.",
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
+				AppBigButton(
+					modifier = Modifier.weight(1f),
+					onClick = onClearAll,
+					buttonText = "Очистить все",
+					isLoading = false
 				)
 			}
 		}
 
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			AppMediumButton(
-				modifier = Modifier.weight(1f),
-				onClick = onBack,
-				buttonText = "Назад",
-				isLoading = false
-			)
-			AppBigButton(
-				modifier = Modifier.weight(1f),
-				onClick = {
-					registry.clear()
-					val refreshedStates = debugEndpointDefinitions().map { definition ->
-						EndpointOverrideEditorState(
-							definition = definition,
-							enabled = false,
-							statusCode = definition.defaultStatusCode.toString(),
-							savedStatusCode = null,
-							body = definition.defaultBody.toPrettyJson(),
-							savedBody = null,
-							selectedPresetLabel = null,
-							error = null
-							)
-						}
-					editorStates.clear()
-					editorStates.addAll(refreshedStates)
-				},
-				buttonText = "Очистить все",
-				isLoading = false
-			)
-		}
-
-		editorStates.forEachIndexed { index, state ->
-			DebugEndpointOverrideCard(
-				state = state,
-				onStateChange = { updatedState ->
-					editorStates[index] = updatedState
-				},
-				onApply = {
-					val statusCode = state.statusCode.toIntOrNull()
-					if (statusCode == null || statusCode !in 100..599) {
-						editorStates[index] = state.copy(error = "Укажи HTTP status в диапазоне 100..599")
-						return@DebugEndpointOverrideCard
-					}
-
-					if (state.enabled) {
-						registry.setOverride(
-							method = state.definition.method,
-							path = state.definition.path,
-							response = ApiResponseOverride(
-								statusCode = statusCode,
-								body = state.body
-							)
-						)
-						editorStates[index] = state.copy(
-							savedStatusCode = statusCode.toString(),
-							savedBody = state.body,
-							error = null
-						)
-					} else {
-						registry.removeOverride(
-							method = state.definition.method,
-							path = state.definition.path
-						)
-						editorStates[index] = state.copy(
-							savedStatusCode = null,
-							savedBody = null,
-							error = null
-						)
-					}
-				}
+		items(
+			items = itemStateHolders,
+			key = { it.key }
+		) { holder ->
+			DebugOverrideListItem(
+				state = holder.state,
+				onToggleEnabled = { isEnabled -> onToggleEnabled(holder, isEnabled) },
+				onOpenConfig = { onOpenConfig(holder) }
 			)
 		}
 	}
 }
 
 @Composable
-private fun DebugEndpointOverrideCard(
+private fun DebugOverrideListItem(
 	state: EndpointOverrideEditorState,
-	onStateChange: (EndpointOverrideEditorState) -> Unit,
-	onApply: () -> Unit
+	onToggleEnabled: (Boolean) -> Unit,
+	onOpenConfig: () -> Unit
 ) {
-	val hasUnsavedChanges = state.enabled && (
-		state.statusCode != state.savedStatusCode ||
-			state.body != state.savedBody
-	)
+	val summary = if (state.enabled) {
+		"HTTP ${state.statusCode}${state.selectedPresetLabel?.let { " • $it" } ?: ""}"
+	} else {
+		"Override выключен"
+	}
 
 	Card(
 		modifier = Modifier.fillMaxWidth()
@@ -211,8 +273,111 @@ private fun DebugEndpointOverrideCard(
 				}
 				Switch(
 					checked = state.enabled,
-					onCheckedChange = { isChecked ->
-						onStateChange(
+					onCheckedChange = onToggleEnabled
+				)
+			}
+
+			Text(
+				text = summary,
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+
+			AppMediumButton(
+				onClick = onOpenConfig,
+				buttonText = "Настроить",
+				isLoading = false
+			)
+		}
+	}
+}
+
+@Composable
+private fun DebugOverrideEditorScreen(
+	modifier: Modifier,
+	state: EndpointOverrideEditorState,
+	onBack: () -> Unit,
+	onStateChange: (EndpointOverrideEditorState) -> Unit,
+	onApply: () -> Unit
+) {
+	val hasUnsavedChanges = state.enabled && (
+		state.statusCode != state.savedStatusCode ||
+			state.body != state.savedBody
+	)
+
+	LazyColumn(
+		modifier = modifier.fillMaxSize(),
+		contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp)
+	) {
+		item(key = "header") {
+			Surface(
+				modifier = Modifier.fillMaxWidth(),
+				color = MaterialTheme.colorScheme.surfaceContainerHigh,
+				shape = MaterialTheme.shapes.large
+			) {
+				Column(
+					modifier = Modifier.padding(16.dp),
+					verticalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					Text(
+						text = state.definition.title,
+						style = MaterialTheme.typography.headlineMedium,
+						fontWeight = FontWeight.SemiBold
+					)
+					Text(
+						text = "${state.definition.method.value} ${state.definition.path}",
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
+			}
+		}
+
+		item(key = "actions") {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(12.dp)
+			) {
+				AppMediumButton(
+					modifier = Modifier.weight(1f),
+					onClick = onBack,
+					buttonText = "К списку",
+					isLoading = false
+				)
+				AppBigButton(
+					modifier = Modifier.weight(1f),
+					onClick = onApply,
+					buttonText = if (hasUnsavedChanges) "Сохранить" else "Пересохранить",
+					isLoading = false
+				)
+			}
+		}
+
+		item(key = "enabled") {
+			Card(modifier = Modifier.fillMaxWidth()) {
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(16.dp),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Column(
+						modifier = Modifier.weight(1f),
+						verticalArrangement = Arrangement.spacedBy(4.dp)
+					) {
+						Text("Включить override", style = MaterialTheme.typography.titleMedium)
+						Text(
+							text = if (state.enabled) "Сейчас будет использоваться mock" else "Сейчас запрос идёт в backend",
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					}
+					Switch(
+						checked = state.enabled,
+						onCheckedChange = { isChecked ->
+							onStateChange(
 								state.copy(
 									enabled = isChecked,
 									statusCode = if (isChecked) state.savedStatusCode ?: state.statusCode else state.statusCode,
@@ -220,46 +385,35 @@ private fun DebugEndpointOverrideCard(
 									selectedPresetLabel = null,
 									error = null
 								)
-						)
-					}
-				)
+							)
+						}
+					)
+				}
 			}
+		}
 
-			if (state.enabled) {
-				Text(
-					text = if (hasUnsavedChanges) {
-						"Есть несохраненные изменения"
-					} else {
-						"Override сохранен"
-					},
-					style = MaterialTheme.typography.bodySmall,
-					color = if (hasUnsavedChanges) {
-						MaterialTheme.colorScheme.tertiary
-					} else {
-						MaterialTheme.colorScheme.onSurfaceVariant
-					}
-				)
-			}
-
+		item(key = "status") {
 			AppTextFieldWithDropdown(
 				value = state.statusCode,
 				label = "HTTP status",
 				readOnly = true,
 				dropdownItems = debugStatusOptions,
 				onDropdownItemSelected = { option ->
-						onStateChange(
-							state.copy(
-								statusCode = option.code.toString(),
-								selectedPresetLabel = null,
-								error = null
-							)
+					onStateChange(
+						state.copy(
+							statusCode = option.code.toString(),
+							selectedPresetLabel = null,
+							error = null
 						)
+					)
 				},
 				dropDownItem = { option ->
 					Text("${option.code} ${option.label}")
 				}
 			)
+		}
 
+		item(key = "preset") {
 			AppTextFieldWithDropdown(
 				value = state.selectedPresetLabel ?: "Выбери error preset",
 				label = "Error preset",
@@ -279,21 +433,23 @@ private fun DebugEndpointOverrideCard(
 					Text("${preset.statusCode} ${preset.label}")
 				}
 			)
+		}
 
+		item(key = "body") {
 			OutlinedTextField(
 				value = state.body,
 				onValueChange = { value ->
-						onStateChange(
-							state.copy(
-								body = value,
-								selectedPresetLabel = null,
-								error = null
-							)
+					onStateChange(
+						state.copy(
+							body = value,
+							selectedPresetLabel = null,
+							error = null
 						)
+					)
 				},
 				modifier = Modifier.fillMaxWidth(),
 				label = { Text("Response body") },
-				minLines = 6,
+				minLines = 10,
 				keyboardOptions = KeyboardOptions(
 					keyboardType = KeyboardType.Text,
 					imeAction = ImeAction.Default,
@@ -301,45 +457,45 @@ private fun DebugEndpointOverrideCard(
 					autoCorrectEnabled = false
 				)
 			)
+		}
 
-			Row(
+		item(key = "format") {
+			AppMediumButton(
 				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.End
-			) {
-				AppMediumButton(
-					modifier = Modifier.fillMaxWidth(),
-					onClick = {
-						onStateChange(
-							state.copy(
-								body = state.body.toPrettyJson(),
-								error = null
-							)
+				onClick = {
+					onStateChange(
+						state.copy(
+							body = state.body.toPrettyJson(),
+							error = null
 						)
-					},
-					buttonText = "Форматировать JSON",
-					isLoading = false
-				)
-			}
+					)
+				},
+				buttonText = "Форматировать JSON",
+				isLoading = false
+			)
+		}
 
-			state.error?.let { error ->
+		state.error?.let { error ->
+			item(key = "error") {
 				Text(
 					text = error,
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.error
 				)
 			}
-
-			if (state.enabled) {
-				AppBigButton(
-					onClick = onApply,
-					buttonText = if (hasUnsavedChanges) "Сохранить изменения" else "Пересохранить override",
-					isLoading = false
-				)
-			}
 		}
 	}
 }
 
+@Stable
+private class EndpointOverrideItemStateHolder(
+	initialState: EndpointOverrideEditorState
+) {
+	val key: String = initialState.definition.key
+	var state by mutableStateOf(initialState)
+}
+
+@Immutable
 private data class EndpointOverrideEditorState(
 	val definition: DebugEndpointDefinition,
 	val enabled: Boolean,
@@ -351,19 +507,25 @@ private data class EndpointOverrideEditorState(
 	val error: String?
 )
 
+@Immutable
 private data class DebugEndpointDefinition(
 	val title: String,
 	val method: HttpMethod,
 	val path: String,
 	val defaultStatusCode: Int,
 	val defaultBody: String
-)
+) {
+	val key: String
+		get() = "${method.value}:$path"
+}
 
+@Immutable
 private data class DebugStatusOption(
 	val code: Int,
 	val label: String
 )
 
+@Immutable
 private data class DebugErrorPreset(
 	val statusCode: Int,
 	val label: String,
@@ -402,79 +564,78 @@ private val debugErrorPresets = listOf(
 )
 
 private const val DefaultMockImageUrl = "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6"
+
 @OptIn(ExperimentalSerializationApi::class)
 private val debugJsonFormatter = Json {
 	prettyPrint = true
 	prettyPrintIndent = "  "
 }
 
-private fun debugEndpointDefinitions(): List<DebugEndpointDefinition> {
-	return listOf(
-		DebugEndpointDefinition(
-			title = "Sign In",
-			method = HttpMethod.Post,
-			path = "/auth/signing/email",
-			defaultStatusCode = 200,
-			defaultBody = """{"access_token":"debug-token","user_id":"debug-user"}"""
-		),
-		DebugEndpointDefinition(
-			title = "Sign Up",
-			method = HttpMethod.Post,
-			path = "/auth/registration/email",
-			defaultStatusCode = 200,
-			defaultBody = """{"access_token":"debug-token","user_id":"debug-user"}"""
-		),
-		DebugEndpointDefinition(
-			title = "Get Own Profile",
-			method = HttpMethod.Get,
-			path = "/profile",
-			defaultStatusCode = 200,
-			defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
-		),
-		DebugEndpointDefinition(
-			title = "Upsert Own Profile",
-			method = HttpMethod.Put,
-			path = "/profile",
-			defaultStatusCode = 200,
-			defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
-		),
-		DebugEndpointDefinition(
-			title = "Get Dating Profile",
-			method = HttpMethod.Get,
-			path = "/dating-profile/me",
-			defaultStatusCode = 200,
-			defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"]}"""
-		),
-		DebugEndpointDefinition(
-			title = "Upsert Dating Profile",
-			method = HttpMethod.Put,
-			path = "/dating-profile/me",
-			defaultStatusCode = 200,
-			defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"]}"""
-		),
-		DebugEndpointDefinition(
-			title = "Upload Dating Photo",
-			method = HttpMethod.Post,
-			path = "/dating-profile/me/photos",
-			defaultStatusCode = 200,
-			defaultBody = """{"photo_url":"$DefaultMockImageUrl"}"""
-		),
-		DebugEndpointDefinition(
-			title = "Get Recommendations",
-			method = HttpMethod.Get,
-			path = "/recommendations",
-			defaultStatusCode = 200,
-			defaultBody = """{"items":[{"ml_recommendation_id":"rec-1","user_id":"debug-user","candidate_user_id":"candidate-1","reasons":{"lifestyle":0.98},"candidate_card":{"user_id":"candidate-1","profile":{"first_name":"Anna","last_name":"Smirnova","birth_date":"1997-04-03","region":"Saint Petersburg","avatar_url":"$DefaultMockImageUrl"},"dating_profile":{"photos":["$DefaultMockImageUrl"]}}}]}"""
-		),
-		DebugEndpointDefinition(
-			title = "Create Interaction",
-			method = HttpMethod.Post,
-			path = "/interactions",
-			defaultStatusCode = 200,
-			defaultBody = """{"interaction_id":"interaction-1","actor_user_id":"debug-user","candidate_user_id":"candidate-1","action":"like","created_at":"2026-03-15T12:00:00Z","ml_recommendation_id":"rec-1"}"""
-		)
+private val debugEndpointDefinitions = listOf(
+	DebugEndpointDefinition(
+		title = "Sign In",
+		method = HttpMethod.Post,
+		path = "/auth/signing/email",
+		defaultStatusCode = 200,
+		defaultBody = """{"access_token":"debug-token","user_id":"debug-user"}"""
+	),
+	DebugEndpointDefinition(
+		title = "Sign Up",
+		method = HttpMethod.Post,
+		path = "/auth/registration/email",
+		defaultStatusCode = 200,
+		defaultBody = """{"access_token":"debug-token","user_id":"debug-user"}"""
+	),
+	DebugEndpointDefinition(
+		title = "Get Own Profile",
+		method = HttpMethod.Get,
+		path = "/profile",
+		defaultStatusCode = 200,
+		defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
+	),
+	DebugEndpointDefinition(
+		title = "Upsert Own Profile",
+		method = HttpMethod.Put,
+		path = "/profile",
+		defaultStatusCode = 200,
+		defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
+	),
+	DebugEndpointDefinition(
+		title = "Get Dating Profile",
+		method = HttpMethod.Get,
+		path = "/dating-profile/me",
+		defaultStatusCode = 200,
+		defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"]}"""
+	),
+	DebugEndpointDefinition(
+		title = "Upsert Dating Profile",
+		method = HttpMethod.Put,
+		path = "/dating-profile/me",
+		defaultStatusCode = 200,
+		defaultBody = """{"user_id":"debug-user","photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"]}"""
+	),
+	DebugEndpointDefinition(
+		title = "Upload Dating Photo",
+		method = HttpMethod.Post,
+		path = "/dating-profile/me/photos",
+		defaultStatusCode = 200,
+		defaultBody = """{"photo_url":"$DefaultMockImageUrl"}"""
+	),
+	DebugEndpointDefinition(
+		title = "Get Recommendations",
+		method = HttpMethod.Get,
+		path = "/recommendations",
+		defaultStatusCode = 200,
+		defaultBody = """{"items":[{"ml_recommendation_id":"rec-1","user_id":"debug-user","candidate_user_id":"candidate-1","reasons":{"lifestyle":0.98},"candidate_card":{"user_id":"candidate-1","profile":{"first_name":"Anna","last_name":"Smirnova","birth_date":"1997-04-03","region":"Saint Petersburg","avatar_url":"$DefaultMockImageUrl"},"dating_profile":{"photos":["$DefaultMockImageUrl"]}}}]}"""
+	),
+	DebugEndpointDefinition(
+		title = "Create Interaction",
+		method = HttpMethod.Post,
+		path = "/interactions",
+		defaultStatusCode = 200,
+		defaultBody = """{"interaction_id":"interaction-1","actor_user_id":"debug-user","candidate_user_id":"candidate-1","action":"like","created_at":"2026-03-15T12:00:00Z","ml_recommendation_id":"rec-1"}"""
 	)
-}
+)
 
 private fun String.toPrettyJson(): String {
 	return runCatching {
