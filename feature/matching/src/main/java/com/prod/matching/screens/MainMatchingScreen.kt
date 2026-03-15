@@ -249,23 +249,8 @@ fun MainMatchingScreen(
 	viewModel: MainMatchingViewModel = koinViewModel()
 ) {
 	val uiState = viewModel.uiState
-	val currentProfile = uiState.currentProfile
-	if (!uiState.isLoading && currentProfile == null) {
-		Box(
-			modifier = modifier.fillMaxSize(),
-			contentAlignment = Alignment.Center
-		) {
-			Text(
-				text = uiState.error ?: "Рекомендаций пока нет",
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onBackground
-			)
-		}
-		return
-	}
-	currentProfile ?: return
 	val controller = object : MainMatchingContentController {
-		override val currentProfile: MatchProfile = currentProfile
+		override val currentProfile: MatchProfile? = uiState.currentProfile
 		override val nextProfile: MatchProfile? = uiState.nextProfile
 		override val isActionsSheetVisible: Boolean = uiState.isActionsSheetVisible
 
@@ -289,6 +274,7 @@ fun MainMatchingScreen(
 	MainMatchingContent(
 		controller = controller,
 		isLoading = uiState.isLoading,
+		isLoadingMore = uiState.isLoadingMore,
 		error = uiState.error,
 		modifier = modifier
 	)
@@ -296,7 +282,7 @@ fun MainMatchingScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 private interface MainMatchingContentController {
-	val currentProfile: MatchProfile
+	val currentProfile: MatchProfile?
 	val nextProfile: MatchProfile?
 	val isActionsSheetVisible: Boolean
 
@@ -310,6 +296,7 @@ private interface MainMatchingContentController {
 private fun MainMatchingContent(
 	controller: MainMatchingContentController,
 	isLoading: Boolean,
+	isLoadingMore: Boolean,
 	error: String?,
 	modifier: Modifier = Modifier
 ) {
@@ -356,6 +343,7 @@ private fun MainMatchingContent(
 			SwipeCardDeck(
 				currentProfile = controller.currentProfile,
 				nextProfile = controller.nextProfile,
+				isLoadingMore = isLoadingMore,
 				onMoreClick = controller::onMoreClick,
 				onSwiped = controller::onSwiped,
 				modifier = Modifier.weight(1f)
@@ -403,16 +391,17 @@ private fun MatchingHeader() {
 
 @Composable
 private fun SwipeCardDeck(
-	currentProfile: MatchProfile,
+	currentProfile: MatchProfile?,
 	nextProfile: MatchProfile?,
+	isLoadingMore: Boolean,
 	onMoreClick: () -> Unit,
 	onSwiped: (SwipeDirection) -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
-	var offsetX by remember(currentProfile.id) { mutableFloatStateOf(0f) }
-	var offsetY by remember(currentProfile.id) { mutableFloatStateOf(0f) }
-	var rotation by remember(currentProfile.id) { mutableFloatStateOf(0f) }
+	var offsetX by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
+	var offsetY by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
+	var rotation by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
 	var deckHeight by remember { mutableIntStateOf(0) }
 	val scope = rememberCoroutineScope()
 	val colors = MaterialTheme.colorScheme
@@ -458,124 +447,132 @@ private fun SwipeCardDeck(
 						alpha = visualState.nextCardAlpha
 					}
 			)
+		} else {
+			MatchingDeckPlaceholderCard(
+				message = if (isLoadingMore) {
+					"Подбираем новых пользователей"
+				} else {
+					"Вы просмотрели всех пользователей.\nЗагляните позже за новыми рекомендациями."
+				},
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2)
+					.graphicsLayer {
+						alpha = if (currentProfile != null) visualState.nextCardAlpha else 1f
+					}
+			)
 		}
-		ProfileCard(
-			profile = currentProfile,
-			onMoreClick = onMoreClick,
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(horizontal = dim.extraSmall / 2)
-				.graphicsLayer {
-					translationX = offsetX
-					translationY = offsetY
-					rotationZ = rotation
-					scaleX = visualState.currentCardScale
-					scaleY = visualState.currentCardScale
-					alpha = visualState.currentCardAlpha
-				}
-				.pointerInput(currentProfile.id) {
-					detectDragGestures(
-						onDrag = { change, dragAmount ->
-							change.consume()
+		currentProfile?.let { activeProfile ->
+			ProfileCard(
+				profile = activeProfile,
+				onMoreClick = onMoreClick,
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = dim.extraSmall / 2)
+					.graphicsLayer {
+						translationX = offsetX
+						translationY = offsetY
+						rotationZ = rotation
+						scaleX = visualState.currentCardScale
+						scaleY = visualState.currentCardScale
+						alpha = visualState.currentCardAlpha
+					}
+					.pointerInput(activeProfile.id) {
+						detectDragGestures(
+							onDrag = { change, dragAmount ->
+								change.consume()
+								offsetX += dragAmount.x
+								offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
+								rotation = (offsetX / SwipeRotationDivisor)
+									.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
+							},
+							onDragEnd = {
+								val targetX = offsetX
+								val targetY = offsetY
+								val targetRotation = rotation
+								val direction = resolveDismissDirection(
+									offsetX = targetX,
+									offsetY = targetY
+								)
 
-							// During drag we update raw values directly so affordances stay perfectly
-							// locked to the finger, without any extra animation state in-between.
-							offsetX += dragAmount.x
-							offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
-							rotation = (offsetX / SwipeRotationDivisor)
-								.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
-						},
-						onDragEnd = {
-							val targetX = offsetX
-							val targetY = offsetY
-							val targetRotation = rotation
-							val direction = resolveDismissDirection(
-								offsetX = targetX,
-								offsetY = targetY
-							)
-
-							scope.launch {
-								if (direction != null) {
-									// Once the threshold is crossed we animate the card to the same
-									// off-screen targets that the final action implies.
-									val dismissTargets = buildDismissTargets(
-										direction = direction,
-										offsetX = targetX,
-										offsetY = targetY,
-										verticalDismissOffset = visualState.verticalDismissOffset
-									)
-									val dismissSpec = tween<Float>(
-										durationMillis = dismissTargets.durationMillis,
-										easing = FastOutSlowInEasing
-									)
-									listOf(
-										async {
-											animate(
-												initialValue = targetX,
-												targetValue = dismissTargets.translationX,
-												animationSpec = dismissSpec
-											) { value, _ -> offsetX = value }
-										},
-										async {
-											animate(
-												initialValue = targetY,
-												targetValue = dismissTargets.translationY,
-												animationSpec = dismissSpec
-											) { value, _ -> offsetY = value }
-										},
-										async {
-											animate(
-												initialValue = targetRotation,
-												targetValue = dismissTargets.rotation,
-												animationSpec = dismissSpec
-											) { value, _ -> rotation = value }
-										}
-									).awaitAll()
-
-									// After the card is accepted/rejected/skipped, keep the same
-									// affordance visible for a short fade so the result does not
-									// disappear on the exact frame when the next profile appears.
-									dismissedAffordance = affordanceByDirection[direction]
-									dismissedAffordanceProgress.snapTo(1f)
-									onSwiped(direction)
-									dismissedAffordanceProgress.animateTo(
-										targetValue = 0f,
-										animationSpec = tween(
-											durationMillis = SwipeAffordanceFadeOutDurationMillis,
+								scope.launch {
+									if (direction != null) {
+										val dismissTargets = buildDismissTargets(
+											direction = direction,
+											offsetX = targetX,
+											offsetY = targetY,
+											verticalDismissOffset = visualState.verticalDismissOffset
+										)
+										val dismissSpec = tween<Float>(
+											durationMillis = dismissTargets.durationMillis,
 											easing = FastOutSlowInEasing
 										)
-									)
-									dismissedAffordance = null
-								} else {
-									listOf(
-										async {
-											animate(
-												initialValue = targetX,
-												targetValue = 0f,
-												animationSpec = resetSpec
-											) { value, _ -> offsetX = value }
-										},
-										async {
-											animate(
-												initialValue = targetY,
-												targetValue = 0f,
-												animationSpec = resetSpec
-											) { value, _ -> offsetY = value }
-										},
-										async {
-											animate(
-												initialValue = targetRotation,
-												targetValue = 0f,
-												animationSpec = resetSpec
-											) { value, _ -> rotation = value }
-										}
-									).awaitAll()
+										listOf(
+											async {
+												animate(
+													initialValue = targetX,
+													targetValue = dismissTargets.translationX,
+													animationSpec = dismissSpec
+												) { value, _ -> offsetX = value }
+											},
+											async {
+												animate(
+													initialValue = targetY,
+													targetValue = dismissTargets.translationY,
+													animationSpec = dismissSpec
+												) { value, _ -> offsetY = value }
+											},
+											async {
+												animate(
+													initialValue = targetRotation,
+													targetValue = dismissTargets.rotation,
+													animationSpec = dismissSpec
+												) { value, _ -> rotation = value }
+											}
+										).awaitAll()
+
+										dismissedAffordance = affordanceByDirection[direction]
+										dismissedAffordanceProgress.snapTo(1f)
+										onSwiped(direction)
+										dismissedAffordanceProgress.animateTo(
+											targetValue = 0f,
+											animationSpec = tween(
+												durationMillis = SwipeAffordanceFadeOutDurationMillis,
+												easing = FastOutSlowInEasing
+											)
+										)
+										dismissedAffordance = null
+									} else {
+										listOf(
+											async {
+												animate(
+													initialValue = targetX,
+													targetValue = 0f,
+													animationSpec = resetSpec
+												) { value, _ -> offsetX = value }
+											},
+											async {
+												animate(
+													initialValue = targetY,
+													targetValue = 0f,
+													animationSpec = resetSpec
+												) { value, _ -> offsetY = value }
+											},
+											async {
+												animate(
+													initialValue = targetRotation,
+													targetValue = 0f,
+													animationSpec = resetSpec
+												) { value, _ -> rotation = value }
+											}
+										).awaitAll()
+									}
 								}
 							}
-						}
-					)
-				}
-		)
+						)
+					}
+			)
+		}
 		swipeAffordances.forEach { affordance ->
 			val rawProgress = swipeAffordanceProgress(
 				affordanceDirection = affordance.direction,
@@ -599,6 +596,47 @@ private fun SwipeCardDeck(
 				progress = dismissedAffordanceProgress.value,
 				modifier = affordanceOverlayModifier
 			)
+		}
+	}
+}
+
+@Composable
+private fun MatchingDeckPlaceholderCard(
+	message: String,
+	modifier: Modifier = Modifier
+) {
+	val dim = LocalDimensions.current
+	val shapes = LocalShapes.current
+
+	CardFrame(
+		modifier = modifier,
+		outerShape = RoundedCornerShape(shapes.veryBigRoundedValue),
+		innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
+	) {
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.surfaceContainerHigh),
+			contentAlignment = Alignment.Center
+		) {
+			Column(
+				modifier = Modifier.padding(24.dp),
+				verticalArrangement = Arrangement.spacedBy(12.dp),
+				horizontalAlignment = Alignment.CenterHorizontally
+			) {
+				Icon(
+					painter = painterResource(R.drawable.ic_history_24),
+					contentDescription = null,
+					modifier = Modifier.size(32.dp),
+					tint = MaterialTheme.colorScheme.primary
+				)
+				Text(
+					text = message,
+					textAlign = TextAlign.Center,
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+			}
 		}
 	}
 }

@@ -113,7 +113,7 @@ class MainMatchingViewModel(
 	}
 
 	private fun advanceProfile() {
-		val nextIndex = (uiState.currentIndex + 1).coerceAtMost(uiState.profiles.lastIndex)
+		val nextIndex = uiState.currentIndex + 1
 		uiState = uiState.copy(
 			currentIndex = nextIndex,
 			isActionsSheetVisible = false,
