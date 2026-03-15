@@ -31,6 +31,7 @@ class MainMatchingViewModel(
 	private var isInitialized = false
 	// Navigation callback is injected from the screen because ViewModel must not own navigation.
 	private var unauthorizedHandler: (() -> Unit)? = null
+	private var noInternetHandler: (((() -> Unit)) -> Unit)? = null
 	// In-memory mirror of persisted optimistic reactions waiting to be sent to the backend.
 	private val pendingActions = ArrayDeque<PendingMatchAction>()
 
@@ -38,9 +39,11 @@ class MainMatchingViewModel(
 		private set
 
 	fun initialize(
-		onUnauthorized: () -> Unit
+		onUnauthorized: () -> Unit,
+		onNoInternet: (retryAction: () -> Unit) -> Unit
 	) {
 		unauthorizedHandler = onUnauthorized
+		noInternetHandler = onNoInternet
 		if (isInitialized) {
 			return
 		}
@@ -108,10 +111,10 @@ class MainMatchingViewModel(
 				}
 
 				ApiOperationResult.NoInternet -> {
-					uiState = uiState.copy(
-						isLoading = false,
-						error = "Нет подключения к интернету"
-					)
+					uiState = uiState.copy(isLoading = false, error = null)
+					handleNoInternet {
+						loadFeed()
+					}
 				}
 			}
 		}
@@ -188,10 +191,10 @@ class MainMatchingViewModel(
 						}
 
 						ApiOperationResult.NoInternet -> {
-							uiState = uiState.copy(
-								error = "Нет подключения к интернету"
-							)
-							// Leave the queue intact; it will be retried on the next matching entry/action.
+							uiState = uiState.copy(error = null)
+							handleNoInternet {
+								processPendingActions()
+							}
 							break
 						}
 					}
@@ -245,10 +248,10 @@ class MainMatchingViewModel(
 					}
 
 					ApiOperationResult.NoInternet -> {
-						uiState = uiState.copy(
-							isLoadingMore = false,
-							error = "Нет подключения к интернету"
-						)
+						uiState = uiState.copy(isLoadingMore = false, error = null)
+						handleNoInternet {
+							loadMoreIfNeeded()
+						}
 					}
 				}
 			} finally {
@@ -259,6 +262,10 @@ class MainMatchingViewModel(
 
 	private fun handleUnauthorized() {
 		unauthorizedHandler?.invoke()
+	}
+
+	private fun handleNoInternet(retryAction: () -> Unit) {
+		noInternetHandler?.invoke(retryAction)
 	}
 
 	private fun restorePendingActions() {

@@ -64,15 +64,35 @@ internal class KtorGatewaySupport(
 			is ConnectException,
 			is NoRouteToHostException -> ApiOperationResult.NoInternet
 
-			else -> ApiOperationResult.ApiError(
-				reason = ApiErrorReason.RequestFailed,
-				message = exception.message?.takeIf { it.isNotBlank() }
-			)
+			else -> {
+				if (
+					exception.hasCauseNamed("CertPathValidationException") ||
+					exception.hasCauseNamed("CertPathValidatorException")
+				) {
+					ApiOperationResult.NoInternet
+				} else {
+					ApiOperationResult.ApiError(
+						reason = ApiErrorReason.RequestFailed,
+						message = exception.message?.takeIf { it.isNotBlank() }
+					)
+				}
+			}
 		}
 	}
 
 	fun HttpRequestBuilder.applyAuthorizedRequest() {
 		val session = authSessionStore.get() ?: return
 		header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
+	}
+
+	private fun Throwable.hasCauseNamed(simpleName: String): Boolean {
+		var current: Throwable? = this
+		while (current != null) {
+			if (current::class.java.simpleName == simpleName) {
+				return true
+			}
+			current = current.cause
+		}
+		return false
 	}
 }

@@ -247,10 +247,14 @@ private fun buildDismissTargets(
 fun MainMatchingScreen(
 	modifier: Modifier = Modifier,
 	onUnauthorized: () -> Unit,
+	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	viewModel: MainMatchingViewModel = koinViewModel()
 ) {
-	LaunchedEffect(viewModel, onUnauthorized) {
-		viewModel.initialize(onUnauthorized = onUnauthorized)
+	LaunchedEffect(viewModel, onUnauthorized, onRequestNoInternet) {
+		viewModel.initialize(
+			onUnauthorized = onUnauthorized,
+			onNoInternet = onRequestNoInternet
+		)
 	}
 
 	val uiState = viewModel.uiState

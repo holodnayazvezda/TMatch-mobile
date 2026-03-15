@@ -139,7 +139,8 @@ fun TMatchApp() {
 						}
 					)
 					matchingGraph(
-						onUnauthorized = authGraphState::onUnauthorized
+						onUnauthorized = authGraphState::onUnauthorized,
+						onRequestNoInternet = authGraphState::onRequestNoInternet
 					)
 					chatsGraph()
 					entry<DebugNetworkOverridesNavKey> {

@@ -9,20 +9,26 @@ import com.prod.matching.screens.MainMatchingScreen
 import org.koin.androidx.compose.koinViewModel
 
 fun EntryProviderScope<Any>.matchingGraph(
-	onUnauthorized: () -> Unit
+	onUnauthorized: () -> Unit,
+	onRequestNoInternet: (retryAction: () -> Unit) -> Unit
 ) {
 	entry<MatchingNavKey> {
-		MatchingScreen(onUnauthorized = onUnauthorized)
+		MatchingScreen(
+			onUnauthorized = onUnauthorized,
+			onRequestNoInternet = onRequestNoInternet
+		)
 	}
 }
 
 @Composable
 private fun MatchingScreen(
-	onUnauthorized: () -> Unit
+	onUnauthorized: () -> Unit,
+	onRequestNoInternet: (retryAction: () -> Unit) -> Unit
 ) {
 	Box(modifier = Modifier) {
 		MainMatchingScreen(
 			onUnauthorized = onUnauthorized,
+			onRequestNoInternet = onRequestNoInternet,
 			viewModel = koinViewModel()
 		)
 	}
