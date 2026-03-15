@@ -51,6 +51,7 @@ fun createAuthHttpClient(
 			)
 
 			if (override != null) {
+				debugLog("[MOCK] ${request.method.value} ${request.url.encodedPath} -> ${override.statusCode}")
 				val headers = HeadersBuilder().apply {
 					append(HttpHeaders.ContentType, override.contentType)
 					override.headers.forEach { (name, value) -> append(name, value) }
@@ -62,11 +63,18 @@ fun createAuthHttpClient(
 					headers = headers
 				)
 			} else {
+				debugLog("[NETWORK] ${request.method.value} ${request.url.encodedPath}")
 				forwardRequest(networkClient = networkClient, request = request)
 			}
 		},
 		baseUrl = baseUrl
 	)
+}
+
+private fun debugLog(message: String) {
+	runCatching {
+		Log.d(HTTP_LOG_TAG, message)
+	}
 }
 
 private suspend fun MockRequestHandleScope.forwardRequest(
