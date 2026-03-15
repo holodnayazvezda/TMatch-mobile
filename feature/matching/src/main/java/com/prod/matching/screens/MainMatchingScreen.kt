@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -746,19 +748,27 @@ private fun ProfileCard(
 				style = typo.titleLarge,
 				color = extraColors.onBaseScrim
 			)
-			Surface(
-				shape = CircleShape,
-				color = extraColors.accentGold
+			FlowRow(
+				modifier = Modifier.wrapContentWidth(),
+				horizontalArrangement = Arrangement.spacedBy(dim.extraSmall),
+				verticalArrangement = Arrangement.spacedBy(dim.extraSmall)
 			) {
-				Text(
-					text = profile.matchLabel,
-					modifier = Modifier.padding(
-						horizontal = dim.small + dim.extraSmall / 2,
-						vertical = dim.verySmall
-					),
-					style = typo.labelLarge,
-					color = extraColors.onBaseScrim
-				)
+				profile.reasonLabels.forEach { reasonLabel ->
+					Surface(
+						shape = CircleShape,
+						color = extraColors.accentGold
+					) {
+						Text(
+							text = reasonLabel,
+							modifier = Modifier.padding(
+								horizontal = dim.small + dim.extraSmall / 2,
+								vertical = dim.verySmall
+							),
+							style = typo.labelLarge,
+							color = extraColors.onBaseScrim
+						)
+					}
+				}
 			}
 		}
 	}
@@ -923,7 +933,7 @@ private fun MainMatchingScreenPreview() {
 				id = "preview-current",
 				name = "Марина Орлова",
 				age = 63,
-				matchLabel = "Схожий образ жизни",
+				reasonLabels = listOf("Общая активность", "Рестораны", "Вечерняя активность"),
 				imageUrl = null,
 				recommendationId = "preview-rec-1"
 			),
@@ -931,7 +941,7 @@ private fun MainMatchingScreenPreview() {
 				id = "preview-next",
 				name = "Александр Белый",
 				age = 70,
-				matchLabel = "Похожие семейные ценности",
+				reasonLabels = listOf("Транспорт", "Любимый продавец"),
 				imageUrl = null,
 				recommendationId = "preview-rec-2"
 			)

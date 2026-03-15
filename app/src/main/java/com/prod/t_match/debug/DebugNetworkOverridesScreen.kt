@@ -648,7 +648,7 @@ private val debugEndpointDefinitions = listOf(
 		method = HttpMethod.Get,
 		path = "/recommendations",
 		defaultStatusCode = 200,
-		defaultBody = """{"items":[{"ml_recommendation_id":"rec-1","user_id":"debug-user","candidate_user_id":"candidate-1","reasons":{"lifestyle":0.98},"candidate_card":{"user_id":"candidate-1","profile":{"first_name":"Anna","last_name":"Smirnova","birth_date":"1997-04-03","region":"Saint Petersburg","avatar_url":"$DefaultMockImageUrl"},"dating_profile":{"photos":["$DefaultMockImageUrl"],"traits":[]}}}]}"""
+		defaultBody = """{"items":[{"ml_recommendation_id":"rec-1","user_id":"debug-user","candidate_user_id":"candidate-1","reasons":{"ACTIVITY_FREQUENCY":0.98,"RESTAURANTS":0.74,"EVENING_ACTIVITY":0.61},"candidate_card":{"user_id":"candidate-1","profile":{"first_name":"Anna","last_name":"Smirnova","birth_date":"1997-04-03","region":"Saint Petersburg","avatar_url":"$DefaultMockImageUrl"},"dating_profile":{"photos":["$DefaultMockImageUrl"],"traits":[]}}}]}"""
 	),
 	DebugEndpointDefinition(
 		title = "Create Interaction",
