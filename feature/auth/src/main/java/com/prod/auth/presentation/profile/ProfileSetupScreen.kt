@@ -39,7 +39,7 @@ import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.profile.ProfileImageCropDialog
 import com.prod.ui.components.profile.ProfileImageStyle
 import com.prod.ui.components.profile.SelectableProfileImage
-import com.prod.ui.components.profile.loadBitmapFromUri
+import com.prod.ui.components.profile.loadBitmapForCroppingFromUri
 import com.prod.ui.components.text_fields.AppTextField
 import org.koin.androidx.compose.koinViewModel
 
@@ -68,7 +68,7 @@ fun ProfileSetupScreen(
 	val pickerLauncher = rememberLauncherForActivityResult(
 		contract = ActivityResultContracts.PickVisualMedia()
 	) { uri ->
-		cropSourceBitmap = uri?.let { context.loadBitmapFromUri(it) }
+		cropSourceBitmap = uri?.let { context.loadBitmapForCroppingFromUri(it) }
 	}
 
 	Box(

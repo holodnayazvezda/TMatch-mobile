@@ -3,6 +3,7 @@ package com.prod.ui.components.profile
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,17 +35,25 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.image.cropview.CropType
-import com.image.cropview.EdgeType
-import com.image.cropview.ImageCrop
+import com.tanishranjan.cropkit.CropDefaults
+import com.tanishranjan.cropkit.CropRatio
+import com.tanishranjan.cropkit.CropShape
+import com.tanishranjan.cropkit.GridLinesType
+import com.tanishranjan.cropkit.GridLinesVisibility
+import com.tanishranjan.cropkit.ImageCropper
+import com.tanishranjan.cropkit.rememberCropController
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import java.io.ByteArrayOutputStream
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 enum class ProfileImageStyle {
 	Avatar,
 	DatingPhoto
 }
+
+private const val CropInputMaxDimension = 2048
 
 @Composable
 fun SelectableProfileImage(
@@ -102,15 +112,42 @@ fun ProfileImageCropDialog(
 	onDismiss: () -> Unit,
 	onConfirm: (Bitmap) -> Unit
 ) {
-	val imageCrop = remember(bitmap) { ImageCrop(bitmap) }
-	val cropType = when (style) {
-		ProfileImageStyle.Avatar -> CropType.PROFILE_CIRCLE
-		ProfileImageStyle.DatingPhoto -> CropType.FREE_STYLE
+	val colorScheme = MaterialTheme.colorScheme
+	val cropOptions = remember(style) {
+		when (style) {
+			ProfileImageStyle.Avatar -> CropDefaults.cropOptions(
+				cropShape = CropShape.AspectRatio(CropRatio.SQUARE),
+				contentScale = ContentScale.Fit,
+				gridLinesVisibility = GridLinesVisibility.ALWAYS,
+				gridLinesType = GridLinesType.CIRCLE
+			)
+
+			ProfileImageStyle.DatingPhoto -> CropDefaults.cropOptions(
+				cropShape = CropShape.AspectRatio(CropRatio.PORTRAIT_3_4),
+				contentScale = ContentScale.Fit,
+				gridLinesVisibility = GridLinesVisibility.ON_TOUCH,
+				gridLinesType = GridLinesType.GRID
+			)
+		}
 	}
-	val edgeType = when (style) {
-		ProfileImageStyle.Avatar -> EdgeType.CIRCULAR
-		ProfileImageStyle.DatingPhoto -> EdgeType.SQUARE
+	val cropColors = remember(
+		colorScheme.scrim,
+		colorScheme.primary,
+		colorScheme.onSurface
+	) {
+		CropDefaults.cropColors(
+			overlay = colorScheme.scrim.copy(alpha = 0.52f),
+			overlayActive = colorScheme.scrim.copy(alpha = 0.28f),
+			gridlines = Color.White.copy(alpha = 0.55f),
+			cropRectangle = Color.White.copy(alpha = 0.92f),
+			handle = colorScheme.primary
+		)
 	}
+	val cropController = rememberCropController(
+		bitmap = bitmap,
+		cropOptions = cropOptions,
+		cropColors = cropColors
+	)
 
 	Dialog(
 		onDismissRequest = onDismiss,
@@ -136,12 +173,9 @@ fun ProfileImageCropDialog(
 						.weight(1f)
 						.fillMaxWidth()
 				) {
-					imageCrop.ImageCropView(
+					ImageCropper(
 						modifier = Modifier.fillMaxSize(),
-						cropType = cropType,
-						edgeType = edgeType,
-						showGuideLines = true,
-						guideLineColor = Color.White.copy(alpha = 0.5f)
+						cropController = cropController
 					)
 				}
 				Row(
@@ -159,12 +193,7 @@ fun ProfileImageCropDialog(
 						buttonText = confirmText,
 						isLoading = false,
 						onClick = {
-							onConfirm(
-								when (style) {
-									ProfileImageStyle.Avatar -> imageCrop.onCrop()
-									ProfileImageStyle.DatingPhoto -> imageCrop.onCrop()
-								}
-							)
+							onConfirm(cropController.crop())
 						}
 					)
 				}
@@ -173,13 +202,90 @@ fun ProfileImageCropDialog(
 	}
 }
 
-fun Context.loadBitmapFromUri(uri: Uri): Bitmap? {
+fun Context.loadBitmapForCroppingFromUri(uri: Uri): Bitmap? {
 	return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-		contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream)
+		loadBitmapFromUriModern(
+			uri = uri,
+			maxDimension = CropInputMaxDimension
+		) ?: loadBitmapFromUriSampled(
+			uri = uri,
+			maxDimension = CropInputMaxDimension
+		)
 	} else {
+		loadBitmapFromUriSampled(
+			uri = uri,
+			maxDimension = CropInputMaxDimension
+		) ?: loadBitmapFromUriLegacy(
+			uri = uri,
+			maxDimension = CropInputMaxDimension
+		)
+	}
+}
+
+private fun Context.loadBitmapFromUriModern(
+	uri: Uri,
+	maxDimension: Int
+): Bitmap? {
+	return runCatching {
+		val source = ImageDecoder.createSource(contentResolver, uri)
+		ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+			decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+			decoder.isMutableRequired = true
+			decoder.memorySizePolicy = ImageDecoder.MEMORY_POLICY_LOW_RAM
+
+			val width = info.size.width
+			val height = info.size.height
+			val longestSide = max(width, height)
+			if (longestSide > maxDimension) {
+				val scale = maxDimension.toFloat() / longestSide.toFloat()
+				decoder.setTargetSize(
+					(width * scale).roundToInt().coerceAtLeast(1),
+					(height * scale).roundToInt().coerceAtLeast(1)
+				)
+			}
+		}
+	}.getOrNull()
+}
+
+private fun Context.loadBitmapFromUriSampled(
+	uri: Uri,
+	maxDimension: Int
+): Bitmap? {
+	val boundsOptions = BitmapFactory.Options().apply {
+		inJustDecodeBounds = true
+	}
+	contentResolver.openInputStream(uri)?.use { inputStream ->
+		BitmapFactory.decodeStream(inputStream, null, boundsOptions)
+	} ?: return null
+
+	if (boundsOptions.outWidth <= 0 || boundsOptions.outHeight <= 0) {
+		return null
+	}
+
+	val decodeOptions = BitmapFactory.Options().apply {
+		inSampleSize = calculateInSampleSize(
+			width = boundsOptions.outWidth,
+			height = boundsOptions.outHeight,
+			maxDimension = maxDimension
+		)
+		inPreferredConfig = Bitmap.Config.RGB_565
+	}
+
+	val decodedBitmap = contentResolver.openInputStream(uri)?.use { inputStream ->
+		BitmapFactory.decodeStream(inputStream, null, decodeOptions)
+	} ?: return null
+
+	return decodedBitmap.scaleDownIfNeeded(maxDimension = maxDimension)
+}
+
+private fun Context.loadBitmapFromUriLegacy(
+	uri: Uri,
+	maxDimension: Int
+): Bitmap? {
+	return runCatching {
 		@Suppress("DEPRECATION")
 		MediaStore.Images.Media.getBitmap(contentResolver, uri)
-	}
+	}.getOrNull()?.scaleDownIfNeeded(maxDimension = maxDimension)
 }
 
 fun Bitmap.toPngByteArray(): ByteArray {
@@ -187,4 +293,42 @@ fun Bitmap.toPngByteArray(): ByteArray {
 		compress(Bitmap.CompressFormat.PNG, 100, outputStream)
 		outputStream.toByteArray()
 	}
+}
+
+private fun calculateInSampleSize(
+	width: Int,
+	height: Int,
+	maxDimension: Int
+): Int {
+	var sampleSize = 1
+
+	while (
+		width / (sampleSize * 2) >= maxDimension ||
+		height / (sampleSize * 2) >= maxDimension
+	) {
+		sampleSize *= 2
+	}
+
+	return sampleSize
+}
+
+private fun Bitmap.scaleDownIfNeeded(maxDimension: Int): Bitmap {
+	val longestSide = max(width, height)
+	if (longestSide <= maxDimension) {
+		return this
+	}
+
+	val scale = maxDimension.toFloat() / longestSide.toFloat()
+	val scaledBitmap = Bitmap.createScaledBitmap(
+		this,
+		(width * scale).roundToInt().coerceAtLeast(1),
+		(height * scale).roundToInt().coerceAtLeast(1),
+		true
+	)
+
+	if (scaledBitmap !== this) {
+		recycle()
+	}
+
+	return scaledBitmap
 }

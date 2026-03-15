@@ -33,6 +33,7 @@ android {
 }
 
 dependencies {
+	implementation(project(":api:auth"))
 	implementation(project(":api:common"))
 	implementation(project(":api:profile"))
 	implementation(project(":common:ui"))

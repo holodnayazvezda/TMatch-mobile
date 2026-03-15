@@ -1,0 +1,12 @@
+<resources>
+    <string name="profile_screen_change_photo_button">Выбрать новое фото</string>
+    <string name="profile_screen_retry_button">Повторить</string>
+    <string name="profile_screen_name_label">Имя</string>
+    <string name="profile_screen_age_label">Возраст</string>
+    <string name="profile_screen_birth_date_label">Дата рождения</string>
+    <string name="profile_screen_region_label">Регион</string>
+    <string name="profile_screen_not_specified">Не указан</string>
+    <string name="profile_screen_crop_title">Обрежьте dating-фото</string>
+    <string name="profile_screen_crop_cancel">Отмена</string>
+    <string name="profile_screen_crop_apply">Применить</string>
+</resources>

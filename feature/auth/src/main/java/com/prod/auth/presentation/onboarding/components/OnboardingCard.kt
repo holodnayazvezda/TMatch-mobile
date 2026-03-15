@@ -3,6 +3,7 @@ package com.prod.auth.presentation.onboarding.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -13,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.prod.auth.R
 import com.prod.auth.presentation.onboarding.model.OnboardingPageUiModel
 
 @Composable
@@ -30,7 +30,7 @@ fun OnboardingCard(
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
-				.padding(24.dp)
+				.padding(horizontal = 24.dp, vertical = 28.dp)
 		) {
 			Surface(
 				color = MaterialTheme.colorScheme.primaryContainer,
@@ -43,31 +43,21 @@ fun OnboardingCard(
 					modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
 				)
 			}
-			Spacer(modifier = Modifier.padding(top = 18.dp))
+			Spacer(modifier = Modifier.height(30.dp))
 			Text(
 				text = stringResource(page.titleRes),
 				style = MaterialTheme.typography.headlineMedium,
 				color = MaterialTheme.colorScheme.onSurface,
 				fontWeight = FontWeight.SemiBold
 			)
-			Spacer(modifier = Modifier.padding(top = 16.dp))
+			Spacer(modifier = Modifier.height(28.dp))
 			Text(
 				text = stringResource(page.descriptionRes),
 				style = MaterialTheme.typography.bodyLarge,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 			Spacer(modifier = Modifier.weight(1f))
-			Surface(
-				shape = RoundedCornerShape(24.dp),
-				color = MaterialTheme.colorScheme.surfaceContainerHighest
-			) {
-				Text(
-					text = stringResource(R.string.onboarding_footer_note),
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurface,
-					modifier = Modifier.padding(16.dp)
-				)
-			}
+			Spacer(modifier = Modifier.height(24.dp))
 		}
 	}
 }

@@ -20,7 +20,6 @@
     <string name="onboarding_existing_account">У меня уже есть аккаунт</string>
     <string name="onboarding_next">Далее</string>
     <string name="onboarding_go_to_sign_up">Перейти к регистрации</string>
-    <string name="onboarding_footer_note">MVP держит главный маршрут в фокусе: onboarding -&gt; auth -&gt; персональный сценарий -&gt; безопасность.</string>
 
     <string name="onboarding_page_1_label">T-Match</string>
     <string name="onboarding_page_1_title">Ищите людей с похожим ритмом жизни, а не случайные карточки.</string>

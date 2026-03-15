@@ -1,5 +1,6 @@
 package com.prod.profile.di
 
+import com.prod.profile.domain.usecase.GetOwnAccountProfileUseCase
 import com.prod.profile.domain.usecase.GetOwnDatingProfileUseCase
 import com.prod.profile.domain.usecase.UpsertOwnDatingProfileUseCase
 import com.prod.profile.domain.usecase.UploadDatingPhotoUseCase
@@ -9,6 +10,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val profileFeatureModule = module {
+	single { GetOwnAccountProfileUseCase(authGateway = get()) }
 	single { GetOwnDatingProfileUseCase(profileGateway = get()) }
 	single { UpsertOwnDatingProfileUseCase(profileGateway = get()) }
 	single { UploadDatingPhotoUseCase(profileGateway = get()) }
@@ -16,8 +18,9 @@ val profileFeatureModule = module {
 
 	viewModel {
 		ProfileViewModel(
+			getOwnAccountProfileUseCase = get(),
 			getOwnDatingProfileUseCase = get(),
-			createOwnDatingProfileUseCase = get(),
+			upsertOwnDatingProfileUseCase = get(),
 			uploadDatingPhotoUseCase = get()
 		)
 	}

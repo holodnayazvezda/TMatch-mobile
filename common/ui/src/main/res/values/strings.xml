@@ -5,6 +5,8 @@
     <string name="common_date_picker_confirm">ОК</string>
     <string name="common_date_picker_dismiss">Отмена</string>
     <string name="common_date_picker_title">Выберите дату</string>
+    <string name="common_date_picker_switch_to_input">Ввод</string>
+    <string name="common_date_picker_switch_to_calendar">Календарь</string>
     <string name="no_internet_title">Нет подключения к интернету</string>
     <string name="no_internet_description">Запрос не удалось отправить, проверьте соединение и повторите попытку</string>
     <string name="no_internet_retry">Попробовать ещё раз</string>

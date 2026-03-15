@@ -3,6 +3,7 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="21">
       <module name="T-match.api.navigation" target="21" />
+      <module name="T-match.feature.mathcing" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>
