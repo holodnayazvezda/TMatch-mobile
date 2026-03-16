@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -138,6 +139,8 @@ private const val UpSwipeAlphaDelta = 0.18f
 private const val SwipeOffscreenMargin = 240f
 private const val SwipeDismissDurationMillis = 260
 private const val UpSwipeDismissDurationMillis = 320
+private const val TransitionCardTestTag = "matching_transition_card"
+private const val ProfileCardTestTagPrefix = "matching_profile_card_"
 private const val SwipeAffordanceFadeOutDurationMillis = 180
 
 // Keeps all visual derivations of the current drag in one place so the deck composable
@@ -965,9 +968,11 @@ private fun ProfileCard(
 
 	AppHeroCardFrame(
 		modifier = if (onClick != null) {
-			modifier.clickable(onClick = onClick)
-		} else {
 			modifier
+				.testTag("$ProfileCardTestTagPrefix${profile.id}")
+				.clickable(onClick = onClick)
+		} else {
+			modifier.testTag("$ProfileCardTestTagPrefix${profile.id}")
 		},
 		containerColor = animatedFrameColor
 	) {
@@ -1046,7 +1051,9 @@ private fun RecommendationsTransitionCard(
 		label = "transitionArrowAlpha"
 	)
 
-		AppHeroCardFrame(modifier = modifier) {
+		AppHeroCardFrame(
+			modifier = modifier.testTag(TransitionCardTestTag)
+		) {
 			Box(
 				modifier = Modifier
 					.fillMaxSize()

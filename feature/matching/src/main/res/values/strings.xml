@@ -13,5 +13,5 @@
     <string name="matching_recommendations_header">Дальше рекомендации</string>
     <string name="matching_transition_title">Входящие лайки закончились</string>
     <string name="matching_transition_message">Дальше обычные рекомендации.</string>
-    <string name="matching_transition_cta">Смахните вверх</string>
+    <string name="matching_transition_cta">Смахните в любую сторону</string>
 </resources>
