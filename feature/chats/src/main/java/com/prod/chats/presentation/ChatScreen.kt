@@ -213,7 +213,7 @@ private fun ChatHeader(
 				text = title,
 				modifier = Modifier
 					.align(Alignment.Center)
-					.padding(start = 124.dp, end = 56.dp),
+					.padding(horizontal = 124.dp),
 				style = MaterialTheme.typography.titleLarge,
 				color = MaterialTheme.colorScheme.onBackground,
 				maxLines = 1,
