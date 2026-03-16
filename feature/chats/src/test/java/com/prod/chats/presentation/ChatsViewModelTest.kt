@@ -1,7 +1,9 @@
 package com.prod.chats.presentation
 
 import com.prod.chats.domain.gateway.ChatGateway
+import com.prod.chats.domain.model.ChatMessage
 import com.prod.chats.domain.model.ChatPreview
+import com.prod.chats.domain.usecase.EnsureChatStreamConnectedUseCase
 import com.prod.chats.domain.usecase.ObserveOwnChatsUseCase
 import com.prod.chats.domain.usecase.RefreshOwnChatsUseCase
 import com.prod.common.api.model.ApiOperationResult
@@ -69,14 +71,34 @@ class ChatsViewModelTest {
 		val gateway = object : ChatGateway {
 			override fun observeOwnChats(): Flow<List<ChatPreview>> = cachedChats
 
+			override fun observeChat(chatId: String): Flow<ChatPreview?> = MutableStateFlow(null)
+
+			override fun observeChatMessages(chatId: String): Flow<List<ChatMessage>> = MutableStateFlow(emptyList())
+
 			override suspend fun refreshOwnChats(): ApiOperationResult<Unit> {
 				refreshCalls += 1
 				return ApiOperationResult.Success(Unit)
 			}
+
+			override suspend fun refreshChatMessages(
+				chatId: String,
+				limit: Int,
+				beforeMessageId: String?
+			): ApiOperationResult<List<ChatMessage>> = ApiOperationResult.Success(emptyList())
+
+			override suspend fun sendMessage(
+				chatId: String,
+				text: String
+			): ApiOperationResult<ChatMessage> = ApiOperationResult.ValidationError()
+
+			override suspend fun ensureChatStreamConnected(): ApiOperationResult<Unit> = ApiOperationResult.Success(Unit)
+
+			override suspend fun clearLocalData() = Unit
 		}
 		val viewModel = ChatsViewModel(
 			observeOwnChatsUseCase = ObserveOwnChatsUseCase(gateway),
 			refreshOwnChatsUseCase = RefreshOwnChatsUseCase(gateway),
+			ensureChatStreamConnectedUseCase = EnsureChatStreamConnectedUseCase(gateway),
 			chatPreviewUiMapper = ChatPreviewUiMapper()
 		)
 
@@ -97,13 +119,33 @@ class ChatsViewModelTest {
 		val gateway = object : ChatGateway {
 			override fun observeOwnChats(): Flow<List<ChatPreview>> = MutableStateFlow(emptyList())
 
+			override fun observeChat(chatId: String): Flow<ChatPreview?> = MutableStateFlow(null)
+
+			override fun observeChatMessages(chatId: String): Flow<List<ChatMessage>> = MutableStateFlow(emptyList())
+
 			override suspend fun refreshOwnChats(): ApiOperationResult<Unit> {
 				return ApiOperationResult.ValidationError("Ошибка")
 			}
+
+			override suspend fun refreshChatMessages(
+				chatId: String,
+				limit: Int,
+				beforeMessageId: String?
+			): ApiOperationResult<List<ChatMessage>> = ApiOperationResult.Success(emptyList())
+
+			override suspend fun sendMessage(
+				chatId: String,
+				text: String
+			): ApiOperationResult<ChatMessage> = ApiOperationResult.ValidationError()
+
+			override suspend fun ensureChatStreamConnected(): ApiOperationResult<Unit> = ApiOperationResult.Success(Unit)
+
+			override suspend fun clearLocalData() = Unit
 		}
 		val viewModel = ChatsViewModel(
 			observeOwnChatsUseCase = ObserveOwnChatsUseCase(gateway),
 			refreshOwnChatsUseCase = RefreshOwnChatsUseCase(gateway),
+			ensureChatStreamConnectedUseCase = EnsureChatStreamConnectedUseCase(gateway),
 			chatPreviewUiMapper = ChatPreviewUiMapper()
 		)
 

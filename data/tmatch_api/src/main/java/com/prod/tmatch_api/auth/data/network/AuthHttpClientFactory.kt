@@ -15,6 +15,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -215,6 +216,8 @@ private fun createConfiguredHttpClient(
 				}
 			)
 		}
+
+		install(WebSockets)
 
 		if (BuildConfig.DEBUG) {
 			install(Logging) {

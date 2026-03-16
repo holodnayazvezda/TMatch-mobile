@@ -16,7 +16,7 @@ import com.prod.ui.navigation.NoInternetNavKey
 class AuthGraphState(
 	private val backStack: SnapshotStateList<Any>,
 	private val authSessionStore: AuthSessionStore,
-	private val onSessionCleared: () -> Unit,
+	private val onSessionCleared: suspend () -> Unit,
 	private val onSessionStarted: suspend () -> Unit,
 	private val resolveSignedInDestination: suspend () -> Any,
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
@@ -53,16 +53,14 @@ class AuthGraphState(
 		backStack.add(ProfileSetupNavKey())
 	}
 
-	fun onUnauthorized() {
-		authSessionStore.clear()
-		onSessionCleared()
+	suspend fun onUnauthorized() {
+		resetSessionState()
 		backStack.clear()
 		backStack.add(OnboardingNavKey())
 	}
 
-	fun onLogout() {
-		authSessionStore.clear()
-		onSessionCleared()
+	suspend fun onLogout() {
+		resetSessionState()
 		backStack.clear()
 		backStack.add(OnboardingNavKey())
 		backStack.add(SignInNavKey())
@@ -71,13 +69,21 @@ class AuthGraphState(
 	fun onRequestNoInternet(retryAction: () -> Unit) = requestNoInternetInternal(retryAction)
 
 	fun consumeRetryAction(): (() -> Unit)? = consumeRetryActionInternal()
+
+	private suspend fun resetSessionState() {
+		try {
+			onSessionCleared()
+		} finally {
+			authSessionStore.clear()
+		}
+	}
 }
 
 @Composable
 fun rememberAuthGraphState(
 	backStack: SnapshotStateList<Any>,
 	authSessionStore: AuthSessionStore,
-	onSessionCleared: () -> Unit,
+	onSessionCleared: suspend () -> Unit,
 	onSessionStarted: suspend () -> Unit = {},
 	resolveSignedInDestination: suspend () -> Any
 ): AuthGraphState {

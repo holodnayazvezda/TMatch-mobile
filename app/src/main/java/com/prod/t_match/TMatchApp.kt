@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -28,8 +29,10 @@ import androidx.navigation3.ui.NavDisplay
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.common.api.gateway.NotificationGateway
 import com.prod.auth.navigation.authGraph
+import com.prod.chats.navigation.ChatNavKey
 import com.prod.chats.navigation.ChatsNavKey
 import com.prod.chats.navigation.chatsGraph
+import com.prod.chats.domain.gateway.ChatGateway
 import com.prod.match.navigation.MatchingNavKey
 import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.navigation.matchingGraph
@@ -46,6 +49,7 @@ import com.prod.t_match.navigation.rememberTMatchAppState
 import com.prod.ui.components.rememberAppGradientBrush
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 @Composable
@@ -54,13 +58,16 @@ fun TMatchApp() {
 		val authSessionStore = koinInject<AuthSessionStore>()
 		val profileGateway = koinInject<ProfileGateway>()
 		val notificationGateway = koinInject<NotificationGateway>()
+		val chatGateway = koinInject<ChatGateway>()
 		val pendingMatchActionStore = koinInject<PendingMatchActionStore>()
 		val appState = rememberTMatchAppState(
 			authSessionStore = authSessionStore,
 			profileGateway = profileGateway,
 			notificationGateway = notificationGateway,
+			chatGateway = chatGateway,
 			pendingMatchActionStore = pendingMatchActionStore
 		)
+		val coroutineScope = rememberCoroutineScope()
 		val backgroundBrush = rememberAppGradientBrush()
 		if (appState == null) {
 			Box(
@@ -121,15 +128,27 @@ fun TMatchApp() {
 					profileGraph(
 						onBack = appState::onBack,
 						onFeedAction = appState::onFeedAction,
-						onOpenChat = { appState.onOpenChatFromProfile() },
+						onOpenChat = appState::onOpenChatFromProfile,
 						onDatingProfileAvailabilityChanged = appState::onDatingProfileAvailabilityChanged,
-						onUnauthorized = authGraphState::onUnauthorized,
+						onUnauthorized = {
+							coroutineScope.launch {
+								authGraphState.onUnauthorized()
+							}
+						},
 						onProfileMissing = authGraphState::onProfileMissing,
-						onLogout = authGraphState::onLogout,
+						onLogout = {
+							coroutineScope.launch {
+								authGraphState.onLogout()
+							}
+						},
 						onRequestNoInternet = authGraphState::onRequestNoInternet
 					)
 					matchingGraph(
-						onUnauthorized = authGraphState::onUnauthorized,
+						onUnauthorized = {
+							coroutineScope.launch {
+								authGraphState.onUnauthorized()
+							}
+						},
 						onRequestNoInternet = authGraphState::onRequestNoInternet,
 						onOpenProfile = { profile ->
 							appState.onOpenUserProfile(
@@ -141,7 +160,13 @@ fun TMatchApp() {
 						onProfileActionHandlerReady = appState::registerUserProfileFeedActionHandler
 					)
 					chatsGraph(
-						onUnauthorized = authGraphState::onUnauthorized,
+						onBack = appState::onBack,
+						onOpenChat = { chatId -> appState.backStack.add(ChatNavKey(chatId = chatId)) },
+						onUnauthorized = {
+							coroutineScope.launch {
+								authGraphState.onUnauthorized()
+							}
+						},
 						onRequestNoInternet = authGraphState::onRequestNoInternet
 					)
 					entry<DebugNetworkOverridesNavKey> {

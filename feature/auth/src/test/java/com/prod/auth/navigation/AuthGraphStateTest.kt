@@ -102,13 +102,13 @@ class AuthGraphStateTest {
 			resolveSignedInDestination = { ProfileNavKey() }
 		)
 
-		state.onLogout()
+		runBlocking { state.onLogout() }
 
-			assertEquals(listOf(OnboardingNavKey(), SignInNavKey()), backStack.toList())
-			assertNull(sessionStore.get())
-			assertEquals(false, sessionStore.isProfileCompleted())
-			assertTrue(pendingMatchActionStore.wasCleared)
-		}
+		assertEquals(listOf(OnboardingNavKey(), SignInNavKey()), backStack.toList())
+		assertNull(sessionStore.get())
+		assertEquals(false, sessionStore.isProfileCompleted())
+		assertTrue(pendingMatchActionStore.wasCleared)
+	}
 
 	@Test
 	fun `unauthorized clears session queue and opens onboarding`() {
@@ -125,7 +125,7 @@ class AuthGraphStateTest {
 			resolveSignedInDestination = { ProfileNavKey() }
 		)
 
-		state.onUnauthorized()
+		runBlocking { state.onUnauthorized() }
 
 		assertEquals(listOf(OnboardingNavKey()), backStack.toList())
 		assertNull(sessionStore.get())

@@ -50,6 +50,7 @@ dependencies {
 	implementation(libs.ktor.client.logging)
 	implementation(libs.ktor.client.mock)
 	implementation(libs.ktor.client.okhttp)
+	implementation(libs.ktor.client.websockets)
 	implementation(libs.ktor.serialization.kotlinx.json)
 	ksp(libs.androidx.room.compiler)
 	testImplementation(libs.junit)

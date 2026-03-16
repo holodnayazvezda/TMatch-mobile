@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.navigation.rememberAuthGraphState
+import com.prod.chats.domain.gateway.ChatGateway
 import com.prod.chats.navigation.ChatsNavKey
 import com.prod.common.api.gateway.NotificationGateway
 import com.prod.common.api.model.UserProfileFeedAction
@@ -26,6 +27,7 @@ class TMatchAppState(
 	private val authSessionStore: AuthSessionStore,
 	profileGateway: ProfileGateway,
 	notificationGateway: NotificationGateway,
+	chatGateway: ChatGateway,
 	pendingMatchActionStore: PendingMatchActionStore
 ) {
 	val backStack: SnapshotStateList<Any> = mutableStateListOf(startDestination)
@@ -47,6 +49,7 @@ class TMatchAppState(
 	private val authGraphStateHolder = AuthGraphStateHolder(
 		authSessionStore = authSessionStore,
 		profileGateway = profileGateway,
+		chatGateway = chatGateway,
 		pendingMatchActionStore = pendingMatchActionStore,
 		fcmTokenRegistrar = fcmTokenRegistrar,
 		backStack = backStack
@@ -82,9 +85,9 @@ class TMatchAppState(
 		onBack()
 	}
 
-	fun onOpenChatFromProfile() {
+	fun onOpenChatFromProfile(userId: String) {
 		backStack.clear()
-		backStack.add(ChatsNavKey(source = "user_profile_menu"))
+		backStack.add(ChatsNavKey(source = "user_profile_menu:$userId"))
 	}
 
 	fun onDatingProfileAvailabilityChanged(hasDatingProfile: Boolean) {
@@ -111,21 +114,27 @@ class TMatchAppState(
 private class AuthGraphStateHolder(
 	private val authSessionStore: AuthSessionStore,
 	private val profileGateway: ProfileGateway,
+	private val chatGateway: ChatGateway,
 	private val pendingMatchActionStore: PendingMatchActionStore,
 	private val fcmTokenRegistrar: FcmTokenRegistrar,
 	private val backStack: SnapshotStateList<Any>
 ) {
+	private val clearSessionState: suspend () -> Unit = {
+		chatGateway.clearLocalData()
+		pendingMatchActionStore.clear()
+	}
+
 	@Composable
 	fun rememberState() = rememberAuthGraphState(
 		backStack = backStack,
 		authSessionStore = authSessionStore,
-		onSessionCleared = pendingMatchActionStore::clear,
+		onSessionCleared = clearSessionState,
 		onSessionStarted = fcmTokenRegistrar::syncCurrentTokenIfAuthorized,
 		resolveSignedInDestination = {
 			AppStartDestinationResolver(
 				authSessionStore = authSessionStore,
 				profileGateway = profileGateway,
-				pendingMatchActionStore = pendingMatchActionStore
+				clearSessionState = clearSessionState
 			).resolveAuthenticatedDestination()
 		}
 	)
@@ -136,18 +145,24 @@ fun rememberTMatchAppState(
 	authSessionStore: AuthSessionStore,
 	profileGateway: ProfileGateway,
 	notificationGateway: NotificationGateway,
+	chatGateway: ChatGateway,
 	pendingMatchActionStore: PendingMatchActionStore
 ): TMatchAppState? {
+	val clearSessionState: suspend () -> Unit = {
+		chatGateway.clearLocalData()
+		pendingMatchActionStore.clear()
+	}
 	val startDestination by produceState<Any?>(
 		initialValue = null,
 		authSessionStore,
 		profileGateway,
+		chatGateway,
 		pendingMatchActionStore
 	) {
 		value = AppStartDestinationResolver(
 			authSessionStore = authSessionStore,
 			profileGateway = profileGateway,
-			pendingMatchActionStore = pendingMatchActionStore
+			clearSessionState = clearSessionState
 		).resolve()
 	}
 	val resolvedStartDestination = startDestination ?: return null
@@ -156,6 +171,7 @@ fun rememberTMatchAppState(
 		authSessionStore,
 		profileGateway,
 		notificationGateway,
+		chatGateway,
 		pendingMatchActionStore
 	) {
 		TMatchAppState(
@@ -163,6 +179,7 @@ fun rememberTMatchAppState(
 			authSessionStore = authSessionStore,
 			profileGateway = profileGateway,
 			notificationGateway = notificationGateway,
+			chatGateway = chatGateway,
 			pendingMatchActionStore = pendingMatchActionStore
 		)
 	}
