@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.prod.auth.domain.gateway.AuthSessionStore
+import com.prod.common.api.gateway.NotificationGateway
 import com.prod.auth.navigation.authGraph
 import com.prod.auth.navigation.rememberAuthGraphState
 import com.prod.chats.navigation.ChatsNavKey
@@ -45,6 +47,7 @@ import com.prod.t_match.debug.DebugNetworkOverridesNavKey
 import com.prod.t_match.debug.DebugNetworkOverridesScreen
 import com.prod.t_match.debug.DebugShakeToOpenEffect
 import com.prod.t_match.navigation.AppStartDestinationResolver
+import com.prod.t_match.notifications.FcmTokenRegistrar
 import com.prod.ui.components.rememberAppGradientBrush
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
@@ -55,7 +58,14 @@ fun TMatchApp() {
 	TmatchTheme {
 		val authSessionStore = koinInject<AuthSessionStore>()
 		val profileGateway = koinInject<ProfileGateway>()
+		val notificationGateway = koinInject<NotificationGateway>()
 		val pendingMatchActionStore = koinInject<PendingMatchActionStore>()
+		val fcmTokenRegistrar = remember(authSessionStore, notificationGateway) {
+			FcmTokenRegistrar(
+				authSessionStore = authSessionStore,
+				notificationGateway = notificationGateway
+			)
+		}
 		val startDestination by produceState<Any?>(
 			initialValue = null,
 			authSessionStore,
@@ -88,6 +98,7 @@ fun TMatchApp() {
 			backStack = backStack,
 			authSessionStore = authSessionStore,
 			onSessionCleared = pendingMatchActionStore::clear,
+			onSessionStarted = fcmTokenRegistrar::syncCurrentTokenIfAuthorized,
 			resolveSignedInDestination = {
 				AppStartDestinationResolver(
 					authSessionStore = authSessionStore,
@@ -101,6 +112,10 @@ fun TMatchApp() {
 		val currentDestination = backStack.lastOrNull()
 		var userProfileFeedActionHandler by remember {
 			mutableStateOf<((userId: String, action: UserProfileFeedAction) -> Unit)?>(null)
+		}
+
+		LaunchedEffect(Unit) {
+			fcmTokenRegistrar.syncCurrentTokenIfAuthorized()
 		}
 
 		if (BuildConfig.DEBUG) {

@@ -17,12 +17,14 @@ class AuthGraphState(
 	private val backStack: SnapshotStateList<Any>,
 	private val authSessionStore: AuthSessionStore,
 	private val onSessionCleared: () -> Unit,
+	private val onSessionStarted: suspend () -> Unit,
 	private val resolveSignedInDestination: suspend () -> Any,
 	private val consumeRetryActionInternal: () -> (() -> Unit)?,
 	private val requestNoInternetInternal: (retryAction: () -> Unit) -> Unit
 ) {
 	suspend fun onSignInSuccess(session: UserSession) {
 		authSessionStore.save(session)
+		onSessionStarted()
 		val destination = resolveSignedInDestination()
 		backStack.clear()
 		backStack.add(destination)
@@ -31,6 +33,7 @@ class AuthGraphState(
 	suspend fun onSignUpSuccess(session: UserSession) {
 		authSessionStore.save(session)
 		authSessionStore.setProfileCompleted(false)
+		onSessionStarted()
 		backStack.clear()
 		backStack.add(ProfileSetupNavKey())
 	}
@@ -72,6 +75,7 @@ fun rememberAuthGraphState(
 	backStack: SnapshotStateList<Any>,
 	authSessionStore: AuthSessionStore,
 	onSessionCleared: () -> Unit,
+	onSessionStarted: suspend () -> Unit = {},
 	resolveSignedInDestination: suspend () -> Any
 ): AuthGraphState {
 	var nextRetryRequestId by rememberSaveable { mutableStateOf(0L) }
@@ -87,6 +91,7 @@ fun rememberAuthGraphState(
 		backStack = backStack,
 		authSessionStore = authSessionStore,
 		onSessionCleared = onSessionCleared,
+		onSessionStarted = onSessionStarted,
 		resolveSignedInDestination = resolveSignedInDestination,
 		consumeRetryActionInternal = {
 			val callback = retryAction

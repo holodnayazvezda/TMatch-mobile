@@ -1,5 +1,6 @@
 plugins {
 	alias(libs.plugins.android.application)
+	alias(libs.plugins.google.services)
 	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.kotlin.serialization)
 }
@@ -41,6 +42,7 @@ android {
 dependencies {
 	implementation(project(":api:auth"))
 	implementation(project(":api:chats"))
+	implementation(project(":api:common"))
 	implementation(project(":api:match"))
 	implementation(project(":api:profile"))
 	implementation(project(":common:ui"))
@@ -63,6 +65,8 @@ dependencies {
 	implementation(libs.androidx.navigation3.runtime)
 	implementation(libs.androidx.navigation3.ui)
 	implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+	implementation(platform(libs.firebase.bom))
+	implementation(libs.firebase.messaging)
 	implementation(libs.kotlinx.serialization.json)
 	implementation(libs.ktor.client.core)
 	implementation(libs.koin.android)

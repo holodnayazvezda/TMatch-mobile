@@ -141,6 +141,7 @@ class AuthGraphStateTest {
 			backStack = backStack,
 			authSessionStore = authSessionStore,
 			onSessionCleared = pendingMatchActionStore::clear,
+			onSessionStarted = {},
 			resolveSignedInDestination = resolveSignedInDestination,
 			consumeRetryActionInternal = { null },
 			requestNoInternetInternal = {}
