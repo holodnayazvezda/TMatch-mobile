@@ -2,6 +2,13 @@
 
 `Tmatch` это Android-приложение, построенное на Kotlin, Jetpack Compose, Koin, Ktor и Firebase Cloud Messaging.
 
+## Документация
+
+- [Описание функционала и статуса интеграции](./docs/functional-overview.md)
+- [Тестовые сценарии](./docs/test-scenarios.md)
+- [Карта критериев](./docs/criteria-map.md)
+- [Архитектурные решения](./ADR.md)
+
 ## Структура проекта
 
 - `app` — точка входа приложения и сборка зависимостей.
@@ -22,7 +29,7 @@
 
 - Firebase Cloud Messaging используется для получения push-сообщений.
 - FCM device token регистрируется на backend через `POST /notifications/devices`.
-- Входящие push payload на текущем этапе только логируются в `logcat`.
+- Входящие push-сообщения логируются и отображаются как системные уведомления; на Android 13+ показ зависит от разрешения `POST_NOTIFICATIONS`.
 
 ## Архитектура
 
