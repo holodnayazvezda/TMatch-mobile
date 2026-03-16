@@ -22,6 +22,10 @@
     <string name="user_profile_traits_title">Интересы и черты</string>
     <string name="user_profile_photo_placeholder">Фото недоступно</string>
     <string name="user_profile_about_title">О человеке</string>
+    <string name="user_profile_age_title">Возраст</string>
+    <string name="user_profile_birth_date_title">Дата рождения</string>
+    <string name="user_profile_region_title">Регион</string>
+    <string name="user_profile_not_specified">Не указано</string>
     <string name="user_profile_reasons_title">Почему мы показали этот профиль</string>
     <string name="user_profile_reasons_description">Совпадение найдено по следующим объяснимым признакам.</string>
     <string name="user_profile_actions_title">Что сделать с профилем</string>

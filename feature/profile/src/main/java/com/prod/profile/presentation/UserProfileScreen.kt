@@ -1,11 +1,11 @@
 package com.prod.profile.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,7 +24,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -295,6 +294,12 @@ private fun UserProfileHeroCard(
 	profileCard: UserProfileCardUiState,
 	modifier: Modifier = Modifier
 ) {
+	val heroImages = profileCard.heroImages()
+	val pagerState = rememberPagerState(
+		initialPage = 0,
+		pageCount = { heroImages.size }
+	)
+
 	Surface(
 		modifier = modifier,
 		shape = RoundedCornerShape(28.dp),
@@ -305,16 +310,44 @@ private fun UserProfileHeroCard(
 			modifier = Modifier.padding(vertical = 14.dp),
 			verticalArrangement = Arrangement.spacedBy(14.dp)
 		) {
-			LazyRow(
-				contentPadding = PaddingValues(horizontal = 14.dp),
-				horizontalArrangement = Arrangement.spacedBy(12.dp)
-			) {
-				itemsIndexed(profileCard.heroImages()) { index, imageUrl ->
+			HorizontalPager(
+				state = pagerState,
+				modifier = Modifier.fillMaxWidth(),
+				pageSpacing = 0.dp
+			) { index ->
 					UserProfilePhoto(
-						imageUrl = imageUrl,
+						imageUrl = heroImages[index],
 						contentDescription = "${profileCard.fullName} ${index + 1}",
-						modifier = Modifier.fillParentMaxWidth()
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(horizontal = 14.dp)
 					)
+			}
+
+			if (heroImages.size > 1) {
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.Center
+				) {
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						repeat(heroImages.size) { index ->
+							Surface(
+								modifier = Modifier.size(
+									width = if (pagerState.currentPage == index) 18.dp else 8.dp,
+									height = 8.dp
+								),
+								shape = CircleShape,
+								color = if (pagerState.currentPage == index) {
+									MaterialTheme.colorScheme.primary
+								} else {
+									MaterialTheme.colorScheme.outlineVariant
+								}
+							) {}
+						}
+					}
 				}
 			}
 
@@ -328,30 +361,13 @@ private fun UserProfileHeroCard(
 					color = MaterialTheme.colorScheme.onSurface,
 					fontWeight = FontWeight.SemiBold
 				)
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					profileCard.region?.takeIf { it.isNotBlank() }?.let { region ->
-						Surface(
-							shape = CircleShape,
-							color = MaterialTheme.colorScheme.primaryContainer
-						) {
-							Text(
-								text = region,
-								modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-								style = MaterialTheme.typography.labelLarge,
-								color = MaterialTheme.colorScheme.onPrimaryContainer
-							)
-						}
-					}
-				}
 			}
 		}
 	}
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun UserProfileAboutSection(
 	profileCard: UserProfileCardUiState,
 	modifier: Modifier = Modifier
@@ -366,16 +382,84 @@ private fun UserProfileAboutSection(
 			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
 			verticalArrangement = Arrangement.spacedBy(14.dp)
 		) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.Top
+			) {
+				Column(
+					modifier = Modifier.weight(1f),
+					verticalArrangement = Arrangement.spacedBy(4.dp)
+				) {
+					Text(
+						text = stringResource(R.string.user_profile_about_title),
+						style = MaterialTheme.typography.titleMedium,
+						color = MaterialTheme.colorScheme.onSurface,
+						fontWeight = FontWeight.SemiBold
+					)
+				}
+				Surface(
+					shape = CircleShape,
+					color = MaterialTheme.colorScheme.tertiaryContainer
+				) {
+					Text(
+						text = profileCard.photoCountLabel(),
+						modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+						style = MaterialTheme.typography.labelLarge,
+						color = MaterialTheme.colorScheme.onTertiaryContainer
+					)
+				}
+			}
+
+			FlowRow(
+				horizontalArrangement = Arrangement.spacedBy(10.dp),
+				verticalArrangement = Arrangement.spacedBy(10.dp)
+			) {
+				UserProfileFactCard(
+					title = stringResource(R.string.user_profile_age_title),
+					value = profileCard.age?.toString() ?: stringResource(R.string.user_profile_not_specified),
+					modifier = Modifier.fillMaxWidth(0.48f)
+				)
+				UserProfileFactCard(
+					title = stringResource(R.string.user_profile_birth_date_title),
+					value = profileCard.birthDateLabel,
+					modifier = Modifier.fillMaxWidth(0.48f)
+				)
+				UserProfileFactCard(
+					title = stringResource(R.string.user_profile_region_title),
+					value = profileCard.region ?: stringResource(R.string.user_profile_not_specified),
+					modifier = Modifier.fillMaxWidth()
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun UserProfileFactCard(
+	title: String,
+	value: String,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier,
+		shape = RoundedCornerShape(18.dp),
+		color = MaterialTheme.colorScheme.surfaceContainerHigh
+	) {
+		Column(
+			modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+			verticalArrangement = Arrangement.spacedBy(4.dp)
+		) {
 			Text(
-				text = stringResource(R.string.user_profile_about_title),
+				text = title,
+				style = MaterialTheme.typography.labelMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+			Text(
+				text = value,
 				style = MaterialTheme.typography.titleMedium,
 				color = MaterialTheme.colorScheme.onSurface,
 				fontWeight = FontWeight.SemiBold
-			)
-			Text(
-				text = profileCard.summaryLine(),
-				style = MaterialTheme.typography.bodyLarge,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 		}
 	}
@@ -563,24 +647,7 @@ private fun UserProfileCardUiState.displayTitle(): String {
 	return age?.let { "$fullName, $it" } ?: fullName
 }
 
-private fun UserProfileCardUiState.summaryLine(): String {
-	return buildString {
-		append("Дата рождения: ")
-		append(birthDateLabel)
-		append(".")
-		region?.let {
-			append(" Регион: ")
-			append(it)
-			append(".")
-		}
-		append(" В анкете ")
-		append(datingPhotoUrls.size.coerceAtLeast(1))
-		append(" ")
-		append(photoWord(datingPhotoUrls.size.coerceAtLeast(1)))
-		append(".")
-	}
-}
-
-private fun photoWord(count: Int): String {
-	return "фото"
+private fun UserProfileCardUiState.photoCountLabel(): String {
+	val count = datingPhotoUrls.size.coerceAtLeast(1)
+	return "$count фото"
 }
