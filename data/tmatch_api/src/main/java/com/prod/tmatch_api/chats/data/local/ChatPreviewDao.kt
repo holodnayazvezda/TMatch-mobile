@@ -11,27 +11,44 @@ import kotlinx.coroutines.flow.Flow
 abstract class ChatPreviewDao {
 	@Query(
 		"""
-		SELECT * FROM chat_previews
+		SELECT * FROM chats
 		WHERE ownerUserId = :ownerUserId
 		ORDER BY lastMessageCreatedAt IS NULL ASC, lastMessageCreatedAt DESC, chatId ASC
 		"""
 	)
-	abstract fun observeChats(ownerUserId: String): Flow<List<ChatPreviewEntity>>
+	@Transaction
+	abstract fun observeChats(ownerUserId: String): Flow<List<ChatWithUserEntity>>
 
 	@Insert(onConflict = OnConflictStrategy.REPLACE)
-	protected abstract suspend fun insertAll(items: List<ChatPreviewEntity>)
+	protected abstract suspend fun insertChats(items: List<ChatEntity>)
 
-	@Query("DELETE FROM chat_previews WHERE ownerUserId = :ownerUserId")
-	abstract suspend fun deleteByOwnerUserId(ownerUserId: String)
+	@Insert(onConflict = OnConflictStrategy.REPLACE)
+	protected abstract suspend fun insertUsers(items: List<ChatUserEntity>)
+
+	@Query("DELETE FROM chats WHERE ownerUserId = :ownerUserId")
+	protected abstract suspend fun deleteChatsByOwnerUserId(ownerUserId: String)
+
+	@Query("DELETE FROM chat_users WHERE ownerUserId = :ownerUserId")
+	protected abstract suspend fun deleteUsersByOwnerUserId(ownerUserId: String)
+
+	@Transaction
+	open suspend fun deleteByOwnerUserId(ownerUserId: String) {
+		deleteChatsByOwnerUserId(ownerUserId)
+		deleteUsersByOwnerUserId(ownerUserId)
+	}
 
 	@Transaction
 	open suspend fun replaceChats(
 		ownerUserId: String,
-		items: List<ChatPreviewEntity>
+		chats: List<ChatEntity>,
+		users: List<ChatUserEntity>
 	) {
 		deleteByOwnerUserId(ownerUserId)
-		if (items.isNotEmpty()) {
-			insertAll(items)
+		if (users.isNotEmpty()) {
+			insertUsers(users)
+		}
+		if (chats.isNotEmpty()) {
+			insertChats(chats)
 		}
 	}
 }

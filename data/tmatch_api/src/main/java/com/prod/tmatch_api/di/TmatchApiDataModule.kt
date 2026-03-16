@@ -39,7 +39,9 @@ fun tmatchApiDataModule(
 			get(),
 			TmatchChatsDatabase::class.java,
 			"tmatch_chats.db"
-		).build()
+		)
+			.fallbackToDestructiveMigration(dropAllTables = true)
+			.build()
 	}
 	single { get<TmatchChatsDatabase>().chatPreviewDao() }
 	single<AuthGateway> {

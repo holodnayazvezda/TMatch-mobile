@@ -4,8 +4,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-	entities = [ChatPreviewEntity::class],
-	version = 1,
+	entities = [ChatEntity::class, ChatUserEntity::class],
+	version = 2,
 	exportSchema = false
 )
 abstract class TmatchChatsDatabase : RoomDatabase() {

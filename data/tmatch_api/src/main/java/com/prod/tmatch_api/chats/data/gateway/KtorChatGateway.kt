@@ -12,8 +12,10 @@ import com.prod.profile.domain.model.UserCardProfile
 import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import com.prod.tmatch_api.chats.data.dto.ChatItemDto
 import com.prod.tmatch_api.chats.data.dto.ChatsResponseDto
+import com.prod.tmatch_api.chats.data.local.ChatEntity
 import com.prod.tmatch_api.chats.data.local.ChatPreviewDao
-import com.prod.tmatch_api.chats.data.local.ChatPreviewEntity
+import com.prod.tmatch_api.chats.data.local.ChatUserEntity
+import com.prod.tmatch_api.chats.data.local.ChatWithUserEntity
 import com.prod.tmatch_api.common.data.network.KtorGatewaySupport
 import com.prod.tmatch_api.profile.data.dto.CardDatingProfileDto
 import com.prod.tmatch_api.profile.data.dto.CardDatingTraitDto
@@ -60,7 +62,9 @@ class KtorChatGateway(
 				val items = response.body<ChatsResponseDto>().items
 				chatPreviewDao.replaceChats(
 					ownerUserId = session.userId,
-					items = items.map { it.toEntity(ownerUserId = session.userId) }
+					chats = items.map { it.toChatEntity(ownerUserId = session.userId) },
+					users = items.mapNotNull { it.toChatUserEntity(ownerUserId = session.userId) }
+						.distinctBy { it.ownerUserId to it.userId }
 				)
 				ApiOperationResult.Success(Unit)
 			} else {
@@ -92,56 +96,67 @@ class KtorChatGateway(
 		)
 	}
 
-	private fun ChatItemDto.toEntity(ownerUserId: String): ChatPreviewEntity {
-		return ChatPreviewEntity(
+	private fun ChatItemDto.toChatEntity(ownerUserId: String): ChatEntity {
+		return ChatEntity(
 			ownerUserId = ownerUserId,
 			chatId = chatId,
 			otherUserId = otherUserId,
 			lastMessageId = lastMessageId,
 			lastMessageText = lastMessageText,
-			lastMessageCreatedAt = lastMessageCreatedAt,
-			otherProfileFirstName = otherUserCard?.profile?.firstName,
-			otherProfileLastName = otherUserCard?.profile?.lastName,
-			otherProfileBirthDate = otherUserCard?.profile?.birthDate,
-			otherProfileGender = otherUserCard?.profile?.gender,
-			otherProfileRegion = otherUserCard?.profile?.region,
-			otherProfileAvatarUrl = otherUserCard?.profile?.avatarUrl,
-			otherDatingPhotos = otherUserCard?.datingProfile?.photos.orEmpty().joinToString("|")
+			lastMessageCreatedAt = lastMessageCreatedAt
 		)
 	}
 
-	private fun ChatPreviewEntity.toDomain(): ChatPreview {
+	private fun ChatItemDto.toChatUserEntity(ownerUserId: String): ChatUserEntity? {
+		return otherUserCard?.let { card ->
+			ChatUserEntity(
+				ownerUserId = ownerUserId,
+				userId = otherUserId,
+				firstName = card.profile?.firstName,
+				lastName = card.profile?.lastName,
+				birthDate = card.profile?.birthDate,
+				gender = card.profile?.gender,
+				region = card.profile?.region,
+				avatarUrl = card.profile?.avatarUrl,
+				datingPhotos = card.datingProfile?.photos.orEmpty().joinToString("|")
+			)
+		}
+	}
+
+	private fun ChatWithUserEntity.toDomain(): ChatPreview {
+		val chat = chat
+		val user = user
 		val profile = if (
-			otherProfileFirstName != null &&
-			otherProfileBirthDate != null &&
-			otherProfileGender != null
+			user?.firstName != null &&
+			user.birthDate != null &&
+			user.gender != null
 		) {
 			UserCardProfile(
-				firstName = otherProfileFirstName,
-				lastName = otherProfileLastName,
-				birthDate = otherProfileBirthDate,
-				gender = otherProfileGender,
-				region = otherProfileRegion,
-				avatarUrl = otherProfileAvatarUrl
+				firstName = user.firstName,
+				lastName = user.lastName,
+				birthDate = user.birthDate,
+				gender = user.gender,
+				region = user.region,
+				avatarUrl = user.avatarUrl
 			)
 		} else {
 			null
 		}
-		val photos = otherDatingPhotos
-			.takeIf { it.isNotBlank() }
+		val photos = user?.datingPhotos
+			?.takeIf { it.isNotBlank() }
 			?.split('|')
 			?.filter { it.isNotBlank() }
 			.orEmpty()
 
 		return ChatPreview(
-			chatId = chatId,
-			otherUserId = otherUserId,
-			lastMessageId = lastMessageId,
-			lastMessageText = lastMessageText,
-			lastMessageCreatedAt = lastMessageCreatedAt,
+			chatId = chat.chatId,
+			otherUserId = chat.otherUserId,
+			lastMessageId = chat.lastMessageId,
+			lastMessageText = chat.lastMessageText,
+			lastMessageCreatedAt = chat.lastMessageCreatedAt,
 			otherUserCard = if (profile != null || photos.isNotEmpty()) {
 				UserCard(
-					userId = otherUserId,
+					userId = chat.otherUserId,
 					profile = profile,
 					datingProfile = if (photos.isNotEmpty()) {
 						UserCardDatingProfile(
