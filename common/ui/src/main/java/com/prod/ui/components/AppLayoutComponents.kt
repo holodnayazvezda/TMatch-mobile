@@ -83,15 +83,15 @@ fun AppCenteredContentColumn(
 fun AppScreenTopBar(
 	title: String,
 	modifier: Modifier = Modifier,
+	horizontalPadding: Dp = LocalDimensions.current.small,
+	verticalPadding: Dp = LocalDimensions.current.verySmall,
 	navigation: (@Composable RowScope.() -> Unit)? = null,
 	actions: (@Composable RowScope.() -> Unit)? = null
 ) {
-	val dim = LocalDimensions.current
-
 	Row(
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(horizontal = dim.small, vertical = dim.verySmall),
+			.padding(horizontal = horizontalPadding, vertical = verticalPadding),
 		verticalAlignment = Alignment.CenterVertically
 	) {
 		Row(

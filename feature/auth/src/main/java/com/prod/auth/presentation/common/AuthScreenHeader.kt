@@ -18,6 +18,7 @@ fun AuthScreenHeader(
 	Column(modifier = modifier) {
 		AppScreenTopBar(
 			title = "",
+			horizontalPadding = 0.dp,
 			navigation = {
 				AuthBackButton(onClick = onBack)
 			}
