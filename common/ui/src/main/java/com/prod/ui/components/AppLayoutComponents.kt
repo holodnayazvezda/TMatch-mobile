@@ -85,12 +85,20 @@ fun AppScreenTopBar(
 	modifier: Modifier = Modifier,
 	horizontalPadding: Dp = LocalDimensions.current.small,
 	verticalPadding: Dp = LocalDimensions.current.verySmall,
+	applySafeDrawingPadding: Boolean = true,
 	navigation: (@Composable RowScope.() -> Unit)? = null,
 	actions: (@Composable RowScope.() -> Unit)? = null
 ) {
 	Row(
 		modifier = modifier
 			.fillMaxWidth()
+			.then(
+				if (applySafeDrawingPadding) {
+					Modifier.safeDrawingPadding()
+				} else {
+					Modifier
+				}
+			)
 			.padding(horizontal = horizontalPadding, vertical = verticalPadding),
 		verticalAlignment = Alignment.CenterVertically
 	) {

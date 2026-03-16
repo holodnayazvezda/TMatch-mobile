@@ -19,6 +19,7 @@ fun AuthScreenHeader(
 		AppScreenTopBar(
 			title = "",
 			horizontalPadding = 0.dp,
+			applySafeDrawingPadding = false,
 			navigation = {
 				AuthBackButton(onClick = onBack)
 			}
