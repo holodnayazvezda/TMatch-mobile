@@ -21,10 +21,10 @@ import com.prod.auth.presentation.common.AuthScreenHeader
 import com.prod.auth.presentation.common.asString
 import com.prod.auth.presentation.common.asStringOrNull
 import com.prod.auth.presentation.signup.components.SignUpJuryShortcutButton
+import com.prod.ui.components.AppSectionCard
+import com.prod.ui.components.AppScrollableScreenWithHeader
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
-import com.prod.ui.components.AppScrollableScreen
-import com.prod.ui.components.AppSectionCard
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -43,21 +43,24 @@ fun SignInScreen(
 		viewModel.applyPrefilledEmail(prefilledEmail)
 	}
 
-	AppScrollableScreen(
+	AppScrollableScreenWithHeader(
 		modifier = modifier
+	,
+		header = {
+			AuthScreenHeader(
+				title = stringResource(R.string.auth_sign_in_title),
+				description = stringResource(R.string.auth_sign_in_description),
+				onBack = onBack
+			)
+			SignUpJuryShortcutButton(
+				onClick = {
+					viewModel.loadJuryPreviewUsers(onNoInternet = onRequestNoInternet)
+				},
+				enabled = !uiState.isLoading && !uiState.isJuryLoading,
+				modifier = Modifier.align(Alignment.End)
+			)
+		}
 	) {
-		AuthScreenHeader(
-			title = stringResource(R.string.auth_sign_in_title),
-			description = stringResource(R.string.auth_sign_in_description),
-			onBack = onBack
-		)
-		SignUpJuryShortcutButton(
-			onClick = {
-				viewModel.loadJuryPreviewUsers(onNoInternet = onRequestNoInternet)
-			},
-			enabled = !uiState.isLoading && !uiState.isJuryLoading,
-			modifier = Modifier.align(Alignment.End)
-		)
 		AppSectionCard {
 			AuthCredentialsForm(
 				email = uiState.email,

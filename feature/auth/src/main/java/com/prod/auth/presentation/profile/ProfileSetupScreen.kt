@@ -34,9 +34,8 @@ import com.prod.auth.presentation.common.asString
 import com.prod.auth.presentation.common.asStringOrNull
 import com.prod.auth.presentation.signup.components.SignUpJuryShortcutButton
 import com.prod.ui.components.AppDatePickerDialog
-import com.prod.ui.components.AppScrollableScreen
 import com.prod.ui.components.AppSectionCard
-import com.prod.ui.components.AppSectionTitle
+import com.prod.ui.components.AppScrollableScreenWithHeader
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.profile.ProfileImageCropDialog
 import com.prod.ui.components.profile.ProfileImageStyle
@@ -99,23 +98,25 @@ fun ProfileSetupScreen(
 				color = MaterialTheme.colorScheme.primary
 			)
 		} else {
-			AppScrollableScreen(
+			AppScrollableScreenWithHeader(
 				modifier = Modifier.fillMaxSize()
+			,
+				header = {
+					AuthScreenHeadlineTitle(
+						title = stringResource(R.string.profile_setup_title),
+						modifier = Modifier.fillMaxWidth()
+					)
+					SignUpJuryShortcutButton(
+						onClick = {
+							viewModel.applyJuryProfileDraft()
+							submitProfile()
+						},
+						enabled = !uiState.isSubmitting && !uiState.isCheckingProfile,
+						modifier = Modifier.align(Alignment.End)
+					)
+				}
 			) {
-				AuthScreenHeadlineTitle(
-					title = stringResource(R.string.profile_setup_title),
-					modifier = Modifier.fillMaxWidth()
-				)
-				SignUpJuryShortcutButton(
-					onClick = {
-						viewModel.applyJuryProfileDraft()
-						submitProfile()
-					},
-					enabled = !uiState.isSubmitting && !uiState.isCheckingProfile,
-					modifier = Modifier.align(Alignment.End)
-				)
 				AppSectionCard {
-					AppSectionTitle(title = stringResource(R.string.profile_setup_description))
 					SelectableProfileImage(
 						imageBitmap = avatarBitmap,
 						placeholderText = stringResource(R.string.profile_setup_avatar_placeholder),

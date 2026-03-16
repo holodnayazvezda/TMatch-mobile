@@ -33,8 +33,10 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.prod.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.ui.theme.LocalTmatchExtraColors
@@ -59,6 +61,40 @@ fun AppScrollableScreen(
 		verticalArrangement = Arrangement.spacedBy(dim.defaultSpacing),
 		content = content
 	)
+}
+
+@Composable
+fun AppScrollableScreenWithHeader(
+	modifier: Modifier = Modifier,
+	header: @Composable ColumnScope.() -> Unit,
+	content: @Composable ColumnScope.() -> Unit
+) {
+	val dim = LocalDimensions.current
+
+	Column(
+		modifier = modifier
+			.fillMaxSize()
+			.safeDrawingPadding()
+			.padding(
+				horizontal = dim.large,
+				vertical = dim.screenVerticalPadding
+			),
+		verticalArrangement = Arrangement.spacedBy(dim.defaultSpacing)
+	) {
+		Column(
+			modifier = Modifier.fillMaxWidth(),
+			verticalArrangement = Arrangement.spacedBy(dim.small),
+			content = header
+		)
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f)
+				.verticalScroll(rememberScrollState()),
+			verticalArrangement = Arrangement.spacedBy(dim.defaultSpacing),
+			content = content
+		)
+	}
 }
 
 @Composable
@@ -112,9 +148,11 @@ fun AppScreenTopBar(
 		Text(
 			text = title,
 			modifier = Modifier.weight(1f),
-			style = MaterialTheme.typography.titleLarge,
+			style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
 			color = MaterialTheme.colorScheme.onBackground,
-			textAlign = TextAlign.Center
+			textAlign = TextAlign.Center,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis
 		)
 		Row(
 			modifier = Modifier.weight(1f),

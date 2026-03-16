@@ -8,7 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun AuthScreenHeadline(
@@ -28,10 +30,12 @@ fun AuthScreenHeadlineTitle(
 	Text(
 		modifier = modifier,
 		text = title,
-		style = MaterialTheme.typography.headlineMedium,
+		style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp),
 		color = MaterialTheme.colorScheme.onBackground,
 		fontWeight = FontWeight.SemiBold,
-		textAlign = TextAlign.Center
+		textAlign = TextAlign.Center,
+		maxLines = 1,
+		overflow = TextOverflow.Ellipsis
 	)
 }
 

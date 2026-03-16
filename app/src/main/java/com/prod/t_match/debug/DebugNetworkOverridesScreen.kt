@@ -3,12 +3,14 @@ package com.prod.t_match.debug
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +20,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
@@ -38,6 +41,7 @@ import com.prod.tmatch_api.common.data.network.ApiResponseOverrideRegistry
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import com.prod.ui.components.text_fields.AppTextFieldWithDropdown
+import com.prod.ui.components.AppScreenTopBar
 import io.ktor.http.HttpMethod
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -79,83 +83,128 @@ fun DebugNetworkOverridesScreen(
 	}
 
 	if (selectedHolder == null) {
-		DebugOverridesListScreen(
+		DebugScreenScaffold(
 			modifier = modifier,
-			itemStateHolders = itemStateHolders,
-			onBack = onBack,
-			onClearAll = {
-				registry.clear()
-				itemStateHolders.forEachIndexed { index, holder ->
-					val definition = endpointDefinitions[index]
-					holder.state = EndpointOverrideEditorState(
-						definition = definition,
-						enabled = false,
-						statusCode = definition.defaultStatusCode.toString(),
-						savedStatusCode = null,
-						body = definition.defaultBody.toPrettyJson(),
-						savedBody = null,
+			title = "Debug API Overrides",
+			navigationLabel = "Назад",
+			onNavigation = onBack
+		) {
+			DebugOverridesListScreen(
+				modifier = Modifier.fillMaxSize(),
+				itemStateHolders = itemStateHolders,
+				onBack = onBack,
+				onClearAll = {
+					registry.clear()
+					itemStateHolders.forEachIndexed { index, holder ->
+						val definition = endpointDefinitions[index]
+						holder.state = EndpointOverrideEditorState(
+							definition = definition,
+							enabled = false,
+							statusCode = definition.defaultStatusCode.toString(),
+							savedStatusCode = null,
+							body = definition.defaultBody.toPrettyJson(),
+							savedBody = null,
+							selectedPresetLabel = null,
+							error = null
+						)
+					}
+					selectedKey = null
+				},
+				onToggleEnabled = { holder, isEnabled ->
+					val state = holder.state
+					holder.state = state.copy(
+						enabled = isEnabled,
+						statusCode = if (isEnabled) state.savedStatusCode ?: state.statusCode else state.statusCode,
+						body = if (isEnabled) state.savedBody ?: state.body else state.body,
 						selectedPresetLabel = null,
 						error = null
 					)
+				},
+				onOpenConfig = { holder ->
+					selectedKey = holder.key
 				}
-				selectedKey = null
-			},
-			onToggleEnabled = { holder, isEnabled ->
-				val state = holder.state
-				holder.state = state.copy(
-					enabled = isEnabled,
-					statusCode = if (isEnabled) state.savedStatusCode ?: state.statusCode else state.statusCode,
-					body = if (isEnabled) state.savedBody ?: state.body else state.body,
-					selectedPresetLabel = null,
-					error = null
-				)
-			},
-			onOpenConfig = { holder ->
-				selectedKey = holder.key
+			)
+		}
+	} else {
+		DebugScreenScaffold(
+			modifier = modifier,
+			title = selectedHolder.state.definition.title,
+			navigationLabel = "К списку",
+			onNavigation = { selectedKey = null }
+		) {
+			DebugOverrideEditorScreen(
+				modifier = Modifier.fillMaxSize(),
+				state = selectedHolder.state,
+				onBack = { selectedKey = null },
+				onStateChange = { updatedState ->
+					selectedHolder.state = updatedState
+				},
+				onApply = {
+					val state = selectedHolder.state
+					val statusCode = state.statusCode.toIntOrNull()
+					if (statusCode == null || statusCode !in 100..599) {
+						selectedHolder.state = state.copy(error = "Укажи HTTP status в диапазоне 100..599")
+						return@DebugOverrideEditorScreen
+					}
+
+					if (state.enabled) {
+						registry.setOverride(
+							method = state.definition.method,
+							path = state.definition.path,
+							response = ApiResponseOverride(
+								statusCode = statusCode,
+								body = state.body
+							)
+						)
+						selectedHolder.state = state.copy(
+							savedStatusCode = statusCode.toString(),
+							savedBody = state.body,
+							error = null
+						)
+					} else {
+						registry.removeOverride(
+							method = state.definition.method,
+							path = state.definition.path
+						)
+						selectedHolder.state = state.copy(
+							savedStatusCode = null,
+							savedBody = null,
+							error = null
+						)
+					}
+				}
+			)
+		}
+	}
+}
+
+@Composable
+private fun DebugScreenScaffold(
+	title: String,
+	navigationLabel: String,
+	onNavigation: () -> Unit,
+	modifier: Modifier = Modifier,
+	content: @Composable BoxScope.() -> Unit
+) {
+	Column(
+		modifier = modifier
+			.fillMaxSize()
+			.safeDrawingPadding()
+	) {
+		AppScreenTopBar(
+			title = title,
+			applySafeDrawingPadding = false,
+			navigation = {
+				TextButton(onClick = onNavigation) {
+					Text(text = "\u2190 $navigationLabel")
+				}
 			}
 		)
-	} else {
-		DebugOverrideEditorScreen(
-			modifier = modifier,
-			state = selectedHolder.state,
-			onBack = { selectedKey = null },
-			onStateChange = { updatedState ->
-				selectedHolder.state = updatedState
-			},
-			onApply = {
-				val state = selectedHolder.state
-				val statusCode = state.statusCode.toIntOrNull()
-				if (statusCode == null || statusCode !in 100..599) {
-					selectedHolder.state = state.copy(error = "Укажи HTTP status в диапазоне 100..599")
-					return@DebugOverrideEditorScreen
-				}
-
-				if (state.enabled) {
-					registry.setOverride(
-						method = state.definition.method,
-						path = state.definition.path,
-						response = ApiResponseOverride(
-							statusCode = statusCode,
-							body = state.body
-						)
-					)
-					selectedHolder.state = state.copy(
-						savedStatusCode = statusCode.toString(),
-						savedBody = state.body,
-						error = null
-					)
-				} else {
-					registry.removeOverride(
-						method = state.definition.method,
-						path = state.definition.path
-					)
-					selectedHolder.state = state.copy(
-						savedStatusCode = null,
-						savedBody = null,
-						error = null
-					)
-				}
-			}
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f),
+			content = content
 		)
 	}
 }
