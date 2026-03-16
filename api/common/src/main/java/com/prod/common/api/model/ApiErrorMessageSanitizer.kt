@@ -22,6 +22,8 @@ private val technicalErrorMarkers = listOf(
 	"certificate",
 	"closed channel",
 	"network is unreachable",
+	"internal server error",
+	"server error",
 	"service unavailable",
 	"gateway timeout",
 	"bad gateway"

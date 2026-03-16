@@ -79,6 +79,7 @@ class SharedPrefsPendingMatchActionStore(
 		return when (this) {
 			"like" -> MatchAction.Like
 			"dislike" -> MatchAction.Dislike
+			"ban" -> MatchAction.Ban
 			"skip" -> MatchAction.Skip
 			else -> null
 		}
@@ -88,6 +89,7 @@ class SharedPrefsPendingMatchActionStore(
 		return when (this) {
 			MatchAction.Like -> "like"
 			MatchAction.Dislike -> "dislike"
+			MatchAction.Ban -> "ban"
 			MatchAction.Skip -> "skip"
 		}
 	}

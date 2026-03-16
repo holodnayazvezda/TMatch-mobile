@@ -31,7 +31,7 @@ fun EntryProviderScope<Any>.profileGraph(
 			showFeedActions = key.source == "matching_card",
 			onLike = { onFeedAction(key.userId, UserProfileFeedAction.Like) },
 			onDislike = { onFeedAction(key.userId, UserProfileFeedAction.Dislike) },
-			onBan = {},
+			onBan = { onFeedAction(key.userId, UserProfileFeedAction.Ban) },
 			onUnauthorized = onUnauthorized,
 			onRequestNoInternet = onRequestNoInternet
 		)

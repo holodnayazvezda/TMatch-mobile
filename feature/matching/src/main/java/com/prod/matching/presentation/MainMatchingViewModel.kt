@@ -39,6 +39,7 @@ class MainMatchingViewModel(
 	private var noInternetHandler: (((() -> Unit)) -> Unit)? = null
 	// In-memory mirror of persisted optimistic reactions waiting to be sent to the backend.
 	private val pendingActions = ArrayDeque<PendingMatchAction>()
+	private var nextPendingDeckActionId = 0L
 
 	var uiState by mutableStateOf(MainMatchingUiState())
 		private set
@@ -86,11 +87,30 @@ class MainMatchingViewModel(
 		action: MatchAction
 	) {
 		val currentProfile = uiState.currentProfile
-		if (currentProfile?.id != userId) {
+		if (currentProfile?.id != userId || uiState.pendingDeckAction != null) {
 			return
 		}
 
-		submitAction(action)
+		uiState = uiState.copy(
+			isActionsSheetVisible = false,
+			error = null,
+			pendingDeckAction = PendingDeckAction(
+				userId = userId,
+				action = action,
+				requestId = ++nextPendingDeckActionId
+			)
+		)
+	}
+
+	fun consumePendingDeckAction() {
+		val pendingDeckAction = uiState.pendingDeckAction ?: return
+		if (uiState.currentProfile?.id != pendingDeckAction.userId) {
+			uiState = uiState.copy(pendingDeckAction = null)
+			return
+		}
+
+		uiState = uiState.copy(pendingDeckAction = null)
+		submitAction(pendingDeckAction.action)
 	}
 
 	private fun loadFeed() {
@@ -147,6 +167,11 @@ class MainMatchingViewModel(
 
 	private fun submitAction(action: MatchAction) {
 		val currentProfile = uiState.currentProfile ?: return
+		if (action == MatchAction.Skip) {
+			advanceProfile()
+			return
+		}
+
 		pendingActions.addLast(
 			PendingMatchAction(
 				profileId = currentProfile.id,
@@ -156,7 +181,11 @@ class MainMatchingViewModel(
 		)
 		// Persist before the UI advances so the swipe survives process death.
 		syncPendingActions()
-		advanceProfile()
+		if (action == MatchAction.Ban) {
+			removeProfileFromDeck(currentProfile.id)
+		} else {
+			advanceProfile()
+		}
 		processPendingActions()
 	}
 
@@ -164,6 +193,22 @@ class MainMatchingViewModel(
 		val nextIndex = uiState.currentIndex + 1
 		uiState = uiState.copy(
 			currentIndex = nextIndex,
+			isActionsSheetVisible = false,
+			error = null
+		)
+		loadMoreIfNeeded()
+	}
+
+	private fun removeProfileFromDeck(profileId: String) {
+		val updatedProfiles = uiState.profiles.filterNot { it.id == profileId }
+		val updatedIndex = if (updatedProfiles.isEmpty()) {
+			0
+		} else {
+			uiState.currentIndex.coerceAtMost(updatedProfiles.lastIndex)
+		}
+		uiState = uiState.copy(
+			profiles = updatedProfiles,
+			currentIndex = updatedIndex,
 			isActionsSheetVisible = false,
 			error = null
 		)

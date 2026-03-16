@@ -16,6 +16,10 @@ class ApiErrorMessageSanitizerTest {
 			SERVICE_UNAVAILABLE_USER_MESSAGE,
 			"socket timeout has expired".sanitizeUserFacingApiMessage()
 		)
+		assertEquals(
+			SERVICE_UNAVAILABLE_USER_MESSAGE,
+			"Internal Server Error".sanitizeUserFacingApiMessage()
+		)
 	}
 
 	@Test

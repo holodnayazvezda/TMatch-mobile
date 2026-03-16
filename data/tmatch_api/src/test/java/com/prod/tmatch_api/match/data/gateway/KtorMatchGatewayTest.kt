@@ -4,6 +4,7 @@ import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
+import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.RecommendationReasonType
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -130,6 +131,37 @@ class KtorMatchGatewayTest {
 				message = "Unsupported interaction action in response"
 			),
 			result
+		)
+	}
+
+	@Test
+	fun `maps block interaction action from backend response`() = runBlocking {
+		val gateway = KtorMatchGateway(
+			httpClient = createHttpClient(
+				status = HttpStatusCode.OK,
+				body = """
+					{
+					  "interaction_id": "interaction-1",
+					  "actor_user_id": "user-1",
+					  "candidate_user_id": "candidate-1",
+					  "action": "block",
+					  "created_at": "2026-03-15T12:00:00Z"
+					}
+				""".trimIndent()
+			),
+			authSessionStore = FakeAuthSessionStore()
+		)
+
+		val result = gateway.createInteraction(
+			candidateUserId = "candidate-1",
+			action = InteractionAction.Block,
+			mlRecommendationId = null
+		)
+
+		assertTrue(result is ApiOperationResult.Success)
+		assertEquals(
+			InteractionAction.Block,
+			(result as ApiOperationResult.Success).data.action
 		)
 	}
 

@@ -206,6 +206,8 @@ class KtorMatchGateway(
 		return when (this) {
 			InteractionAction.Like -> "like"
 			InteractionAction.Dislike -> "dislike"
+			InteractionAction.Block -> "block"
+			InteractionAction.Unblock -> "unblock"
 		}
 	}
 
@@ -213,6 +215,8 @@ class KtorMatchGateway(
 		return when (this) {
 			"dislike" -> InteractionAction.Dislike
 			"like" -> InteractionAction.Like
+			"block" -> InteractionAction.Block
+			"unblock" -> InteractionAction.Unblock
 			else -> null
 		}
 	}

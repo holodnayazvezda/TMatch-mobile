@@ -17,6 +17,7 @@ class SubmitMatchActionUseCase(
 		val interactionAction = when (action) {
 			MatchAction.Like -> InteractionAction.Like
 			MatchAction.Dislike -> InteractionAction.Dislike
+			MatchAction.Ban -> InteractionAction.Block
 			MatchAction.Skip -> return null
 		}
 
