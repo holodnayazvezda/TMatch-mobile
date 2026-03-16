@@ -5,7 +5,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -92,8 +91,7 @@ fun ProfileSetupScreen(
 	}
 
 	Box(
-		modifier = modifier
-			.fillMaxSize()
+		modifier = modifier.fillMaxSize()
 	) {
 		if (uiState.isCheckingProfile) {
 			CircularProgressIndicator(

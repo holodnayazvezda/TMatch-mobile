@@ -1,6 +1,7 @@
 package com.prod.t_match
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material3.NavigationBar
@@ -116,6 +117,7 @@ fun TMatchApp() {
 			modifier = Modifier
 				.fillMaxSize()
 				.background(backgroundBrush),
+			contentWindowInsets = WindowInsets(0, 0, 0, 0),
 			bottomBar = {
 				if (currentDestination.isMainTabDestination()) {
 					MainBottomBar(
