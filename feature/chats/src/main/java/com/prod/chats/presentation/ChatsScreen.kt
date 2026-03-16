@@ -1,6 +1,7 @@
 package com.prod.chats.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ChatsScreen(
+	onOpenChat: (chatId: String) -> Unit,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	viewModel: ChatsViewModel = koinViewModel()
@@ -103,6 +105,7 @@ fun ChatsScreen(
 			else -> {
 				ChatsList(
 					uiState = uiState,
+					onOpenChat = onOpenChat,
 					modifier = Modifier
 						.fillMaxWidth()
 						.weight(1f)
@@ -115,6 +118,7 @@ fun ChatsScreen(
 @Composable
 private fun ChatsList(
 	uiState: ChatsUiState,
+	onOpenChat: (chatId: String) -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -130,7 +134,10 @@ private fun ChatsList(
 		verticalArrangement = Arrangement.spacedBy(dim.small)
 	) {
 		items(uiState.items, key = { it.chatId }) { item ->
-			ChatRow(item = item)
+			ChatRow(
+				item = item,
+				onClick = { onOpenChat(item.chatId) }
+			)
 		}
 	}
 }
@@ -138,6 +145,7 @@ private fun ChatsList(
 @Composable
 private fun ChatRow(
 	item: ChatListItemUiState,
+	onClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -157,6 +165,7 @@ private fun ChatRow(
 		Row(
 			modifier = Modifier
 				.fillMaxWidth()
+				.clickable(onClick = onClick)
 				.padding(horizontal = dim.defaultSpacing, vertical = dim.small),
 			horizontalArrangement = Arrangement.spacedBy(dim.small),
 			verticalAlignment = Alignment.CenterVertically

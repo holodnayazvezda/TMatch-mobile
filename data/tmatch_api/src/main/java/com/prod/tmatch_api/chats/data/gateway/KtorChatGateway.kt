@@ -2,6 +2,7 @@ package com.prod.tmatch_api.chats.data.gateway
 
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.chats.domain.gateway.ChatGateway
+import com.prod.chats.domain.model.ChatMessage
 import com.prod.chats.domain.model.ChatPreview
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
@@ -10,9 +11,13 @@ import com.prod.profile.domain.model.UserCardDatingProfile
 import com.prod.profile.domain.model.UserCardDatingTrait
 import com.prod.profile.domain.model.UserCardProfile
 import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
+import com.prod.tmatch_api.chats.data.dto.ChatMessageItemDto
+import com.prod.tmatch_api.chats.data.dto.ChatMessagesResponseDto
 import com.prod.tmatch_api.chats.data.dto.ChatItemDto
 import com.prod.tmatch_api.chats.data.dto.ChatsResponseDto
+import com.prod.tmatch_api.chats.data.dto.SendMessageRequestDto
 import com.prod.tmatch_api.chats.data.local.ChatEntity
+import com.prod.tmatch_api.chats.data.local.ChatMessageEntity
 import com.prod.tmatch_api.chats.data.local.ChatPreviewDao
 import com.prod.tmatch_api.chats.data.local.ChatUserEntity
 import com.prod.tmatch_api.chats.data.local.ChatWithUserEntity
@@ -25,7 +30,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.HttpHeaders
 import io.ktor.http.ContentType
+import io.ktor.client.request.header
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -34,7 +44,8 @@ import kotlinx.coroutines.flow.map
 class KtorChatGateway(
 	private val httpClient: HttpClient,
 	private val authSessionStore: AuthSessionStore,
-	private val chatPreviewDao: ChatPreviewDao
+	private val chatPreviewDao: ChatPreviewDao,
+	private val chatStreamManager: KtorChatStreamManager
 ) : ChatGateway {
 
 	private val gatewaySupport = KtorGatewaySupport(authSessionStore)
@@ -42,6 +53,18 @@ class KtorChatGateway(
 	override fun observeOwnChats(): Flow<List<ChatPreview>> {
 		val ownerUserId = authSessionStore.get()?.userId ?: return flowOf(emptyList())
 		return chatPreviewDao.observeChats(ownerUserId).map { items ->
+			items.map { it.toDomain() }
+		}
+	}
+
+	override fun observeChat(chatId: String): Flow<ChatPreview?> {
+		val ownerUserId = authSessionStore.get()?.userId ?: return flowOf(null)
+		return chatPreviewDao.observeChat(ownerUserId, chatId).map { it?.toDomain() }
+	}
+
+	override fun observeChatMessages(chatId: String): Flow<List<ChatMessage>> {
+		val ownerUserId = authSessionStore.get()?.userId ?: return flowOf(emptyList())
+		return chatPreviewDao.observeChatMessages(ownerUserId, chatId).map { items ->
 			items.map { it.toDomain() }
 		}
 	}
@@ -83,6 +106,99 @@ class KtorChatGateway(
 		} catch (exception: Exception) {
 			gatewaySupport.handleException(exception)
 		}
+	}
+
+	override suspend fun refreshChatMessages(
+		chatId: String,
+		limit: Int,
+		beforeMessageId: String?
+	): ApiOperationResult<List<ChatMessage>> {
+		val session = authSessionStore.get()
+			?: return ApiOperationResult.ApiError(ApiErrorReason.Unauthorized)
+
+		return try {
+			val response = httpClient.get("/chats/$chatId/messages") {
+				accept(ContentType.Application.Json)
+				parameter("limit", limit)
+				beforeMessageId?.let { parameter("before_message_id", it) }
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
+			}
+
+			if (response.status.isSuccess()) {
+				val items = response.body<ChatMessagesResponseDto>().items
+				chatPreviewDao.insertMessages(items.map { it.toEntity(session.userId) })
+				if (items.isNotEmpty()) {
+					val latest = items.maxByOrNull { it.createdAt }
+					if (latest != null) {
+						chatPreviewDao.updateChatLastMessage(
+							ownerUserId = session.userId,
+							chatId = latest.chatId,
+							messageId = latest.messageId,
+							text = latest.text,
+							createdAt = latest.createdAt
+						)
+					}
+				}
+				ApiOperationResult.Success(items.map { it.toDomain() })
+			} else {
+				gatewaySupport.mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			gatewaySupport.handleException(exception)
+		}
+	}
+
+	override suspend fun sendMessage(
+		chatId: String,
+		text: String
+	): ApiOperationResult<ChatMessage> {
+		val session = authSessionStore.get()
+			?: return ApiOperationResult.ApiError(ApiErrorReason.Unauthorized)
+
+		return try {
+			val response = httpClient.post("/chats/$chatId/messages") {
+				accept(ContentType.Application.Json)
+				header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
+				setBody(SendMessageRequestDto(text = text))
+			}
+
+			if (response.status.isSuccess()) {
+				val message = response.body<ChatMessageItemDto>()
+				chatPreviewDao.insertMessage(message.toEntity(session.userId))
+				chatPreviewDao.updateChatLastMessage(
+					ownerUserId = session.userId,
+					chatId = message.chatId,
+					messageId = message.messageId,
+					text = message.text,
+					createdAt = message.createdAt
+				)
+				ApiOperationResult.Success(message.toDomain())
+			} else {
+				gatewaySupport.mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			gatewaySupport.handleException(exception)
+		}
+	}
+
+	override suspend fun ensureChatStreamConnected(): ApiOperationResult<Unit> {
+		return chatStreamManager.ensureConnected()
+	}
+
+	override suspend fun clearLocalData() {
+		chatStreamManager.disconnect()
+		chatPreviewDao.clearAllData()
 	}
 
 	private fun ChatItemDto.toDomain(): ChatPreview {
@@ -170,6 +286,37 @@ class KtorChatGateway(
 			} else {
 				null
 			}
+		)
+	}
+
+	private fun ChatMessageItemDto.toDomain(): ChatMessage {
+		return ChatMessage(
+			messageId = messageId,
+			chatId = chatId,
+			senderUserId = senderUserId,
+			text = text,
+			createdAt = createdAt
+		)
+	}
+
+	private fun ChatMessageItemDto.toEntity(ownerUserId: String): ChatMessageEntity {
+		return ChatMessageEntity(
+			ownerUserId = ownerUserId,
+			messageId = messageId,
+			chatId = chatId,
+			senderUserId = senderUserId,
+			text = text,
+			createdAt = createdAt
+		)
+	}
+
+	private fun ChatMessageEntity.toDomain(): ChatMessage {
+		return ChatMessage(
+			messageId = messageId,
+			chatId = chatId,
+			senderUserId = senderUserId,
+			text = text,
+			createdAt = createdAt
 		)
 	}
 

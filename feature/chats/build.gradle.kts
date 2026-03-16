@@ -34,6 +34,7 @@ android {
 }
 
 dependencies {
+	implementation(project(":api:auth"))
 	implementation(project(":api:chats"))
 	implementation(project(":api:common"))
 	implementation(project(":api:profile"))

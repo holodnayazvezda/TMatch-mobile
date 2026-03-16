@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.prod.chats.domain.usecase.EnsureChatStreamConnectedUseCase
 import com.prod.chats.domain.usecase.ObserveOwnChatsUseCase
 import com.prod.chats.domain.usecase.RefreshOwnChatsUseCase
 import com.prod.common.api.model.ApiErrorReason
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 class ChatsViewModel(
 	private val observeOwnChatsUseCase: ObserveOwnChatsUseCase,
 	private val refreshOwnChatsUseCase: RefreshOwnChatsUseCase,
+	private val ensureChatStreamConnectedUseCase: EnsureChatStreamConnectedUseCase,
 	private val chatPreviewUiMapper: ChatPreviewUiMapper
 ) : ViewModel() {
 
@@ -34,6 +36,7 @@ class ChatsViewModel(
 		if (isInitialized) return
 		isInitialized = true
 		observeChats()
+		viewModelScope.launch { ensureChatStreamConnectedUseCase() }
 		reload(onUnauthorized = onUnauthorized, onNoInternet = onNoInternet)
 	}
 

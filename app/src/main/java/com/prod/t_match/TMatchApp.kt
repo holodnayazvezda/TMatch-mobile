@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -33,8 +34,10 @@ import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.common.api.gateway.NotificationGateway
 import com.prod.auth.navigation.authGraph
 import com.prod.auth.navigation.rememberAuthGraphState
+import com.prod.chats.navigation.ChatNavKey
 import com.prod.chats.navigation.ChatsNavKey
 import com.prod.chats.navigation.chatsGraph
+import com.prod.chats.domain.gateway.ChatGateway
 import com.prod.common.api.model.UserProfileFeedAction
 import com.prod.match.navigation.MatchingNavKey
 import com.prod.matching.domain.gateway.PendingMatchActionStore
@@ -51,6 +54,7 @@ import com.prod.t_match.notifications.FcmTokenRegistrar
 import com.prod.ui.components.rememberAppGradientBrush
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 @Composable
@@ -59,23 +63,31 @@ fun TMatchApp() {
 		val authSessionStore = koinInject<AuthSessionStore>()
 		val profileGateway = koinInject<ProfileGateway>()
 		val notificationGateway = koinInject<NotificationGateway>()
+		val chatGateway = koinInject<ChatGateway>()
 		val pendingMatchActionStore = koinInject<PendingMatchActionStore>()
+		val coroutineScope = rememberCoroutineScope()
 		val fcmTokenRegistrar = remember(authSessionStore, notificationGateway) {
 			FcmTokenRegistrar(
 				authSessionStore = authSessionStore,
 				notificationGateway = notificationGateway
 			)
 		}
+		val clearSessionState = remember(chatGateway, pendingMatchActionStore) {
+			suspend {
+				chatGateway.clearLocalData()
+				pendingMatchActionStore.clear()
+			}
+		}
 		val startDestination by produceState<Any?>(
 			initialValue = null,
 			authSessionStore,
 			profileGateway,
-			pendingMatchActionStore
+			clearSessionState
 		) {
 			value = AppStartDestinationResolver(
 				authSessionStore = authSessionStore,
 				profileGateway = profileGateway,
-				pendingMatchActionStore = pendingMatchActionStore
+				clearSessionState = clearSessionState
 			).resolve()
 		}
 		val backgroundBrush = rememberAppGradientBrush()
@@ -100,13 +112,13 @@ fun TMatchApp() {
 		val authGraphState = rememberAuthGraphState(
 			backStack = backStack,
 			authSessionStore = authSessionStore,
-			onSessionCleared = pendingMatchActionStore::clear,
+			onSessionCleared = clearSessionState,
 			onSessionStarted = fcmTokenRegistrar::syncCurrentTokenIfAuthorized,
 			resolveSignedInDestination = {
 				AppStartDestinationResolver(
 					authSessionStore = authSessionStore,
 					profileGateway = profileGateway,
-					pendingMatchActionStore = pendingMatchActionStore
+					clearSessionState = clearSessionState
 				).resolveAuthenticatedDestination()
 			}
 		)
@@ -191,13 +203,25 @@ fun TMatchApp() {
 							hasDatingProfileAccess = hasDatingProfile
 							authSessionStore.setHasDatingProfile(hasDatingProfile)
 						},
-						onUnauthorized = authGraphState::onUnauthorized,
+						onUnauthorized = {
+							coroutineScope.launch {
+								authGraphState.onUnauthorized()
+							}
+						},
 						onProfileMissing = authGraphState::onProfileMissing,
-						onLogout = authGraphState::onLogout,
+						onLogout = {
+							coroutineScope.launch {
+								authGraphState.onLogout()
+							}
+						},
 						onRequestNoInternet = authGraphState::onRequestNoInternet
 					)
 					matchingGraph(
-						onUnauthorized = authGraphState::onUnauthorized,
+						onUnauthorized = {
+							coroutineScope.launch {
+								authGraphState.onUnauthorized()
+							}
+						},
 						onRequestNoInternet = authGraphState::onRequestNoInternet,
 						onOpenProfile = { profile ->
 							backStack.add(
@@ -214,7 +238,19 @@ fun TMatchApp() {
 						}
 					)
 					chatsGraph(
-						onUnauthorized = authGraphState::onUnauthorized,
+						onBack = {
+							if (backStack.size > 1) {
+								backStack.removeLastOrNull()
+							}
+						},
+						onOpenChat = { chatId ->
+							backStack.add(ChatNavKey(chatId = chatId))
+						},
+						onUnauthorized = {
+							coroutineScope.launch {
+								authGraphState.onUnauthorized()
+							}
+						},
 						onRequestNoInternet = authGraphState::onRequestNoInternet
 					)
 					entry<DebugNetworkOverridesNavKey> {

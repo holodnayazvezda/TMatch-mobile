@@ -11,7 +11,9 @@ import com.prod.auth.presentation.signin.SignInViewModel
 import com.prod.auth.presentation.signup.SignUpViewModel
 import com.prod.chats.di.chatsFeatureModule
 import com.prod.chats.domain.gateway.ChatGateway
+import com.prod.chats.domain.model.ChatMessage
 import com.prod.chats.domain.model.ChatPreview
+import com.prod.chats.presentation.ChatViewModel
 import com.prod.chats.presentation.ChatsViewModel
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
@@ -70,6 +72,7 @@ class AppModulesSmokeTest {
 		assertNotNull(koin.get<SignInViewModel>())
 		assertNotNull(koin.get<SignUpViewModel>())
 		assertNotNull(koin.get<ChatsViewModel>())
+		assertNotNull(koin.get<ChatViewModel>())
 		assertNotNull(koin.get<ProfileViewModel>())
 		assertNotNull(koin.get<MainMatchingViewModel>())
 	}
@@ -156,7 +159,27 @@ class AppModulesSmokeTest {
 	private class FakeChatGateway : ChatGateway {
 		override fun observeOwnChats(): Flow<List<ChatPreview>> = flowOf(emptyList())
 
+		override fun observeChat(chatId: String): Flow<ChatPreview?> = flowOf(null)
+
+		override fun observeChatMessages(chatId: String): Flow<List<ChatMessage>> = flowOf(emptyList())
+
 		override suspend fun refreshOwnChats(): ApiOperationResult<Unit> = ApiOperationResult.Success(Unit)
+
+		override suspend fun refreshChatMessages(
+			chatId: String,
+			limit: Int,
+			beforeMessageId: String?
+		): ApiOperationResult<List<ChatMessage>> = ApiOperationResult.Success(emptyList())
+
+		override suspend fun sendMessage(
+			chatId: String,
+			text: String
+		): ApiOperationResult<ChatMessage> = ApiOperationResult.ValidationError()
+
+		override suspend fun ensureChatStreamConnected(): ApiOperationResult<Unit> =
+			ApiOperationResult.Success(Unit)
+
+		override suspend fun clearLocalData() = Unit
 	}
 
 	private class FakeMatchGateway : MatchGateway {

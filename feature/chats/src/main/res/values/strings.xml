@@ -4,4 +4,8 @@
 	<string name="chats_empty_description">Чаты появятся после взаимных лайков</string>
 	<string name="chats_error_title">Не удалось загрузить чаты</string>
 	<string name="chats_retry">Обновить</string>
+	<string name="chat_back">Назад</string>
+	<string name="chat_input_placeholder">Напишите сообщение</string>
+	<string name="chat_send">Отправить</string>
+	<string name="chat_error_title">Не удалось загрузить сообщения</string>
 </resources>

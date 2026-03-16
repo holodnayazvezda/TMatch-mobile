@@ -10,6 +10,7 @@ import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.tmatch_api.auth.data.gateway.KtorAuthGateway
 import com.prod.tmatch_api.auth.data.gateway.SharedPrefsAuthSessionStore
 import com.prod.tmatch_api.chats.data.gateway.KtorChatGateway
+import com.prod.tmatch_api.chats.data.gateway.KtorChatStreamManager
 import com.prod.tmatch_api.chats.data.local.TmatchChatsDatabase
 import com.prod.tmatch_api.match.data.gateway.KtorMatchGateway
 import com.prod.tmatch_api.notifications.data.gateway.KtorNotificationGateway
@@ -44,6 +45,14 @@ fun tmatchApiDataModule(
 			.build()
 	}
 	single { get<TmatchChatsDatabase>().chatPreviewDao() }
+	single {
+		KtorChatStreamManager(
+			httpClient = get(),
+			authSessionStore = get(),
+			chatPreviewDao = get(),
+			baseUrl = baseUrl
+		)
+	}
 	single<AuthGateway> {
 		KtorAuthGateway(
 			httpClient = get(),
@@ -60,7 +69,8 @@ fun tmatchApiDataModule(
 		KtorChatGateway(
 			httpClient = get(),
 			authSessionStore = get(),
-			chatPreviewDao = get()
+			chatPreviewDao = get(),
+			chatStreamManager = get()
 		)
 	}
 	single<MatchGateway> {
