@@ -76,6 +76,18 @@ class MainMatchingViewModel(
 		advanceProfile()
 	}
 
+	fun submitProfileAction(
+		userId: String,
+		action: MatchAction
+	) {
+		val currentProfile = uiState.currentProfile
+		if (currentProfile?.id != userId) {
+			return
+		}
+
+		submitAction(action)
+	}
+
 	private fun loadFeed() {
 		viewModelScope.launch {
 			uiState = uiState.copy(isLoading = true, error = null)

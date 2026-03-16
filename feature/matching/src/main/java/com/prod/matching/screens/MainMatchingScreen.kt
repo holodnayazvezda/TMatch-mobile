@@ -62,9 +62,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.prod.common.api.model.RecommendationReasonSummary
+import com.prod.common.api.model.UserProfileFeedAction
 import com.prod.core.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.matching.R
+import com.prod.ui.R as UiR
+import com.prod.matching.domain.model.MatchAction
 import com.prod.matching.model.MatchProfile
 import com.prod.matching.presentation.MainMatchingViewModel
 import com.prod.ui.theme.LocalTmatchExtraColors
@@ -165,11 +169,11 @@ private fun resolveDismissDirection(
 
 private fun buildSwipeAffordances(colors: androidx.compose.material3.ColorScheme): List<SwipeAffordanceSpec> =
 	listOf(
-		SwipeAffordanceSpec(
+			SwipeAffordanceSpec(
 			direction = SwipeDirection.Right,
 			color = colors.primaryContainer,
 			iconColor = colors.onPrimaryContainer,
-			iconRes = R.drawable.ic_like_24,
+			iconRes = UiR.drawable.ic_like_24,
 			alignment = Alignment.TopStart,
 			rotation = -10f
 		),
@@ -177,7 +181,7 @@ private fun buildSwipeAffordances(colors: androidx.compose.material3.ColorScheme
 			direction = SwipeDirection.Left,
 			color = colors.errorContainer,
 			iconColor = colors.onErrorContainer,
-			iconRes = R.drawable.ic_dislike_24,
+			iconRes = UiR.drawable.ic_dislike_24,
 			alignment = Alignment.TopEnd,
 			rotation = 10f
 		),
@@ -250,7 +254,8 @@ fun MainMatchingScreen(
 	modifier: Modifier = Modifier,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
-	onOpenProfile: (userId: String) -> Unit,
+	onOpenProfile: (profile: MatchProfile) -> Unit,
+	onProfileActionHandlerReady: ((userId: String, action: UserProfileFeedAction) -> Unit) -> Unit,
 	viewModel: MainMatchingViewModel = koinViewModel()
 ) {
 	LaunchedEffect(viewModel, onUnauthorized, onRequestNoInternet) {
@@ -258,6 +263,17 @@ fun MainMatchingScreen(
 			onUnauthorized = onUnauthorized,
 			onNoInternet = onRequestNoInternet
 		)
+	}
+	LaunchedEffect(viewModel, onProfileActionHandlerReady) {
+		onProfileActionHandlerReady { userId, action ->
+			viewModel.submitProfileAction(
+				userId = userId,
+				action = when (action) {
+					UserProfileFeedAction.Like -> MatchAction.Like
+					UserProfileFeedAction.Dislike -> MatchAction.Dislike
+				}
+			)
+		}
 	}
 
 	val uiState = viewModel.uiState
@@ -284,7 +300,7 @@ fun MainMatchingScreen(
 
 		override fun onOpenCurrentProfile() {
 			viewModel.onDismissSheet()
-			uiState.currentProfile?.let { onOpenProfile(it.id) }
+			uiState.currentProfile?.let(onOpenProfile)
 		}
 	}
 
@@ -749,7 +765,7 @@ private fun ProfileCard(
 		)
 		if (onMoreClick != null) {
 			IconBadge(
-				iconRes = R.drawable.ic_menu_24,
+				iconRes = UiR.drawable.ic_menu_24,
 				modifier = Modifier
 					.padding(dim.medium - dim.extraSmall)
 					.size(dim.iconContainer + dim.verySmall - dim.extraSmall)
@@ -769,13 +785,13 @@ private fun ProfileCard(
 				horizontalArrangement = Arrangement.spacedBy(dim.extraSmall),
 				verticalArrangement = Arrangement.spacedBy(dim.extraSmall)
 			) {
-				profile.reasonLabels.forEach { reasonLabel ->
+				profile.reasons.forEach { reason ->
 					Surface(
 						shape = CircleShape,
 						color = extraColors.accentGold
 					) {
 						Text(
-							text = reasonLabel,
+							text = reason.label,
 							modifier = Modifier.padding(
 								horizontal = dim.small + dim.extraSmall / 2,
 								vertical = dim.verySmall
@@ -950,7 +966,11 @@ private fun MainMatchingScreenPreview() {
 				id = "preview-current",
 				name = "Марина Орлова",
 				age = 63,
-				reasonLabels = listOf("Общая активность", "Рестораны", "Вечерняя активность"),
+				reasons = listOf(
+					RecommendationReasonSummary("Общая активность", "Похожий ритм ежедневной активности."),
+					RecommendationReasonSummary("Рестораны", "Похожие предпочтения по тратам на кафе и рестораны."),
+					RecommendationReasonSummary("Вечерняя активность", "Чаще активны в одно и то же время суток.")
+				),
 				imageUrl = null,
 				recommendationId = "preview-rec-1"
 			),
@@ -958,7 +978,10 @@ private fun MainMatchingScreenPreview() {
 				id = "preview-next",
 				name = "Александр Белый",
 				age = 70,
-				reasonLabels = listOf("Транспорт", "Любимый продавец"),
+				reasons = listOf(
+					RecommendationReasonSummary("Транспорт", "Схожий паттерн пользования транспортом."),
+					RecommendationReasonSummary("Любимый продавец", "Есть пересечения по устойчивым предпочтениям.")
+				),
 				imageUrl = null,
 				recommendationId = "preview-rec-2"
 			)

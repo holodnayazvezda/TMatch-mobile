@@ -18,6 +18,14 @@
     <string name="profile_screen_uploading_photo">Загружаем фото...</string>
     <string name="user_profile_title">Профиль</string>
     <string name="user_profile_back_button">Назад</string>
+    <string name="user_profile_menu_button">Меню</string>
     <string name="user_profile_traits_title">Интересы и черты</string>
     <string name="user_profile_photo_placeholder">Фото недоступно</string>
+    <string name="user_profile_about_title">О человеке</string>
+    <string name="user_profile_reasons_title">Почему мы показали этот профиль</string>
+    <string name="user_profile_reasons_description">Совпадение найдено по следующим объяснимым признакам.</string>
+    <string name="user_profile_actions_title">Что сделать с профилем</string>
+    <string name="user_profile_like_action">Лайк</string>
+    <string name="user_profile_dislike_action">Дизлайк</string>
+    <string name="user_profile_ban_action">Забанить</string>
 </resources>

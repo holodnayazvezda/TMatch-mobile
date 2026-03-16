@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -28,6 +30,7 @@ import com.prod.auth.navigation.authGraph
 import com.prod.auth.navigation.rememberAuthGraphState
 import com.prod.chats.navigation.ChatsNavKey
 import com.prod.chats.navigation.chatsGraph
+import com.prod.common.api.model.UserProfileFeedAction
 import com.prod.match.navigation.MatchingNavKey
 import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.navigation.matchingGraph
@@ -93,6 +96,9 @@ fun TMatchApp() {
 		val saveableStateHolder = rememberSaveableStateHolder()
 		val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current)
 		val currentDestination = backStack.lastOrNull()
+		var userProfileFeedActionHandler by remember {
+			mutableStateOf<((userId: String, action: UserProfileFeedAction) -> Unit)?>(null)
+		}
 
 		if (BuildConfig.DEBUG) {
 			DebugShakeToOpenEffect(
@@ -149,6 +155,12 @@ fun TMatchApp() {
 								backStack.removeLastOrNull()
 							}
 						},
+						onFeedAction = { userId, action ->
+							userProfileFeedActionHandler?.invoke(userId, action)
+							if (backStack.size > 1) {
+								backStack.removeLastOrNull()
+							}
+						},
 						onUnauthorized = authGraphState::onUnauthorized,
 						onProfileMissing = authGraphState::onProfileMissing,
 						onLogout = authGraphState::onLogout,
@@ -157,13 +169,18 @@ fun TMatchApp() {
 					matchingGraph(
 						onUnauthorized = authGraphState::onUnauthorized,
 						onRequestNoInternet = authGraphState::onRequestNoInternet,
-						onOpenProfile = { userId ->
+						onOpenProfile = { profile ->
 							backStack.add(
 								UserProfileNavKey(
-									userId = userId,
-									source = "matching_card"
+									userId = profile.id,
+									source = "matching_card",
+									reasons = profile.reasons,
+									recommendationId = profile.recommendationId
 								)
 							)
+						},
+						onProfileActionHandlerReady = { handler ->
+							userProfileFeedActionHandler = handler
 						}
 					)
 					chatsGraph()

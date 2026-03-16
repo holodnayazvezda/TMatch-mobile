@@ -1,5 +1,6 @@
 package com.prod.matching.presentation
 
+import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.match.domain.model.Recommendation
 import com.prod.match.domain.model.RecommendationCandidateProfile
 import com.prod.matching.model.MatchProfile
@@ -16,10 +17,22 @@ class RecommendationUiMapper {
 					fallback = "Пользователь ${recommendation.candidateUserId.take(8)}"
 				),
 				age = profile?.birthDate?.toAgeOrNull(),
-				reasonLabels = recommendation.reasons
-					.map { it.reasonType.label }
+				reasons = recommendation.reasons
+					.map {
+						RecommendationReasonSummary(
+							label = it.reasonType.label,
+							description = it.reasonType.description
+						)
+					}
 					.distinct()
-					.ifEmpty { listOf("Есть потенциальное совпадение") },
+					.ifEmpty {
+						listOf(
+							RecommendationReasonSummary(
+								label = "Есть потенциальное совпадение",
+								description = "Система нашла общий паттерн поведения и показала профиль в рекомендациях."
+							)
+						)
+					},
 				imageUrl = recommendation.candidateCard?.datingProfile?.photos?.firstOrNull(),
 				recommendationId = recommendation.mlRecommendationId
 			)

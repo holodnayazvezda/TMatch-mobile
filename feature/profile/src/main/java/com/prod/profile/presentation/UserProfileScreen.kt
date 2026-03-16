@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -21,26 +22,44 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.profile.R
+import com.prod.ui.R as UiR
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun UserProfileScreen(
 	userId: String,
 	onBack: () -> Unit,
+	reasons: List<RecommendationReasonSummary>,
+	showFeedActions: Boolean,
+	onLike: () -> Unit,
+	onDislike: () -> Unit,
+	onBan: () -> Unit,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	modifier: Modifier = Modifier,
@@ -64,6 +83,11 @@ fun UserProfileScreen(
 				UserProfileContent(
 					profileCard = uiState.profileCard,
 					onBack = onBack,
+					reasons = reasons,
+					showFeedActions = showFeedActions,
+					onLike = onLike,
+					onDislike = onDislike,
+					onBan = onBan,
 					modifier = Modifier.fillMaxSize()
 				)
 			}
@@ -97,13 +121,20 @@ fun UserProfileScreen(
 private fun UserProfileContent(
 	profileCard: UserProfileCardUiState,
 	onBack: () -> Unit,
+	reasons: List<RecommendationReasonSummary>,
+	showFeedActions: Boolean,
+	onLike: () -> Unit,
+	onDislike: () -> Unit,
+	onBan: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	Column(
 		modifier = modifier
 	) {
 		UserProfileHeader(
-			onBack = onBack
+			onBack = onBack,
+			showMenu = showFeedActions,
+			onBan = onBan
 		)
 
 		Column(
@@ -112,67 +143,83 @@ private fun UserProfileContent(
 				.verticalScroll(rememberScrollState())
 				.padding(horizontal = 20.dp, vertical = 6.dp),
 			horizontalAlignment = Alignment.CenterHorizontally,
-			verticalArrangement = Arrangement.spacedBy(16.dp)
+			verticalArrangement = Arrangement.Top
 		) {
-			UserProfileHeroCard(
-				profileCard = profileCard,
+			Column(
 				modifier = Modifier
-					.fillMaxWidth(0.9f)
-					.widthIn(max = 360.dp)
-			)
+					.fillMaxWidth()
+					.widthIn(max = 360.dp),
+				verticalArrangement = Arrangement.spacedBy(16.dp),
+				horizontalAlignment = Alignment.CenterHorizontally
+			) {
+				val contentCardModifier = Modifier.fillMaxWidth()
 
-			ProfileAccountInfo(
-				profileCard = ProfileCardUiState(
-					firstName = profileCard.fullName,
-					fullName = profileCard.fullName,
-					age = profileCard.age,
-					birthDateLabel = profileCard.birthDateLabel,
-					region = profileCard.region,
-					datingPhotoUrls = profileCard.datingPhotoUrls
-				),
-				modifier = Modifier.fillMaxWidth()
-			)
+				UserProfileHeroCard(
+					profileCard = profileCard,
+					modifier = contentCardModifier
+				)
 
-			if (profileCard.visibleTraitLabels.isNotEmpty()) {
-				Surface(
-					modifier = Modifier.fillMaxWidth(),
-					shape = RoundedCornerShape(22.dp),
-					color = MaterialTheme.colorScheme.surface,
-					tonalElevation = 2.dp
-				) {
-					Column(
-						modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-						verticalArrangement = Arrangement.spacedBy(12.dp)
+				UserProfileAboutSection(
+					profileCard = profileCard,
+					modifier = contentCardModifier
+				)
+
+				if (profileCard.visibleTraitLabels.isNotEmpty()) {
+					Surface(
+						modifier = contentCardModifier,
+						shape = RoundedCornerShape(22.dp),
+						color = MaterialTheme.colorScheme.surface,
+						tonalElevation = 2.dp
 					) {
-						Text(
-							text = stringResource(R.string.user_profile_traits_title),
-							style = MaterialTheme.typography.titleMedium,
-							color = MaterialTheme.colorScheme.onSurface,
-							fontWeight = FontWeight.SemiBold
-						)
-						FlowRow(
-							horizontalArrangement = Arrangement.spacedBy(8.dp),
-							verticalArrangement = Arrangement.spacedBy(8.dp)
+						Column(
+							modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+							verticalArrangement = Arrangement.spacedBy(12.dp)
 						) {
-							profileCard.visibleTraitLabels.forEach { traitLabel ->
-								Surface(
-									shape = CircleShape,
-									color = MaterialTheme.colorScheme.secondaryContainer
-								) {
-									Text(
-										text = traitLabel,
-										modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-										style = MaterialTheme.typography.labelLarge,
-										color = MaterialTheme.colorScheme.onSecondaryContainer
-									)
+							Text(
+								text = stringResource(R.string.user_profile_traits_title),
+								style = MaterialTheme.typography.titleMedium,
+								color = MaterialTheme.colorScheme.onSurface,
+								fontWeight = FontWeight.SemiBold
+							)
+							FlowRow(
+								horizontalArrangement = Arrangement.spacedBy(8.dp),
+								verticalArrangement = Arrangement.spacedBy(8.dp)
+							) {
+								profileCard.visibleTraitLabels.forEach { traitLabel ->
+									Surface(
+										shape = CircleShape,
+										color = MaterialTheme.colorScheme.secondaryContainer
+									) {
+										Text(
+											text = traitLabel,
+											modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+											style = MaterialTheme.typography.labelLarge,
+											color = MaterialTheme.colorScheme.onSecondaryContainer
+										)
+									}
 								}
 							}
 						}
 					}
 				}
-			}
 
-			Spacer(modifier = Modifier.height(12.dp))
+				if (showFeedActions && reasons.isNotEmpty()) {
+					UserProfileReasonsSection(
+						reasons = reasons,
+						modifier = contentCardModifier
+					)
+				}
+
+				if (showFeedActions) {
+					UserProfileActionsSection(
+						onLike = onLike,
+						onDislike = onDislike,
+						modifier = contentCardModifier
+					)
+				}
+
+				Spacer(modifier = Modifier.height(12.dp))
+			}
 		}
 	}
 }
@@ -180,28 +227,66 @@ private fun UserProfileContent(
 @Composable
 private fun UserProfileHeader(
 	onBack: () -> Unit,
+	showMenu: Boolean,
+	onBan: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
-	Box(
+	var isMenuExpanded by remember { mutableStateOf(false) }
+
+	Row(
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(start = 12.dp, top = 8.dp, end = 20.dp, bottom = 4.dp)
+			.padding(horizontal = 12.dp, vertical = 8.dp),
+		verticalAlignment = Alignment.CenterVertically
 	) {
-		TextButton(
-			modifier = Modifier.align(Alignment.CenterStart),
-			onClick = onBack
+		Box(
+			modifier = Modifier.weight(1f),
+			contentAlignment = Alignment.CenterStart
 		) {
-			Text(
-				text = stringResource(R.string.user_profile_back_button),
-				color = MaterialTheme.colorScheme.onBackground
-			)
+			TextButton(
+				onClick = onBack
+			) {
+				Text(
+					text = stringResource(R.string.user_profile_back_button),
+					color = MaterialTheme.colorScheme.onBackground
+				)
+			}
 		}
 		Text(
 			text = stringResource(R.string.user_profile_title),
-			modifier = Modifier.align(Alignment.Center),
+			modifier = Modifier.weight(1f),
 			style = MaterialTheme.typography.titleLarge,
-			color = MaterialTheme.colorScheme.onBackground
+			color = MaterialTheme.colorScheme.onBackground,
+			textAlign = TextAlign.Center
 		)
+		Box(
+			modifier = Modifier.weight(1f),
+			contentAlignment = Alignment.CenterEnd
+		) {
+			if (showMenu) {
+				IconButton(
+					onClick = { isMenuExpanded = true }
+				) {
+					Icon(
+						painter = painterResource(UiR.drawable.ic_menu_24),
+						contentDescription = stringResource(R.string.user_profile_menu_button),
+						tint = MaterialTheme.colorScheme.onBackground
+					)
+				}
+				DropdownMenu(
+					expanded = isMenuExpanded,
+					onDismissRequest = { isMenuExpanded = false }
+				) {
+					DropdownMenuItem(
+						text = { Text(stringResource(R.string.user_profile_ban_action)) },
+						onClick = {
+							isMenuExpanded = false
+							onBan()
+						}
+					)
+				}
+			}
+		}
 	}
 }
 
@@ -267,6 +352,164 @@ private fun UserProfileHeroCard(
 }
 
 @Composable
+private fun UserProfileAboutSection(
+	profileCard: UserProfileCardUiState,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier,
+		shape = RoundedCornerShape(22.dp),
+		color = MaterialTheme.colorScheme.surface,
+		tonalElevation = 2.dp
+	) {
+		Column(
+			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+			verticalArrangement = Arrangement.spacedBy(14.dp)
+		) {
+			Text(
+				text = stringResource(R.string.user_profile_about_title),
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+				fontWeight = FontWeight.SemiBold
+			)
+			Text(
+				text = profileCard.summaryLine(),
+				style = MaterialTheme.typography.bodyLarge,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+	}
+}
+
+@Composable
+private fun UserProfileReasonsSection(
+	reasons: List<RecommendationReasonSummary>,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier,
+		shape = RoundedCornerShape(22.dp),
+		color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+		contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+	) {
+		Column(
+			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+			verticalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			Text(
+				text = stringResource(R.string.user_profile_reasons_title),
+				style = MaterialTheme.typography.titleMedium,
+				fontWeight = FontWeight.SemiBold
+			)
+			Text(
+				text = stringResource(R.string.user_profile_reasons_description),
+				style = MaterialTheme.typography.bodyMedium
+			)
+			Column(
+				verticalArrangement = Arrangement.spacedBy(10.dp)
+			) {
+				reasons.forEach { reason ->
+					Surface(
+						shape = RoundedCornerShape(18.dp),
+						color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+					) {
+						Column(
+							modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+							verticalArrangement = Arrangement.spacedBy(4.dp)
+						) {
+							Text(
+								text = reason.label,
+								style = MaterialTheme.typography.titleSmall,
+								fontWeight = FontWeight.SemiBold
+							)
+							if (reason.description.isNotBlank()) {
+								Text(
+									text = reason.description,
+									style = MaterialTheme.typography.bodyMedium
+								)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun UserProfileActionsSection(
+	onLike: () -> Unit,
+	onDislike: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier,
+		shape = RoundedCornerShape(22.dp),
+		color = MaterialTheme.colorScheme.surface,
+		tonalElevation = 2.dp
+	) {
+		Column(
+			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+			verticalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			Text(
+				text = stringResource(R.string.user_profile_actions_title),
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+				fontWeight = FontWeight.SemiBold
+			)
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceEvenly
+			) {
+				UserProfileActionIconButton(
+					iconRes = UiR.drawable.ic_dislike_24,
+					contentDescription = stringResource(R.string.user_profile_dislike_action),
+					containerColor = MaterialTheme.colorScheme.errorContainer,
+					contentColor = MaterialTheme.colorScheme.onErrorContainer,
+					onClick = onDislike
+				)
+				UserProfileActionIconButton(
+					iconRes = UiR.drawable.ic_like_24,
+					contentDescription = stringResource(R.string.user_profile_like_action),
+					containerColor = MaterialTheme.colorScheme.primaryContainer,
+					contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+					onClick = onLike
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun UserProfileActionIconButton(
+	iconRes: Int,
+	contentDescription: String,
+	containerColor: androidx.compose.ui.graphics.Color,
+	contentColor: androidx.compose.ui.graphics.Color,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier,
+		shape = CircleShape,
+		color = containerColor
+	) {
+		IconButton(
+			onClick = onClick,
+			modifier = Modifier.size(72.dp)
+		) {
+			Icon(
+				painter = painterResource(iconRes),
+				contentDescription = contentDescription,
+				tint = contentColor,
+				modifier = Modifier.size(28.dp)
+			)
+		}
+	}
+}
+
+@Composable
 private fun UserProfilePhoto(
 	imageUrl: String?,
 	contentDescription: String,
@@ -318,4 +561,26 @@ private fun UserProfileCardUiState.heroImages(): List<String?> {
 
 private fun UserProfileCardUiState.displayTitle(): String {
 	return age?.let { "$fullName, $it" } ?: fullName
+}
+
+private fun UserProfileCardUiState.summaryLine(): String {
+	return buildString {
+		append("Дата рождения: ")
+		append(birthDateLabel)
+		append(".")
+		region?.let {
+			append(" Регион: ")
+			append(it)
+			append(".")
+		}
+		append(" В анкете ")
+		append(datingPhotoUrls.size.coerceAtLeast(1))
+		append(" ")
+		append(photoWord(datingPhotoUrls.size.coerceAtLeast(1)))
+		append(".")
+	}
+}
+
+private fun photoWord(count: Int): String {
+	return "фото"
 }

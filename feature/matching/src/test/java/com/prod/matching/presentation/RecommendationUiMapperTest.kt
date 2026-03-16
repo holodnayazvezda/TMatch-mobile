@@ -62,7 +62,7 @@ class RecommendationUiMapperTest {
 
 		assertEquals(
 			listOf("Рестораны", "Вечерняя активность"),
-			profiles.single().reasonLabels
+			profiles.single().reasons.map { it.label }
 		)
 	}
 
@@ -82,6 +82,6 @@ class RecommendationUiMapperTest {
 			)
 		)
 
-		assertEquals(listOf("Есть потенциальное совпадение"), profiles.single().reasonLabels)
+		assertEquals(listOf("Есть потенциальное совпадение"), profiles.single().reasons.map { it.label })
 	}
 }
