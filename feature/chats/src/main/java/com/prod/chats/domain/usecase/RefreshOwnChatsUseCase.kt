@@ -1,13 +1,12 @@
 package com.prod.chats.domain.usecase
 
 import com.prod.chats.domain.gateway.ChatGateway
-import com.prod.chats.domain.model.ChatPreview
 import com.prod.common.api.model.ApiOperationResult
 
-class GetOwnChatsUseCase(
+class RefreshOwnChatsUseCase(
 	private val chatGateway: ChatGateway
 ) {
-	suspend operator fun invoke(): ApiOperationResult<List<ChatPreview>> {
-		return chatGateway.getOwnChats()
+	suspend operator fun invoke(): ApiOperationResult<Unit> {
+		return chatGateway.refreshOwnChats()
 	}
 }

@@ -1,6 +1,7 @@
 plugins {
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.kotlin.serialization)
+	alias(libs.plugins.ksp)
 }
 
 android {
@@ -39,6 +40,8 @@ dependencies {
 	implementation(project(":api:chats"))
 	implementation(project(":api:match"))
 	implementation(project(":api:profile"))
+	implementation(libs.androidx.room.runtime)
+	implementation(libs.androidx.room.ktx)
 	implementation(libs.androidx.security.crypto)
 	implementation(libs.koin.core)
 	implementation(libs.kotlinx.serialization.json)
@@ -48,6 +51,7 @@ dependencies {
 	implementation(libs.ktor.client.mock)
 	implementation(libs.ktor.client.okhttp)
 	implementation(libs.ktor.serialization.kotlinx.json)
+	ksp(libs.androidx.room.compiler)
 	testImplementation(libs.junit)
 	androidTestImplementation(libs.androidx.junit)
 	androidTestImplementation(libs.androidx.espresso.core)

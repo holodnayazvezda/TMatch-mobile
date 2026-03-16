@@ -1,5 +1,6 @@
 package com.prod.tmatch_api.di
 
+import androidx.room.Room
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.domain.gateway.AuthGateway
 import com.prod.chats.domain.gateway.ChatGateway
@@ -9,6 +10,7 @@ import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.tmatch_api.auth.data.gateway.KtorAuthGateway
 import com.prod.tmatch_api.auth.data.gateway.SharedPrefsAuthSessionStore
 import com.prod.tmatch_api.chats.data.gateway.KtorChatGateway
+import com.prod.tmatch_api.chats.data.local.TmatchChatsDatabase
 import com.prod.tmatch_api.match.data.gateway.KtorMatchGateway
 import com.prod.tmatch_api.notifications.data.gateway.KtorNotificationGateway
 import com.prod.tmatch_api.auth.data.network.createAuthHttpClient
@@ -32,6 +34,14 @@ fun tmatchApiDataModule(
 	single<AuthSessionStore> {
 		SharedPrefsAuthSessionStore(context = get())
 	}
+	single {
+		Room.databaseBuilder(
+			get(),
+			TmatchChatsDatabase::class.java,
+			"tmatch_chats.db"
+		).build()
+	}
+	single { get<TmatchChatsDatabase>().chatPreviewDao() }
 	single<AuthGateway> {
 		KtorAuthGateway(
 			httpClient = get(),
@@ -47,7 +57,8 @@ fun tmatchApiDataModule(
 	single<ChatGateway> {
 		KtorChatGateway(
 			httpClient = get(),
-			authSessionStore = get()
+			authSessionStore = get(),
+			chatPreviewDao = get()
 		)
 	}
 	single<MatchGateway> {

@@ -32,4 +32,5 @@ android {
 dependencies {
 	api(project(":api:common"))
 	api(project(":api:profile"))
+	implementation(libs.kotlinx.coroutines.core)
 }

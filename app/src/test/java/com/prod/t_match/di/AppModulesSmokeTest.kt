@@ -31,6 +31,8 @@ import com.prod.profile.domain.model.OwnCard
 import com.prod.profile.domain.model.UserCard
 import com.prod.profile.di.profileFeatureModule
 import com.prod.profile.presentation.ProfileViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -152,9 +154,9 @@ class AppModulesSmokeTest {
 	}
 
 	private class FakeChatGateway : ChatGateway {
-		override suspend fun getOwnChats(): ApiOperationResult<List<ChatPreview>> {
-			return ApiOperationResult.Success(emptyList())
-		}
+		override fun observeOwnChats(): Flow<List<ChatPreview>> = flowOf(emptyList())
+
+		override suspend fun refreshOwnChats(): ApiOperationResult<Unit> = ApiOperationResult.Success(Unit)
 	}
 
 	private class FakeMatchGateway : MatchGateway {
