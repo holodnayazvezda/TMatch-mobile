@@ -6,6 +6,7 @@ data class ChatUiState(
 	val isSending: Boolean = false,
 	val title: String = "Чат",
 	val avatarUrl: String? = null,
+	val otherUserId: String? = null,
 	val currentUserId: String? = null,
 	val messages: List<ChatMessageUiState> = emptyList(),
 	val draftMessage: String = "",

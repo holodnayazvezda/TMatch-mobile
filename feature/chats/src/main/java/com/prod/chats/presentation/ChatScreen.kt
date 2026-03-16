@@ -1,5 +1,7 @@
 package com.prod.chats.presentation
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +46,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -54,7 +55,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.prod.chats.R
 import com.prod.ui.components.AppBackButton
 import com.prod.ui.components.AppSectionCard
@@ -69,6 +69,7 @@ import org.koin.androidx.compose.koinViewModel
 fun ChatScreen(
 	chatId: String,
 	onBack: () -> Unit,
+	onOpenProfile: (userId: String) -> Unit,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	viewModel: ChatViewModel = koinViewModel()
@@ -126,7 +127,9 @@ fun ChatScreen(
 		ChatHeader(
 			title = uiState.title,
 			avatarUrl = uiState.avatarUrl,
-			onBack = onBack
+			otherUserId = uiState.otherUserId,
+			onBack = onBack,
+			onOpenProfile = onOpenProfile
 		)
 
 		Box(
@@ -197,10 +200,13 @@ fun ChatScreen(
 private fun ChatHeader(
 	title: String,
 	avatarUrl: String?,
+	otherUserId: String?,
 	onBack: () -> Unit,
+	onOpenProfile: (userId: String) -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
+	val headerInteractionSource = remember { MutableInteractionSource() }
 
 	Row(
 		modifier = modifier
@@ -232,7 +238,26 @@ private fun ChatHeader(
 			ChatHeaderAvatar(
 				title = title,
 				avatarUrl = avatarUrl,
+				otherUserId = otherUserId,
 				modifier = Modifier.align(Alignment.CenterEnd)
+			)
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(48.dp)
+					.padding(start = 124.dp)
+					.then(
+						if (otherUserId != null) {
+							Modifier.clickable(
+								interactionSource = headerInteractionSource,
+								indication = null
+							) {
+								onOpenProfile(otherUserId)
+							}
+						} else {
+							Modifier
+						}
+					)
 			)
 		}
 	}
@@ -242,40 +267,16 @@ private fun ChatHeader(
 private fun ChatHeaderAvatar(
 	title: String,
 	avatarUrl: String?,
+	otherUserId: String?,
 	modifier: Modifier = Modifier
 ) {
-	val colorScheme = MaterialTheme.colorScheme
-
-	Box(
+	ChatUserAvatar(
+		title = title,
+		avatarUrl = avatarUrl,
+		accent = chatAccentForSeed(otherUserId),
+		size = 36.dp,
 		modifier = modifier
-			.size(36.dp)
-			.clip(CircleShape),
-		contentAlignment = Alignment.Center
-	) {
-		if (avatarUrl != null) {
-			AsyncImage(
-				model = avatarUrl,
-				contentDescription = title,
-				modifier = Modifier.fillMaxSize(),
-				contentScale = ContentScale.Crop
-			)
-		} else {
-			Surface(
-				modifier = Modifier.fillMaxSize(),
-				color = colorScheme.primaryContainer,
-				contentColor = colorScheme.onPrimaryContainer,
-				shape = CircleShape
-			) {
-				Box(contentAlignment = Alignment.Center) {
-					Text(
-						text = title.take(1).uppercase(),
-						style = MaterialTheme.typography.titleSmall,
-						fontWeight = FontWeight.Bold
-					)
-				}
-			}
-		}
-	}
+	)
 }
 
 @OptIn(ExperimentalLayoutApi::class)

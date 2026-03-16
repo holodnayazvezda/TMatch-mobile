@@ -26,9 +26,8 @@ class ChatPreviewUiMapper {
 					subtitle = chat.lastMessageText?.takeIf { it.isNotBlank() }
 						?: "Сообщений пока нет",
 					timestamp = chat.lastMessageCreatedAt?.let(::formatTimestamp),
-					accent = chat.otherUserId.toAccent(),
+					accent = chatAccentForSeed(chat.otherUserId),
 					avatarUrl = profile?.avatarUrl
-						?: chat.otherUserCard?.datingProfile?.photos?.firstOrNull()
 				)
 			}
 	}
@@ -52,11 +51,4 @@ class ChatPreviewUiMapper {
 		return "$day $month, $hour:$minute"
 	}
 
-	private fun String.toAccent(): ChatAccent {
-		return when (sumOf(Char::code) % 3) {
-			0 -> ChatAccent.Primary
-			1 -> ChatAccent.Secondary
-			else -> ChatAccent.Tertiary
-		}
-	}
 }

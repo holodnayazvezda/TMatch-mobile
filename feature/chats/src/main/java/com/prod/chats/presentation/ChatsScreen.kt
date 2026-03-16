@@ -1,6 +1,5 @@
 package com.prod.chats.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,13 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.prod.chats.R
 import com.prod.ui.components.AppScreenTopBar
 import com.prod.ui.components.AppSectionCard
@@ -155,11 +150,6 @@ private fun ChatRow(
 ) {
 	val dim = LocalDimensions.current
 	val colorScheme = MaterialTheme.colorScheme
-	val (avatarColor, avatarContentColor) = when (item.accent) {
-		ChatAccent.Primary -> colorScheme.primaryContainer to colorScheme.onPrimaryContainer
-		ChatAccent.Secondary -> colorScheme.secondaryContainer to colorScheme.onSecondaryContainer
-		ChatAccent.Tertiary -> colorScheme.tertiaryContainer to colorScheme.onTertiaryContainer
-	}
 
 	Surface(
 		modifier = modifier.fillMaxWidth(),
@@ -175,29 +165,12 @@ private fun ChatRow(
 			horizontalArrangement = Arrangement.spacedBy(dim.small),
 			verticalAlignment = Alignment.CenterVertically
 		) {
-			Box(
-				modifier = Modifier
-					.size(52.dp)
-					.clip(CircleShape)
-					.background(avatarColor),
-				contentAlignment = Alignment.Center
-			) {
-				if (item.avatarUrl != null) {
-					AsyncImage(
-						model = item.avatarUrl,
-						contentDescription = item.title,
-						modifier = Modifier.fillMaxSize(),
-						contentScale = ContentScale.Crop
-					)
-				} else {
-					Text(
-						text = item.title.take(1).uppercase(),
-						style = MaterialTheme.typography.titleMedium,
-						color = avatarContentColor,
-						fontWeight = FontWeight.Bold
-					)
-				}
-			}
+			ChatUserAvatar(
+				title = item.title,
+				avatarUrl = item.avatarUrl,
+				accent = item.accent,
+				size = 52.dp
+			)
 
 			Column(
 				modifier = Modifier.weight(1f),

@@ -106,6 +106,17 @@ class TMatchAppState(
 		)
 	}
 
+	fun onOpenUserProfileFromChat(userId: String) {
+		backStack.add(
+			UserProfileNavKey(
+				userId = userId,
+				source = "chat_header",
+				reasons = emptyList(),
+				recommendationId = null
+			)
+		)
+	}
+
 	fun registerUserProfileFeedActionHandler(handler: (userId: String, action: UserProfileFeedAction) -> Unit) {
 		userProfileFeedActionHandler = handler
 	}

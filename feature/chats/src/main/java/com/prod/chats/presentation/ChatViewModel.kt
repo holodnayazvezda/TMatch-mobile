@@ -211,8 +211,8 @@ class ChatViewModel(
 			observeChatUseCase(chatId).collectLatest { chat ->
 				uiState = uiState.copy(
 					title = chatMessageUiMapper.resolveTitle(chat),
+					otherUserId = chat?.otherUserId,
 					avatarUrl = chat?.otherUserCard?.profile?.avatarUrl
-						?: chat?.otherUserCard?.datingProfile?.photos?.firstOrNull()
 				)
 			}
 		}

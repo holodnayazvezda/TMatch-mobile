@@ -45,6 +45,7 @@ import coil3.compose.SubcomposeAsyncImage
 import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.profile.R
 import com.prod.ui.components.AppBottomScrimInfo
+import com.prod.ui.components.AppBackButton
 import com.prod.ui.components.AppHeroCardFrame
 import com.prod.ui.components.AppHeroPagerIndicator
 import com.prod.ui.components.AppCircularActionButton
@@ -234,25 +235,10 @@ private fun UserProfileHeader(
 			.fillMaxWidth()
 			.padding(horizontal = dim.small, vertical = dim.verySmall),
 		navigation = {
-			TextButton(
+			AppBackButton(
+				text = stringResource(R.string.user_profile_back_button),
 				onClick = onBack
-			) {
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(6.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Icon(
-						painter = painterResource(R.drawable.ic_back_24),
-						contentDescription = stringResource(R.string.user_profile_back_button),
-						modifier = Modifier.size(18.dp),
-						tint = MaterialTheme.colorScheme.onBackground
-					)
-					Text(
-						text = stringResource(R.string.user_profile_back_button),
-						color = MaterialTheme.colorScheme.onBackground
-					)
-				}
-			}
+			)
 		},
 		actions = {
 			if (showMenu) {

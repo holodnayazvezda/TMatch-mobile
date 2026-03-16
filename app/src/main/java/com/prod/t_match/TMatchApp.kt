@@ -161,6 +161,7 @@ fun TMatchApp() {
 					chatsGraph(
 						onBack = appState::onBack,
 						onOpenChat = { chatId -> appState.backStack.add(ChatNavKey(chatId = chatId)) },
+						onOpenProfile = appState::onOpenUserProfileFromChat,
 						onUnauthorized = {
 							coroutineScope.launch {
 								authGraphState.onUnauthorized()

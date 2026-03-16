@@ -8,6 +8,7 @@ import com.prod.chats.presentation.ChatsScreen
 fun EntryProviderScope<Any>.chatsGraph(
 	onBack: () -> Unit,
 	onOpenChat: (chatId: String) -> Unit,
+	onOpenProfile: (userId: String) -> Unit,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit
 ) {
@@ -22,6 +23,7 @@ fun EntryProviderScope<Any>.chatsGraph(
 		ChatScreen(
 			chatId = key.chatId,
 			onBack = onBack,
+			onOpenProfile = onOpenProfile,
 			onUnauthorized = onUnauthorized,
 			onRequestNoInternet = onRequestNoInternet
 		)
