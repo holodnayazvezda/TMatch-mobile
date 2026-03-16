@@ -26,6 +26,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -115,6 +116,156 @@ class MainMatchingViewModelTest {
 		assertEquals("incoming-1", viewModel.uiState.currentProfile?.id)
 	}
 
+	@Test
+	fun `load more inserts transition when recommendations arrive after incoming likes`() = runTest {
+		val viewModel = createViewModel(
+			matchGateway = FakeMatchGateway(
+				incomingLikesResult = ApiOperationResult.Success(
+					listOf(
+						incomingLike(
+							likerUserId = "incoming-1",
+							firstName = "Alice"
+						)
+					)
+				),
+				recommendationsResults = listOf(
+					ApiOperationResult.Success(emptyList()),
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-1",
+								firstName = "Bob",
+								recommendationId = "rec-1"
+							)
+						)
+					)
+				)
+			)
+		)
+
+		viewModel.initialize(
+			onUnauthorized = {},
+			onNoInternet = {}
+		)
+		advanceUntilIdle()
+
+		viewModel.onSwipeUp()
+		advanceUntilIdle()
+		viewModel.retryRecommendations()
+		advanceUntilIdle()
+
+		assertEquals(3, viewModel.uiState.items.size)
+		assertEquals(MatchingDeckItem.Transition(), viewModel.uiState.items[1])
+		assertEquals("recommendation-1", (viewModel.uiState.items[2] as MatchingDeckItem.Profile).id)
+		assertEquals(1, viewModel.uiState.currentIndex)
+	}
+
+	@Test
+	fun `retry after duplicate-only load appends next unique recommendation`() = runTest {
+		val viewModel = createViewModel(
+			matchGateway = FakeMatchGateway(
+				incomingLikesResult = ApiOperationResult.Success(emptyList()),
+				recommendationsResults = listOf(
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-1",
+								firstName = "Bob",
+								recommendationId = "rec-1"
+							)
+						)
+					),
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-1",
+								firstName = "Bob duplicate",
+								recommendationId = "rec-1"
+							)
+						)
+					),
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-2",
+								firstName = "Carol",
+								recommendationId = "rec-2"
+							)
+						)
+					)
+				)
+			)
+		)
+
+		viewModel.initialize(
+			onUnauthorized = {},
+			onNoInternet = {}
+		)
+		advanceUntilIdle()
+
+		viewModel.onSwipeUp()
+		advanceUntilIdle()
+		assertNull(viewModel.uiState.currentItem)
+
+		viewModel.retryRecommendations()
+		advanceUntilIdle()
+
+		assertEquals(2, viewModel.uiState.items.size)
+		assertEquals("recommendation-2", (viewModel.uiState.items[1] as MatchingDeckItem.Profile).id)
+		assertEquals(1, viewModel.uiState.currentIndex)
+		assertEquals("recommendation-2", viewModel.uiState.currentProfile?.id)
+	}
+
+	@Test
+	fun `load more keeps all fetched recommendations in order`() = runTest {
+		val viewModel = createViewModel(
+			matchGateway = FakeMatchGateway(
+				incomingLikesResult = ApiOperationResult.Success(emptyList()),
+				recommendationsResults = listOf(
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-1",
+								firstName = "Bob",
+								recommendationId = "rec-1"
+							)
+						)
+					),
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-2",
+								firstName = "Carol",
+								recommendationId = "rec-2"
+							),
+							recommendation(
+								candidateUserId = "recommendation-3",
+								firstName = "Dave",
+								recommendationId = "rec-3"
+							)
+						)
+					)
+				)
+			)
+		)
+
+		viewModel.initialize(
+			onUnauthorized = {},
+			onNoInternet = {}
+		)
+		advanceUntilIdle()
+
+		viewModel.onSwipeUp()
+		advanceUntilIdle()
+
+		val recommendationIds = viewModel.uiState.items
+			.filterIsInstance<MatchingDeckItem.Profile>()
+			.map { it.id }
+		assertEquals(listOf("recommendation-1", "recommendation-2", "recommendation-3"), recommendationIds)
+		assertEquals(1, viewModel.uiState.currentIndex)
+		assertTrue(viewModel.uiState.currentProfile?.id == "recommendation-2")
+	}
+
 	private fun createViewModel(
 		matchGateway: MatchGateway
 	): MainMatchingViewModel {
@@ -144,7 +295,8 @@ class MainMatchingViewModelTest {
 
 	private class FakeMatchGateway(
 		private val incomingLikesResult: ApiOperationResult<List<IncomingLike>>,
-		private val recommendationsResult: ApiOperationResult<List<Recommendation>>,
+		recommendationsResult: ApiOperationResult<List<Recommendation>>? = null,
+		recommendationsResults: List<ApiOperationResult<List<Recommendation>>> = emptyList(),
 		private val interactionResult: ApiOperationResult<Interaction> = ApiOperationResult.Success(
 			Interaction(
 				interactionId = "interaction-1",
@@ -156,9 +308,25 @@ class MainMatchingViewModelTest {
 			)
 		)
 	) : MatchGateway {
+		private val recommendationsQueue = ArrayDeque<ApiOperationResult<List<Recommendation>>>().apply {
+			addAll(recommendationsResults)
+			if (isEmpty()) {
+				add(
+					recommendationsResult
+						?: ApiOperationResult.Success(emptyList())
+				)
+			}
+		}
+
 		override suspend fun getIncomingLikes(): ApiOperationResult<List<IncomingLike>> = incomingLikesResult
 
-		override suspend fun getRecommendations(): ApiOperationResult<List<Recommendation>> = recommendationsResult
+		override suspend fun getRecommendations(): ApiOperationResult<List<Recommendation>> {
+			val nextResult = recommendationsQueue.removeFirstOrNull() ?: return ApiOperationResult.Success(emptyList())
+			if (recommendationsQueue.isEmpty()) {
+				recommendationsQueue.addLast(nextResult)
+			}
+			return nextResult
+		}
 
 		override suspend fun createInteraction(
 			candidateUserId: String,

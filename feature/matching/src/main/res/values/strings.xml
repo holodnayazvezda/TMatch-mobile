@@ -3,6 +3,7 @@
     <string name="matching_history">История</string>
     <string name="matching_loading">Загрузка рекомендаций</string>
     <string name="matching_empty_message">Вы просмотрели всех пользователей.\nНовые рекомендации появятся позже.</string>
+    <string name="matching_empty_retry">Обновить рекомендации</string>
     <string name="matching_open_profile">Открыть профиль</string>
     <string name="matching_block">Заблокировать</string>
     <string name="matching_close">Закрыть</string>

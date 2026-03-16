@@ -39,6 +39,10 @@ class MainMatchingViewModel(
 	private var noInternetHandler: (((() -> Unit)) -> Unit)? = null
 	// In-memory mirror of persisted optimistic reactions waiting to be sent to the backend.
 	private val pendingActions = ArrayDeque<PendingMatchAction>()
+	// Keeps all fetched recommendations in arrival order so every server item can be shown.
+	private val recommendationQueue = ArrayDeque<Profile>()
+	// Incoming likes are managed separately because they stay ahead of recommendations in the deck.
+	private var incomingLikeProfiles: List<Profile> = emptyList()
 	private var nextPendingDeckActionId = 0L
 
 	var uiState by mutableStateOf(MainMatchingUiState())
@@ -82,6 +86,10 @@ class MainMatchingViewModel(
 		advanceProfile()
 	}
 
+	fun retryRecommendations() {
+		loadMoreIfNeeded(force = true)
+	}
+
 	fun submitProfileAction(
 		userId: String,
 		action: MatchAction
@@ -116,24 +124,25 @@ class MainMatchingViewModel(
 	private fun loadFeed() {
 		viewModelScope.launch {
 			uiState = uiState.copy(isLoading = true, error = null)
-			when (val result = getMatchingFeedUseCase()) {
-				is ApiOperationResult.Success -> {
-					val incomingLikeProfiles = recommendationUiMapper.mapIncomingLikes(result.data.incomingLikes)
-					val incomingLikeUserIds = incomingLikeProfiles.mapTo(hashSetOf(), Profile::id)
-					val recommendationProfiles = recommendationUiMapper
-						.mapRecommendations(result.data.recommendations)
-						.filterNot { it.id in incomingLikeUserIds }
-					val items = buildDeckItems(
-						incomingLikeProfiles = incomingLikeProfiles,
-						recommendationProfiles = recommendationProfiles
-					)
-					uiState = uiState.copy(
-						isLoading = false,
-						error = null,
-						items = items,
-						currentIndex = 0
-					)
-				}
+				when (val result = getMatchingFeedUseCase()) {
+					is ApiOperationResult.Success -> {
+						incomingLikeProfiles = recommendationUiMapper.mapIncomingLikes(result.data.incomingLikes)
+						val incomingLikeUserIds = incomingLikeProfiles.mapTo(hashSetOf(), Profile::id)
+						val recommendationProfiles = recommendationUiMapper
+							.mapRecommendations(result.data.recommendations)
+							.filterNot { it.id in incomingLikeUserIds }
+						recommendationQueue.clear()
+						recommendationQueue.addAll(recommendationProfiles)
+						uiState = uiState.copy(
+							isLoading = false,
+							error = null,
+							items = buildDeckItems(
+								incomingLikeProfiles = incomingLikeProfiles,
+								recommendationProfiles = recommendationQueue.toList()
+							),
+							currentIndex = 0
+						)
+					}
 
 				is ApiOperationResult.ValidationError -> {
 					uiState = uiState.copy(
@@ -200,14 +209,11 @@ class MainMatchingViewModel(
 	}
 
 	private fun removeProfileFromDeck(profileId: String) {
-		val remainingProfiles = uiState.items
-			.filterIsInstance<Profile>()
-			.filterNot { it.id == profileId }
-		val incomingLikeProfiles = remainingProfiles.filter(Profile::isIncomingLike)
-		val recommendationProfiles = remainingProfiles.filterNot(Profile::isIncomingLike)
+		incomingLikeProfiles = incomingLikeProfiles.filterNot { it.id == profileId }
+		recommendationQueue.removeAll { it.id == profileId }
 		val updatedItems = buildDeckItems(
 			incomingLikeProfiles = incomingLikeProfiles,
-			recommendationProfiles = recommendationProfiles
+			recommendationProfiles = recommendationQueue.toList()
 		)
 		val updatedIndex = updatedItems.findNextProfileIndex(preferredStart = uiState.currentIndex)
 		uiState = uiState.copy(
@@ -279,9 +285,9 @@ class MainMatchingViewModel(
 		}
 	}
 
-	private fun loadMoreIfNeeded() {
+	private fun loadMoreIfNeeded(force: Boolean = false) {
 		val remainingItems = uiState.items.size - uiState.currentIndex - 1
-		if (remainingItems > 2 || uiState.isLoading || !loadMoreMutex.tryLock()) {
+		if ((!force && remainingItems > 2) || uiState.isLoading || !loadMoreMutex.tryLock()) {
 			return
 		}
 
@@ -291,16 +297,10 @@ class MainMatchingViewModel(
 				when (val result = getRecommendationsUseCase()) {
 					is ApiOperationResult.Success -> {
 						val appendedProfiles = recommendationUiMapper.mapRecommendations(result.data)
-						val knownProfiles = uiState.items.filterIsInstance<Profile>()
-						val knownRecommendationIds = knownProfiles.mapNotNull { it.recommendationId }.toHashSet()
-						val knownUserIds = knownProfiles.mapTo(hashSetOf(), Profile::id)
-						val newProfiles = appendedProfiles.filterNot { profile ->
-							profile.id in knownUserIds ||
-								(profile.recommendationId != null && profile.recommendationId in knownRecommendationIds)
-						}
+						val newProfiles = appendedProfiles.filterNot(::isKnownProfile)
 						uiState = uiState.copy(
 							isLoadingMore = false,
-							items = uiState.items + newProfiles
+							items = mergeRecommendationProfiles(newProfiles)
 						)
 					}
 
@@ -389,6 +389,31 @@ class MainMatchingViewModel(
 		}
 
 		return incomingLikeProfiles + MatchingDeckItem.Transition() + recommendationProfiles
+	}
+
+	private fun isKnownProfile(profile: Profile): Boolean {
+		val knownUserIds = incomingLikeProfiles.mapTo(hashSetOf(), Profile::id)
+			.apply { addAll(recommendationQueue.map(Profile::id)) }
+		if (profile.id in knownUserIds) {
+			return true
+		}
+
+		val knownRecommendationIds = recommendationQueue
+			.mapNotNull(Profile::recommendationId)
+			.toHashSet()
+		return profile.recommendationId != null && profile.recommendationId in knownRecommendationIds
+	}
+
+	private fun mergeRecommendationProfiles(newProfiles: List<Profile>): List<MatchingDeckItem> {
+		if (newProfiles.isEmpty()) {
+			return uiState.items
+		}
+
+		recommendationQueue.addAll(newProfiles)
+		return buildDeckItems(
+			incomingLikeProfiles = incomingLikeProfiles,
+			recommendationProfiles = recommendationQueue.toList()
+		)
 	}
 
 	private fun List<MatchingDeckItem>.findNextProfileIndex(preferredStart: Int): Int {

@@ -90,6 +90,7 @@ import com.prod.ui.components.AppInfoChip
 import com.prod.ui.components.AppOverlayIconBadge
 import com.prod.ui.components.AppScreenTopBar
 import com.prod.ui.components.AppTopBarIconAction
+import com.prod.ui.components.buttons.AppMediumButton
 import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
 import kotlinx.coroutines.async
@@ -337,6 +338,10 @@ fun MainMatchingScreen(
 			}
 		}
 
+		override fun onRetryClick() {
+			viewModel.retryRecommendations()
+		}
+
 		override fun onDismissSheet() {
 			viewModel.onDismissSheet()
 		}
@@ -378,6 +383,7 @@ private interface MainMatchingContentController {
 
 	fun onMoreClick()
 	fun onSwiped(direction: SwipeDirection)
+	fun onRetryClick()
 	fun onDismissSheet()
 	fun onOpenCurrentProfile()
 	fun onBlockCurrentProfile()
@@ -441,6 +447,7 @@ private fun MainMatchingContent(
 				pendingDeckAction = controller.pendingDeckAction,
 				isLoadingMore = isLoadingMore,
 				onMoreClick = controller::onMoreClick,
+				onRetryClick = controller::onRetryClick,
 				onProfileClick = controller::onOpenCurrentProfile,
 				onSwiped = controller::onSwiped,
 				onPendingDeckActionAnimated = controller::onPendingDeckActionAnimated,
@@ -521,6 +528,7 @@ private fun SwipeCardDeck(
 	pendingDeckAction: PendingDeckAction?,
 	isLoadingMore: Boolean,
 	onMoreClick: () -> Unit,
+	onRetryClick: () -> Unit,
 	onProfileClick: () -> Unit,
 	onSwiped: (SwipeDirection) -> Unit,
 	onPendingDeckActionAnimated: () -> Unit,
@@ -692,12 +700,14 @@ private fun SwipeCardDeck(
 				)
 			}
 
-			null -> {
-				MatchingDeckPlaceholderCard(
-					message = stringResource(R.string.matching_empty_message),
-					modifier = cardModifier
-						.padding(horizontal = dim.extraSmall / 2)
-						.graphicsLayer {
+				null -> {
+					MatchingDeckPlaceholderCard(
+						message = stringResource(R.string.matching_empty_message),
+						isLoadingMore = isLoadingMore,
+						onRetryClick = onRetryClick,
+						modifier = cardModifier
+							.padding(horizontal = dim.extraSmall / 2)
+							.graphicsLayer {
 							alpha = if (currentProfile != null) visualState.nextCardAlpha else 1f
 						}
 				)
@@ -954,6 +964,8 @@ private fun SwipeCardDeck(
 @Composable
 private fun MatchingDeckPlaceholderCard(
 	message: String,
+	isLoadingMore: Boolean,
+	onRetryClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -981,6 +993,11 @@ private fun MatchingDeckPlaceholderCard(
 					textAlign = TextAlign.Center,
 					style = MaterialTheme.typography.titleMedium,
 					color = MaterialTheme.colorScheme.onSurface
+				)
+				AppMediumButton(
+					onClick = onRetryClick,
+					buttonText = stringResource(R.string.matching_empty_retry),
+					isLoading = isLoadingMore
 				)
 			}
 		}
@@ -1330,14 +1347,16 @@ private fun MainMatchingScreenPreview() {
 			isActionsSheetVisible = true
 		}
 
-		override fun onSwiped(direction: SwipeDirection) {
-			currentIndex += 1
-			isActionsSheetVisible = false
-		}
+			override fun onSwiped(direction: SwipeDirection) {
+				currentIndex += 1
+				isActionsSheetVisible = false
+			}
 
-		override fun onDismissSheet() {
-			isActionsSheetVisible = false
-		}
+			override fun onRetryClick() = Unit
+
+			override fun onDismissSheet() {
+				isActionsSheetVisible = false
+			}
 
 		override fun onOpenCurrentProfile() {
 			isActionsSheetVisible = false
