@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.prod.ui.components.AppBackButton
 import com.prod.ui.components.AppScreenTopBar
+import com.prod.auth.R
 
 @Composable
 fun AuthScreenHeader(
@@ -21,7 +24,10 @@ fun AuthScreenHeader(
 			horizontalPadding = 0.dp,
 			applySafeDrawingPadding = false,
 			navigation = {
-				AuthBackButton(onClick = onBack)
+				AppBackButton(
+					text = stringResource(R.string.auth_back),
+					onClick = onBack
+				)
 			}
 		)
 		Spacer(modifier = Modifier.height(8.dp))

@@ -1,15 +1,11 @@
 package com.prod.chats.presentation
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
@@ -17,17 +13,12 @@ import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -51,6 +42,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -58,9 +50,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.prod.chats.R
-import com.prod.ui.components.AppScreenTopBar
+import com.prod.ui.components.AppBackButton
 import com.prod.ui.components.AppSectionCard
 import com.prod.ui.components.buttons.AppMediumButton
 import com.prod.ui.components.text_fields.AppTextField
@@ -120,17 +114,10 @@ fun ChatScreen(
 			.fillMaxSize()
 			.imeNestedScroll()
 	) {
-		AppScreenTopBar(
+		ChatHeader(
 			title = uiState.title,
-			applySafeDrawingPadding = false,
-			navigation = {
-				Text(
-					text = stringResource(R.string.chat_back),
-					modifier = Modifier.clickable(onClick = onBack),
-					style = MaterialTheme.typography.labelLarge,
-					color = MaterialTheme.colorScheme.primary
-				)
-			}
+			avatarUrl = uiState.avatarUrl,
+			onBack = onBack
 		)
 
 		Box(
@@ -192,6 +179,92 @@ fun ChatScreen(
 					.imePadding()
 					.navigationBarsPadding()
 			)
+		}
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChatHeader(
+	title: String,
+	avatarUrl: String?,
+	onBack: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val dim = LocalDimensions.current
+
+	Row(
+		modifier = modifier
+			.fillMaxWidth()
+			.padding(horizontal = dim.small, vertical = dim.verySmall),
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		Box(
+			modifier = Modifier.fillMaxWidth()
+		) {
+			AppBackButton(
+				text = stringResource(R.string.chat_back),
+				onClick = onBack,
+				modifier = Modifier
+					.align(Alignment.CenterStart)
+					.padding(start = 4.dp)
+			)
+			Text(
+				text = title,
+				modifier = Modifier
+					.align(Alignment.Center)
+					.padding(start = 124.dp, end = 56.dp),
+				style = MaterialTheme.typography.titleLarge,
+				color = MaterialTheme.colorScheme.onBackground,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				textAlign = TextAlign.Center
+			)
+			ChatHeaderAvatar(
+				title = title,
+				avatarUrl = avatarUrl,
+				modifier = Modifier.align(Alignment.CenterEnd)
+			)
+		}
+	}
+}
+
+@Composable
+private fun ChatHeaderAvatar(
+	title: String,
+	avatarUrl: String?,
+	modifier: Modifier = Modifier
+) {
+	val colorScheme = MaterialTheme.colorScheme
+
+	Box(
+		modifier = modifier
+			.size(36.dp)
+			.clip(CircleShape),
+		contentAlignment = Alignment.Center
+	) {
+		if (avatarUrl != null) {
+			AsyncImage(
+				model = avatarUrl,
+				contentDescription = title,
+				modifier = Modifier.fillMaxSize(),
+				contentScale = ContentScale.Crop
+			)
+		} else {
+			Surface(
+				modifier = Modifier.fillMaxSize(),
+				color = colorScheme.primaryContainer,
+				contentColor = colorScheme.onPrimaryContainer,
+				shape = CircleShape
+			) {
+				Box(contentAlignment = Alignment.Center) {
+					Text(
+						text = title.take(1).uppercase(),
+						style = MaterialTheme.typography.titleSmall,
+						fontWeight = FontWeight.Bold
+					)
+				}
+			}
 		}
 	}
 }
@@ -299,7 +372,6 @@ private fun ChatComposer(
 	Row(
 		modifier = modifier
 			.fillMaxWidth()
-			.height(IntrinsicSize.Max)
 			.padding(
 				start = dim.medium,
 				top = dim.small,
@@ -307,7 +379,7 @@ private fun ChatComposer(
 				bottom = dim.small
 			),
 		horizontalArrangement = Arrangement.spacedBy(dim.small),
-		verticalAlignment = Alignment.CenterVertically
+		verticalAlignment = Alignment.Top
 	) {
 		AppTextField(
 			modifier = Modifier.weight(1f),
@@ -328,8 +400,7 @@ private fun ChatComposer(
 				contentColor = colorScheme.onPrimary
 			),
 			modifier = Modifier
-				.aspectRatio(1f)
-				.fillMaxHeight()
+				.requiredSize(56.dp)
 				.clip(CircleShape)
 		) {
 			if (isSending) {

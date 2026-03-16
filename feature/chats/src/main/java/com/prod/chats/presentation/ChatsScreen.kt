@@ -60,7 +60,12 @@ fun ChatsScreen(
 		topBar = {
 			AppScreenTopBar(
 				title = stringResource(R.string.chats_screen_title),
-				modifier = Modifier.fillMaxWidth()
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(
+						horizontal = LocalDimensions.current.small,
+						vertical = LocalDimensions.current.verySmall
+					)
 			)
 		},
 		containerColor = androidx.compose.ui.graphics.Color.Transparent
