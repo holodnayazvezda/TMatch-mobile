@@ -8,6 +8,7 @@ import com.prod.profile.presentation.UserProfileScreen
 fun EntryProviderScope<Any>.profileGraph(
 	onBack: () -> Unit,
 	onFeedAction: (userId: String, action: UserProfileFeedAction) -> Unit,
+	onOpenChat: (userId: String) -> Unit,
 	onDatingProfileAvailabilityChanged: (Boolean) -> Unit,
 	onUnauthorized: () -> Unit,
 	onProfileMissing: () -> Unit,
@@ -31,6 +32,7 @@ fun EntryProviderScope<Any>.profileGraph(
 			showFeedActions = key.source == "matching_card",
 			onLike = { onFeedAction(key.userId, UserProfileFeedAction.Like) },
 			onDislike = { onFeedAction(key.userId, UserProfileFeedAction.Dislike) },
+			onOpenChat = { onOpenChat(key.userId) },
 			onBan = { onFeedAction(key.userId, UserProfileFeedAction.Ban) },
 			onUnauthorized = onUnauthorized,
 			onRequestNoInternet = onRequestNoInternet

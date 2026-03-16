@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -65,6 +66,7 @@ fun UserProfileScreen(
 	showFeedActions: Boolean,
 	onLike: () -> Unit,
 	onDislike: () -> Unit,
+	onOpenChat: () -> Unit,
 	onBan: () -> Unit,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
@@ -93,6 +95,7 @@ fun UserProfileScreen(
 					showFeedActions = showFeedActions,
 					onLike = onLike,
 					onDislike = onDislike,
+					onOpenChat = onOpenChat,
 					onBan = onBan,
 					modifier = Modifier.fillMaxSize()
 				)
@@ -131,6 +134,7 @@ private fun UserProfileContent(
 	showFeedActions: Boolean,
 	onLike: () -> Unit,
 	onDislike: () -> Unit,
+	onOpenChat: () -> Unit,
 	onBan: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
@@ -142,6 +146,7 @@ private fun UserProfileContent(
 		UserProfileHeader(
 			onBack = onBack,
 			showMenu = showFeedActions,
+			onOpenChat = onOpenChat,
 			onBan = onBan
 		)
 
@@ -216,6 +221,7 @@ private fun UserProfileContent(
 private fun UserProfileHeader(
 	onBack: () -> Unit,
 	showMenu: Boolean,
+	onOpenChat: () -> Unit,
 	onBan: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
@@ -231,10 +237,21 @@ private fun UserProfileHeader(
 			TextButton(
 				onClick = onBack
 			) {
-				Text(
-					text = stringResource(R.string.user_profile_back_button),
-					color = MaterialTheme.colorScheme.onBackground
-				)
+				Row(
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Icon(
+						painter = painterResource(R.drawable.ic_back_24),
+						contentDescription = stringResource(R.string.user_profile_back_button),
+						modifier = Modifier.size(18.dp),
+						tint = MaterialTheme.colorScheme.onBackground
+					)
+					Text(
+						text = stringResource(R.string.user_profile_back_button),
+						color = MaterialTheme.colorScheme.onBackground
+					)
+				}
 			}
 		},
 		actions = {
@@ -252,6 +269,13 @@ private fun UserProfileHeader(
 					expanded = isMenuExpanded,
 					onDismissRequest = { isMenuExpanded = false }
 				) {
+					DropdownMenuItem(
+						text = { Text(stringResource(R.string.user_profile_open_chat_action)) },
+						onClick = {
+							isMenuExpanded = false
+							onOpenChat()
+						}
+					)
 					DropdownMenuItem(
 						text = { Text(stringResource(R.string.user_profile_ban_action)) },
 						onClick = {

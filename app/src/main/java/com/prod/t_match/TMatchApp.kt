@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
@@ -22,8 +23,10 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.annotation.StringRes
+import androidx.annotation.DrawableRes
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -187,6 +190,10 @@ fun TMatchApp() {
 								backStack.removeLastOrNull()
 							}
 						},
+						onOpenChat = {
+							backStack.clear()
+							backStack.add(ChatsNavKey(source = "user_profile_menu"))
+						},
 						onDatingProfileAvailabilityChanged = { hasDatingProfile ->
 							hasDatingProfileAccess = hasDatingProfile
 							authSessionStore.setHasDatingProfile(hasDatingProfile)
@@ -246,7 +253,12 @@ private fun MainBottomBar(
 			NavigationBarItem(
 				selected = currentDestination?.let { it::class } == destination.key::class,
 				onClick = { onTabSelected(destination.key) },
-				icon = { Text(stringResource(destination.shortLabelRes)) },
+				icon = {
+					Icon(
+						painter = painterResource(destination.iconRes),
+						contentDescription = stringResource(destination.titleRes)
+					)
+				},
 				label = { Text(stringResource(destination.titleRes)) }
 			)
 		}
@@ -260,21 +272,25 @@ private fun Any?.isMainTabDestination(): Boolean {
 private enum class MainTabDestination(
 	@param:StringRes val titleRes: Int,
 	@param:StringRes val shortLabelRes: Int,
+	@param:DrawableRes val iconRes: Int,
 	val key: Any
 ) {
 	Profile(
 		titleRes = R.string.main_tab_profile,
 		shortLabelRes = R.string.main_tab_profile_short,
+		iconRes = R.drawable.profile,
 		key = ProfileNavKey()
 	),
 	Matching(
 		titleRes = R.string.main_tab_matching,
 		shortLabelRes = R.string.main_tab_matching_short,
+		iconRes = R.drawable.match,
 		key = MatchingNavKey()
 	),
 	Chats(
 		titleRes = R.string.main_tab_chats,
 		shortLabelRes = R.string.main_tab_chats_short,
+		iconRes = R.drawable.chat,
 		key = ChatsNavKey()
 	)
 }
