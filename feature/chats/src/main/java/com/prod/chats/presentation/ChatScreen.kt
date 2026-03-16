@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
@@ -74,6 +76,7 @@ fun ChatScreen(
 	val uiState = viewModel.uiState
 	val listState = rememberLazyListState()
 	val density = LocalDensity.current
+	val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
 
 	var composerHeightPx by remember { mutableIntStateOf(0) }
 	val composerHeightDp = with(density) { composerHeightPx.toDp() }
@@ -105,6 +108,12 @@ fun ChatScreen(
 	val lastMessageId = uiState.messages.lastOrNull()?.messageId
 	LaunchedEffect(lastMessageId, uiState.isLoadingMore) {
 		if (lastMessageId != null && !uiState.isLoadingMore) {
+			listState.animateScrollToItem(uiState.messages.lastIndex)
+		}
+	}
+
+	LaunchedEffect(imeBottomPadding, uiState.messages.size) {
+		if (imeBottomPadding > 0.dp && uiState.messages.isNotEmpty()) {
 			listState.animateScrollToItem(uiState.messages.lastIndex)
 		}
 	}
@@ -369,51 +378,56 @@ private fun ChatComposer(
 	val dim = LocalDimensions.current
 	val colorScheme = MaterialTheme.colorScheme
 
-	Row(
+	Surface(
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(
-				start = dim.medium,
-				top = dim.small,
-				end = dim.medium,
-				bottom = dim.small
-			),
-		horizontalArrangement = Arrangement.spacedBy(dim.small),
-		verticalAlignment = Alignment.Top
+			.padding(horizontal = dim.medium, vertical = dim.small),
+		color = MaterialTheme.colorScheme.surface,
+		shape = MaterialTheme.shapes.extraLarge,
+		tonalElevation = 4.dp,
+		shadowElevation = 4.dp
 	) {
-		AppTextField(
-			modifier = Modifier.weight(1f),
-			value = value,
-			onValueChange = onValueChange,
-			label = stringResource(R.string.chat_input_placeholder),
-			focusedPlaceholder = stringResource(R.string.chat_input_placeholder),
-			singleLine = false,
-			maxLines = 6,
-			minHeight = 56.dp,
-			keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
-		)
-
-		FilledIconButton(
-			onClick = onSend,
-			colors = IconButtonDefaults.filledIconButtonColors(
-				containerColor = colorScheme.primary,
-				contentColor = colorScheme.onPrimary
-			),
+		Row(
 			modifier = Modifier
-				.requiredSize(56.dp)
-				.clip(CircleShape)
+				.fillMaxWidth()
+				.padding(dim.small),
+			horizontalArrangement = Arrangement.spacedBy(dim.small),
+			verticalAlignment = Alignment.Top
 		) {
-			if (isSending) {
-				CircularProgressIndicator(
-					modifier = Modifier.size(20.dp),
-					strokeWidth = 2.dp
-				)
-			} else {
-				Icon(
-					painter = painterResource(R.drawable.ic_send_24),
-					contentDescription = stringResource(R.string.chat_send_content_description),
-					tint = colorScheme.onPrimary
-				)
+			AppTextField(
+				modifier = Modifier.weight(1f),
+				value = value,
+				onValueChange = onValueChange,
+				label = stringResource(R.string.chat_input_placeholder),
+				focusedPlaceholder = stringResource(R.string.chat_input_placeholder),
+				singleLine = false,
+				maxLines = 6,
+				minHeight = 56.dp,
+				keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
+			)
+
+			FilledIconButton(
+				onClick = onSend,
+				colors = IconButtonDefaults.filledIconButtonColors(
+					containerColor = colorScheme.primary,
+					contentColor = colorScheme.onPrimary
+				),
+				modifier = Modifier
+					.requiredSize(56.dp)
+					.clip(CircleShape)
+			) {
+				if (isSending) {
+					CircularProgressIndicator(
+						modifier = Modifier.size(20.dp),
+						strokeWidth = 2.dp
+					)
+				} else {
+					Icon(
+						painter = painterResource(R.drawable.ic_send_24),
+						contentDescription = stringResource(R.string.chat_send_content_description),
+						tint = colorScheme.onPrimary
+					)
+				}
 			}
 		}
 	}
