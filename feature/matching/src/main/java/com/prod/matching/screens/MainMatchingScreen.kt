@@ -129,6 +129,8 @@ private const val SwipeOffscreenMargin = 240f
 private const val SwipeDismissDurationMillis = 260
 private const val UpSwipeDismissDurationMillis = 320
 private const val SwipeAffordanceFadeOutDurationMillis = 180
+private const val BanFadeOutDurationMillis = 520
+private const val BanFadeScaleTarget = 1.035f
 
 // Keeps all visual derivations of the current drag in one place so the deck composable
 // can read like a layout description instead of a math-heavy gesture handler.
@@ -491,6 +493,13 @@ private fun SwipeCardDeck(
 	}
 	var dismissedAffordance by remember { mutableStateOf<SwipeAffordanceSpec?>(null) }
 	val dismissedAffordanceProgress = remember { Animatable(0f) }
+	val banFadeAlpha = remember { Animatable(1f) }
+	val banFadeScale = remember { Animatable(1f) }
+
+	LaunchedEffect(currentProfile?.id) {
+		banFadeAlpha.snapTo(1f)
+		banFadeScale.snapTo(1f)
+	}
 
 	LaunchedEffect(pendingDeckAction?.requestId, currentProfile?.id, deckHeight) {
 		val pendingAction = pendingDeckAction ?: return@LaunchedEffect
@@ -498,10 +507,36 @@ private fun SwipeCardDeck(
 			return@LaunchedEffect
 		}
 
+		if (pendingAction.action == MatchAction.Ban) {
+			banFadeAlpha.snapTo(1f)
+			banFadeScale.snapTo(1f)
+			val fadeSpec = tween<Float>(
+				durationMillis = BanFadeOutDurationMillis,
+				easing = FastOutSlowInEasing
+			)
+			listOf(
+				async {
+					banFadeAlpha.animateTo(
+						targetValue = 0f,
+						animationSpec = fadeSpec
+					)
+				},
+				async {
+					banFadeScale.animateTo(
+						targetValue = BanFadeScaleTarget,
+						animationSpec = fadeSpec
+					)
+				}
+			).awaitAll()
+			currentOnPendingDeckActionAnimated()
+			return@LaunchedEffect
+		}
+
 		val direction = when (pendingAction.action) {
 			MatchAction.Like -> SwipeDirection.Right
-			MatchAction.Dislike, MatchAction.Ban -> SwipeDirection.Left
+			MatchAction.Dislike -> SwipeDirection.Left
 			MatchAction.Skip -> SwipeDirection.Up
+			MatchAction.Ban -> SwipeDirection.Left
 		}
 		val dismissTargets = buildDismissTargets(
 			direction = direction,
@@ -592,9 +627,9 @@ private fun SwipeCardDeck(
 						translationX = offsetX
 						translationY = offsetY
 						rotationZ = rotation
-						scaleX = visualState.currentCardScale
-						scaleY = visualState.currentCardScale
-						alpha = visualState.currentCardAlpha
+						scaleX = visualState.currentCardScale * banFadeScale.value
+						scaleY = visualState.currentCardScale * banFadeScale.value
+						alpha = visualState.currentCardAlpha * banFadeAlpha.value
 					}
 					.pointerInput(activeProfile.id) {
 						detectDragGestures(

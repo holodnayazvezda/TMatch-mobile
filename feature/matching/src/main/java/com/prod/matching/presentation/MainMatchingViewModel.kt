@@ -200,14 +200,18 @@ class MainMatchingViewModel(
 	}
 
 	private fun removeProfileFromDeck(profileId: String) {
-		val updatedProfiles = uiState.profiles.filterNot { it.id == profileId }
-		val updatedIndex = if (updatedProfiles.isEmpty()) {
-			0
-		} else {
-			uiState.currentIndex.coerceAtMost(updatedProfiles.lastIndex)
-		}
+		val remainingProfiles = uiState.items
+			.filterIsInstance<Profile>()
+			.filterNot { it.id == profileId }
+		val incomingLikeProfiles = remainingProfiles.filter(Profile::isIncomingLike)
+		val recommendationProfiles = remainingProfiles.filterNot(Profile::isIncomingLike)
+		val updatedItems = buildDeckItems(
+			incomingLikeProfiles = incomingLikeProfiles,
+			recommendationProfiles = recommendationProfiles
+		)
+		val updatedIndex = updatedItems.findNextProfileIndex(preferredStart = uiState.currentIndex)
 		uiState = uiState.copy(
-			profiles = updatedProfiles,
+			items = updatedItems,
 			currentIndex = updatedIndex,
 			isActionsSheetVisible = false,
 			error = null
@@ -385,5 +389,25 @@ class MainMatchingViewModel(
 		}
 
 		return incomingLikeProfiles + MatchingDeckItem.Transition() + recommendationProfiles
+	}
+
+	private fun List<MatchingDeckItem>.findNextProfileIndex(preferredStart: Int): Int {
+		if (isEmpty()) {
+			return 0
+		}
+
+		for (index in preferredStart.coerceAtLeast(0)..lastIndex) {
+			if (this[index] is Profile) {
+				return index
+			}
+		}
+
+		for (index in lastIndex downTo 0) {
+			if (this[index] is Profile) {
+				return index
+			}
+		}
+
+		return 0
 	}
 }

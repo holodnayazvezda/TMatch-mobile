@@ -17,3 +17,5 @@ sealed interface MatchingDeckItem {
 		val id: String = "recommendations-transition"
 	) : MatchingDeckItem
 }
+
+typealias MatchProfile = MatchingDeckItem.Profile
