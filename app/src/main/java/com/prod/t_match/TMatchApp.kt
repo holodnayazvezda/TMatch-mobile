@@ -213,7 +213,10 @@ fun TMatchApp() {
 							userProfileFeedActionHandler = handler
 						}
 					)
-					chatsGraph()
+					chatsGraph(
+						onUnauthorized = authGraphState::onUnauthorized,
+						onRequestNoInternet = authGraphState::onRequestNoInternet
+					)
 					entry<DebugNetworkOverridesNavKey> {
 						DebugNetworkOverridesScreen(
 							onBack = {

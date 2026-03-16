@@ -1,0 +1,7 @@
+<resources>
+	<string name="chats_screen_title">Чаты</string>
+	<string name="chats_empty_title">Пока нет активных чатов</string>
+	<string name="chats_empty_description">Чаты появятся после взаимных лайков и первого созданного диалога на backend.</string>
+	<string name="chats_error_title">Не удалось загрузить чаты</string>
+	<string name="chats_retry">Обновить</string>
+</resources>

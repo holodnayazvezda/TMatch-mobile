@@ -29,6 +29,7 @@ tags:
   - name: recommendations
   - name: matches
   - name: likes
+  - name: chats
   - name: preview
   - name: interactions
   - name: notifications
@@ -231,6 +232,121 @@ paths:
                 $ref: '#/components/schemas/TargetingResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /chats/me:
+    get:
+      tags: [chats]
+      summary: Get own chats
+      description: |
+        Returns list of chats where current user is a participant. No unread counters or read-status in MVP.
+      security:
+        - BearerToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /chats/{chat_id}/messages:
+    get:
+      tags: [chats]
+      summary: Get chat messages
+      description: |
+        Returns paginated list of messages for given chat, ordered from oldest to newest.
+      security:
+        - BearerToken: []
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: before_message_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessagesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Chat access denied (user is not participant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags: [chats]
+      summary: Send text message to chat
+      description: |
+        Sends text message to existing 1:1 chat. Requires active match between participants and no active block in either direction.
+      security:
+        - BearerToken: []
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageItemResponse'
+        '400':
+          description: Invalid message or no active match between participants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Chat access denied or chat is blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       tags: [targeting]
       summary: Create or update own targeting rules
@@ -521,7 +637,7 @@ paths:
       description: |
         Interaction history is append-only.
         Actions: `like`, `dislike`, `block`, `unblock`.
-        For `like` and `dislike` the candidate must have been recommended to the current user (guard).
+        For `like` and `dislike` recommendation is optional: if provided, it is stored in audit payload and may be used by ML; interaction itself is allowed regardless of recommendation.
         For `block` and `unblock` no recommendation guard; effective block state per direction is defined by latest `block`/`unblock` event.
         Block excludes the pair from recommendations (both directions) and from active matches.
         Multiple interactions for same actor->candidate are allowed.
@@ -542,7 +658,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InteractionResponse'
         '400':
-          description: Cannot interact with yourself; or (for like/dislike only) candidate was not recommended for current user
+          description: Cannot interact with yourself
           content:
             application/json:
               schema:
@@ -848,6 +964,83 @@ components:
         age_to:
           type: integer
 
+    ChatsResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatItemResponse'
+
+    ChatItemResponse:
+      type: object
+      additionalProperties: false
+      required: [chat_id, other_user_id]
+      properties:
+        chat_id:
+          type: string
+          format: uuid
+        other_user_id:
+          type: string
+          format: uuid
+        last_message_id:
+          type: string
+          format: uuid
+          nullable: true
+        last_message_text:
+          type: string
+          nullable: true
+        last_message_created_at:
+          type: string
+          format: date-time
+          nullable: true
+        other_user_card:
+          allOf:
+            - $ref: '#/components/schemas/SelfCardResponse'
+          nullable: true
+
+    ChatMessagesResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageItemResponse'
+
+    ChatMessageItemResponse:
+      type: object
+      additionalProperties: false
+      required: [message_id, chat_id, sender_user_id, text, created_at]
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        chat_id:
+          type: string
+          format: uuid
+        sender_user_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    SendMessageRequest:
+      type: object
+      additionalProperties: false
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+
     SelfCardResponse:
       type: object
       additionalProperties: false
@@ -1112,6 +1305,20 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+        data:
+          type: object
+          additionalProperties:
+            type: string
+          description: |
+            Optional custom key-value payload passed to FCM `data` field.
+            Used by the mobile client to determine notification type and navigation target.
+
+            Known payloads (backend -> mobile):
+            - For chat message push (type=MESSAGE):
+              - chat_id: string (uuid) — chat identifier
+              - sender_user_id: string (uuid) — sender user id
+              - sender_name: string — sender display name (may be "New message" fallback)
+              - text: string — message text
 
     RegisterDeviceRequest:
       type: object
@@ -1155,6 +1362,46 @@ components:
               items:
                 type: object
 ```
+
+## WebSocket Chat Stream
+
+WebSocket-канал для доставки входящих сообщений чата в реальном времени.
+
+### Endpoint
+
+- `ws://{host}/chat/stream?token={access_token}`
+  - `access_token` — raw access token, полученный из `AuthResponse.access_token`.
+  - Если токен не передан или недействителен/просрочен, сервер закрывает соединение с кодом `WS_1008_POLICY_VIOLATION`.
+
+### Сообщения Server → Client
+
+Единственный тип — новое сообщение в чате. Формат JSON:
+
+```json
+{
+  "type": "message",
+  "message_id": "uuid",
+  "chat_id": "uuid",
+  "sender_user_id": "uuid",
+  "text": "string",
+  "created_at": "2026-03-16T12:00:00.000000Z"
+}
+```
+
+| Поле           | Тип               | Описание                                    |
+| -------------- | ----------------- | ------------------------------------------- |
+| type           | string            | Всегда `"message"`                          |
+| message_id     | string (uuid)     | Идентификатор сообщения                     |
+| chat_id        | string (uuid)     | Идентификатор чата                          |
+| sender_user_id | string (uuid)     | Идентификатор отправителя                   |
+| text           | string            | Текст сообщения                             |
+| created_at     | string (ISO 8601) | Время создания сообщения (UTC, ISO 8601)    |
+
+### Сообщения Client → Server
+
+На текущем MVP клиент только получает события; отправка сообщений в чат выполняется через HTTP `POST /chats/{chat_id}/messages`. Если позже появятся команды (ping, типы подписок и т.п.), они будут описаны в этом разделе.
+
+---
 
 ## Internal API (backend -> ML)
 

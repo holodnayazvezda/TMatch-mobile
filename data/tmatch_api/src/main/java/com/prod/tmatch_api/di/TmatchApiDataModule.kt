@@ -2,11 +2,13 @@ package com.prod.tmatch_api.di
 
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.auth.domain.gateway.AuthGateway
+import com.prod.chats.domain.gateway.ChatGateway
 import com.prod.common.api.gateway.NotificationGateway
 import com.prod.match.domain.gateway.MatchGateway
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.tmatch_api.auth.data.gateway.KtorAuthGateway
 import com.prod.tmatch_api.auth.data.gateway.SharedPrefsAuthSessionStore
+import com.prod.tmatch_api.chats.data.gateway.KtorChatGateway
 import com.prod.tmatch_api.match.data.gateway.KtorMatchGateway
 import com.prod.tmatch_api.notifications.data.gateway.KtorNotificationGateway
 import com.prod.tmatch_api.auth.data.network.createAuthHttpClient
@@ -38,6 +40,12 @@ fun tmatchApiDataModule(
 	}
 	single<ProfileGateway> {
 		KtorProfileGateway(
+			httpClient = get(),
+			authSessionStore = get()
+		)
+	}
+	single<ChatGateway> {
+		KtorChatGateway(
 			httpClient = get(),
 			authSessionStore = get()
 		)

@@ -36,6 +36,7 @@ android {
 
 dependencies {
 	implementation(project(":api:auth"))
+	implementation(project(":api:chats"))
 	implementation(project(":api:match"))
 	implementation(project(":api:profile"))
 	implementation(libs.androidx.security.crypto)

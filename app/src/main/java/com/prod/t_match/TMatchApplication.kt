@@ -2,6 +2,7 @@ package com.prod.t_match
 
 import android.app.Application
 import com.prod.auth.di.authFeatureModule
+import com.prod.chats.di.chatsFeatureModule
 import com.prod.matching.di.matchingFeatureModule
 import com.prod.profile.di.profileFeatureModule
 import com.prod.tmatch_api.di.tmatchApiDataModule
@@ -21,6 +22,7 @@ class TMatchApplication : Application() {
 						enableResponseOverrides = BuildConfig.DEBUG
 					),
 					authFeatureModule,
+					chatsFeatureModule,
 					matchingFeatureModule,
 					profileFeatureModule
 				)

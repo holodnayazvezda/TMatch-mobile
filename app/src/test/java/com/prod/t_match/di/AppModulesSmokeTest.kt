@@ -9,6 +9,10 @@ import com.prod.auth.domain.model.Profile
 import com.prod.auth.domain.model.ProfileDraft
 import com.prod.auth.presentation.signin.SignInViewModel
 import com.prod.auth.presentation.signup.SignUpViewModel
+import com.prod.chats.di.chatsFeatureModule
+import com.prod.chats.domain.gateway.ChatGateway
+import com.prod.chats.domain.model.ChatPreview
+import com.prod.chats.presentation.ChatsViewModel
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
 import com.prod.match.domain.gateway.MatchGateway
@@ -47,11 +51,13 @@ class AppModulesSmokeTest {
 			allowOverride(true)
 			modules(
 				authFeatureModule,
+				chatsFeatureModule,
 				profileFeatureModule,
 				matchingFeatureModule,
 				module {
 					single<AuthSessionStore> { FakeAuthSessionStore() }
 					single<AuthGateway> { FakeAuthGateway() }
+					single<ChatGateway> { FakeChatGateway() }
 					single<ProfileGateway> { FakeProfileGateway() }
 					single<MatchGateway> { FakeMatchGateway() }
 					single<PendingMatchActionStore> { FakePendingMatchActionStore() }
@@ -61,6 +67,7 @@ class AppModulesSmokeTest {
 
 		assertNotNull(koin.get<SignInViewModel>())
 		assertNotNull(koin.get<SignUpViewModel>())
+		assertNotNull(koin.get<ChatsViewModel>())
 		assertNotNull(koin.get<ProfileViewModel>())
 		assertNotNull(koin.get<MainMatchingViewModel>())
 	}
@@ -142,6 +149,12 @@ class AppModulesSmokeTest {
 			contentType: String,
 			bytes: ByteArray
 		): ApiOperationResult<String> = ApiOperationResult.ValidationError()
+	}
+
+	private class FakeChatGateway : ChatGateway {
+		override suspend fun getOwnChats(): ApiOperationResult<List<ChatPreview>> {
+			return ApiOperationResult.Success(emptyList())
+		}
 	}
 
 	private class FakeMatchGateway : MatchGateway {
