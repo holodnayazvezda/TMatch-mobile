@@ -68,6 +68,7 @@ internal class KtorGatewaySupport(
 
 			else -> {
 				if (
+					exception.hasCauseNamed("SocketTimeoutException") ||
 					exception.hasCauseNamed("CertPathValidationException") ||
 					exception.hasCauseNamed("CertPathValidatorException")
 				) {

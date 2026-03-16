@@ -197,12 +197,7 @@ class KtorMatchGateway(
 			mlRecommendationId = mlRecommendationId,
 			userId = userId,
 			candidateUserId = candidateUserId,
-			reasons = reasons.map { (featureName, score) ->
-				RecommendationReason(
-					score = score,
-					reasonType = featureName.toRecommendationReasonType()
-				)
-			}.sortedByDescending { it.score },
+			reasons = reasons.toDomainReasons(),
 			candidateCard = candidateCard?.toDomain()
 		)
 	}
@@ -210,8 +205,18 @@ class KtorMatchGateway(
 	private fun IncomingLikeItemDto.toDomain(): IncomingLike {
 		return IncomingLike(
 			likerUserId = likerUserId,
+			reasons = reasons.toDomainReasons(),
 			candidateCard = candidateCard?.toDomain()
 		)
+	}
+
+	private fun Map<String, Float>.toDomainReasons(): List<RecommendationReason> {
+		return map { (featureName, score) ->
+			RecommendationReason(
+				score = score,
+				reasonType = featureName.toRecommendationReasonType()
+			)
+		}.sortedByDescending { it.score }
 	}
 
 	private fun RecommendationCandidateCardDto.toDomain(): RecommendationCandidateCard {

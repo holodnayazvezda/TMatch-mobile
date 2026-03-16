@@ -61,14 +61,7 @@ class MatchingDeckCoordinator {
 	private fun isKnownProfile(profile: Profile): Boolean {
 		val knownUserIds = incomingLikeProfiles.mapTo(hashSetOf(), Profile::id)
 			.apply { addAll(recommendationQueue.map(Profile::id)) }
-		if (profile.id in knownUserIds) {
-			return true
-		}
-
-		val knownRecommendationIds = recommendationQueue
-			.mapNotNull(Profile::recommendationId)
-			.toHashSet()
-		return profile.recommendationId != null && profile.recommendationId in knownRecommendationIds
+		return profile.id in knownUserIds
 	}
 
 	private fun List<MatchingDeckItem>.findNextProfileIndex(preferredStartIndex: Int): Int {

@@ -23,7 +23,7 @@ class RecommendationUiMapper {
 					fallback = "Пользователь ${incomingLike.likerUserId.take(8)}"
 				),
 				age = profile?.birthDate?.toAgeOrNull(),
-				reasons = listOf(incomingLikeReason),
+				reasons = listOf(incomingLikeReason) + incomingLike.reasons.toReasonSummaries(),
 				imageUrl = incomingLike.candidateCard?.datingProfile?.photos?.firstOrNull(),
 				recommendationId = null,
 				isIncomingLike = true
@@ -40,27 +40,26 @@ class RecommendationUiMapper {
 					fallback = "Пользователь ${recommendation.candidateUserId.take(8)}"
 				),
 				age = profile?.birthDate?.toAgeOrNull(),
-				reasons = recommendation.reasons
-					.map {
-						RecommendationReasonSummary(
-							label = it.reasonType.label,
-							description = it.reasonType.description
-						)
-					}
-					.distinct()
-					.ifEmpty {
-						listOf(
-							RecommendationReasonSummary(
-								label = "Есть потенциальное совпадение",
-								description = "Система нашла общий паттерн поведения и показала профиль в рекомендациях."
-							)
-						)
-					},
+				reasons = recommendation.reasons.toReasonSummaries().ifEmpty { listOf(defaultRecommendationReason) },
 				imageUrl = recommendation.candidateCard?.datingProfile?.photos?.firstOrNull(),
 				recommendationId = recommendation.mlRecommendationId,
 				isIncomingLike = false
 			)
 		}
+	}
+
+	private val defaultRecommendationReason = RecommendationReasonSummary(
+		label = "Есть потенциальное совпадение",
+		description = "Система нашла общий паттерн поведения и показала профиль в рекомендациях."
+	)
+
+	private fun List<com.prod.match.domain.model.RecommendationReason>.toReasonSummaries(): List<RecommendationReasonSummary> {
+		return map {
+			RecommendationReasonSummary(
+				label = it.reasonType.label,
+				description = it.reasonType.description
+			)
+		}.distinct()
 	}
 
 	private fun RecommendationCandidateProfile?.toDisplayName(
