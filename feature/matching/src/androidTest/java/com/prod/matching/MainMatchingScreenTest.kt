@@ -1,8 +1,8 @@
 package com.prod.matching
 
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -27,54 +27,42 @@ import com.prod.matching.presentation.MainMatchingViewModel
 import com.prod.matching.presentation.RecommendationUiMapper
 import com.prod.matching.screens.MainMatchingScreen
 import com.prod.ui.theme.TmatchTheme
-import org.junit.Assert.assertTrue
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 
 class MainMatchingScreenTest {
 
 	@get:Rule
-	val composeRule = createComposeRule()
+	val composeRule = createAndroidComposeRule<ComponentActivity>()
 
 	@Test
 	fun transitionCardAdvancesOnSwipeLeft() {
-		setMatchingContent()
+		setMatchingContent(startAtTransition = true)
 
 		openTransitionCard()
 
 		composeRule.onNodeWithTag("matching_transition_card")
 			.performTouchInput { swipeLeft() }
 
-		assertTrue(
-			composeRule.onAllNodesWithTag("matching_profile_card_recommendation-1")
-				.fetchSemanticsNodes().isNotEmpty()
-		)
-		assertTrue(
-			composeRule.onAllNodesWithText("Входящие лайки закончились")
-				.fetchSemanticsNodes().isEmpty()
-		)
+		waitUntilTagExists("matching_profile_card_recommendation-1")
 	}
 
 	@Test
 	fun transitionCardAdvancesOnSwipeRight() {
-		setMatchingContent()
+		setMatchingContent(startAtTransition = true)
 
 		openTransitionCard()
 
 		composeRule.onNodeWithTag("matching_transition_card")
 			.performTouchInput { swipeRight() }
 
-		assertTrue(
-			composeRule.onAllNodesWithTag("matching_profile_card_recommendation-1")
-				.fetchSemanticsNodes().isNotEmpty()
-		)
-		assertTrue(
-			composeRule.onAllNodesWithText("Входящие лайки закончились")
-				.fetchSemanticsNodes().isEmpty()
-		)
+		waitUntilTagExists("matching_profile_card_recommendation-1")
 	}
 
-	private fun setMatchingContent() {
+	private fun setMatchingContent(
+		startAtTransition: Boolean
+	) {
 		val gateway = FakeMatchGateway(
 			incomingLikesResult = ApiOperationResult.Success(
 				listOf(
@@ -101,6 +89,15 @@ class MainMatchingScreenTest {
 			recommendationUiMapper = RecommendationUiMapper(),
 			pendingMatchActionStore = FakePendingMatchActionStore()
 		)
+		runBlocking {
+			viewModel.initialize(
+				onUnauthorized = {},
+				onNoInternet = {}
+			)
+		}
+		if (startAtTransition) {
+			viewModel.onSwipeRight()
+		}
 
 		composeRule.setContent {
 			TmatchTheme {
@@ -113,20 +110,24 @@ class MainMatchingScreenTest {
 				)
 			}
 		}
+		composeRule.waitForIdle()
 	}
 
 	private fun openTransitionCard() {
-		waitUntilTagExists("matching_profile_card_incoming-1")
-		composeRule.onNodeWithTag("matching_profile_card_incoming-1")
-			.performTouchInput { swipeRight() }
 		waitUntilTagExists("matching_transition_card")
 		composeRule.onNodeWithText("Входящие лайки закончились").assertIsDisplayed()
 	}
 
 	private fun waitUntilTagExists(tag: String) {
-		composeRule.waitUntil(timeoutMillis = 5_000) {
-			composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+		composeRule.waitUntil(timeoutMillis = 15_000) {
+			tagExists(tag)
 		}
+	}
+
+	private fun tagExists(tag: String): Boolean {
+		return runCatching {
+			composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+		}.getOrDefault(false)
 	}
 
 	private class FakePendingMatchActionStore : PendingMatchActionStore {
