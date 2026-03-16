@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.ui.theme.LocalTmatchExtraColors
 
@@ -359,7 +359,7 @@ fun BoxScope.AppBottomScrimInfo(
 		modifier = Modifier
 			.align(Alignment.BottomStart)
 			.fillMaxWidth()
-			.background(extraColors.baseScrim, LocalShapes.current.sectionRounded)
+			.background(extraColors.baseScrim)
 			.padding(dim.medium),
 		verticalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),
 		content = content

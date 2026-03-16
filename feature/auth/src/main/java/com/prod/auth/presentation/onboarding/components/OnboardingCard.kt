@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.prod.auth.presentation.onboarding.model.OnboardingPageUiModel
-import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalDimensions
 import com.prod.ui.components.AppInfoChip
 import com.prod.ui.components.AppSectionCard
 

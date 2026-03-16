@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.prod.auth.R
-import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 
 @Composable

@@ -8,17 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,7 +39,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.prod.common.api.model.RecommendationReasonSummary
@@ -57,7 +53,7 @@ import com.prod.ui.components.AppScreenTopBar
 import com.prod.ui.components.AppSectionCard
 import com.prod.ui.components.AppSectionTitle
 import com.prod.ui.R as UiR
-import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalDimensions
 import com.prod.ui.theme.LocalTmatchExtraColors
 import org.koin.androidx.compose.koinViewModel
 
@@ -138,6 +134,8 @@ private fun UserProfileContent(
 	onBan: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
+
 	Column(
 		modifier = modifier
 	) {
@@ -151,14 +149,13 @@ private fun UserProfileContent(
 			modifier = Modifier
 				.weight(1f)
 				.verticalScroll(rememberScrollState())
-				.padding(horizontal = 20.dp, vertical = 6.dp),
+				.padding(horizontal = dim.medium, vertical = dim.cardOuterPadding),
 			horizontalAlignment = Alignment.CenterHorizontally,
 			verticalArrangement = Arrangement.Top
 		) {
 			Column(
 				modifier = Modifier
-					.fillMaxWidth()
-					.widthIn(max = 360.dp),
+					.fillMaxWidth(),
 				verticalArrangement = Arrangement.spacedBy(16.dp),
 				horizontalAlignment = Alignment.CenterHorizontally
 			) {
@@ -167,6 +164,7 @@ private fun UserProfileContent(
 				UserProfileHeroCard(
 					profileCard = profileCard,
 					modifier = contentCardModifier
+						.aspectRatio(dim.profileCardAspectRatio)
 				)
 
 				UserProfileAboutSection(
@@ -314,14 +312,6 @@ private fun UserProfileHeroCard(
 				color = extraColors.onBaseScrim,
 				fontWeight = FontWeight.SemiBold
 			)
-			AppInfoChip(
-				text = stringResource(
-					R.string.user_profile_photo_count,
-					profileCard.datingPhotoUrls.size.coerceAtLeast(1)
-				),
-				containerColor = extraColors.accentGold,
-				contentColor = extraColors.onBaseScrim
-			)
 		}
 	}
 }
@@ -338,26 +328,7 @@ private fun UserProfileAboutSection(
 		containerColor = MaterialTheme.colorScheme.surface
 	) {
 		Column(verticalArrangement = Arrangement.spacedBy(dim.small + dim.extraSmall / 2)) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.Top
-			) {
-				Column(
-					modifier = Modifier.weight(1f),
-					verticalArrangement = Arrangement.spacedBy(4.dp)
-				) {
-					AppSectionTitle(title = stringResource(R.string.user_profile_about_title))
-				}
-				AppInfoChip(
-					text = stringResource(
-						R.string.user_profile_photo_count,
-						profileCard.datingPhotoUrls.size.coerceAtLeast(1)
-					),
-					containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-					contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-				)
-			}
+			AppSectionTitle(title = stringResource(R.string.user_profile_about_title))
 
 			FlowRow(
 				horizontalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),

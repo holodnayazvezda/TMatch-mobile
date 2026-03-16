@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.prod.core.ui.theme.LocalShapes
-import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalDimensions
 
 @Composable
 fun AppBigButton(

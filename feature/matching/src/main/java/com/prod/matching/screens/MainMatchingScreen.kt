@@ -9,9 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,7 +63,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.common.api.model.UserProfileFeedAction
-import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.matching.R
 import com.prod.matching.domain.model.MatchAction
@@ -443,6 +441,7 @@ private fun SwipeCardDeck(
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
+	val shapes = LocalShapes.current
 	var offsetX by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
 	var offsetY by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
 	var rotation by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
@@ -466,6 +465,11 @@ private fun SwipeCardDeck(
 			.fillMaxSize()
 			.padding(horizontal = dim.extraSmall / 2)
 	}
+	val cardModifier = remember(dim.profileCardAspectRatio) {
+		Modifier
+			.fillMaxWidth()
+			.aspectRatio(dim.profileCardAspectRatio)
+	}
 	var dismissedAffordance by remember { mutableStateOf<SwipeAffordanceSpec?>(null) }
 	val dismissedAffordanceProgress = remember { Animatable(0f) }
 
@@ -484,8 +488,7 @@ private fun SwipeCardDeck(
 		if (nextProfile != null) {
 			ProfileCard(
 				profile = nextProfile,
-				modifier = Modifier
-					.fillMaxSize()
+				modifier = cardModifier
 					.padding(horizontal = dim.extraSmall / 2)
 					.graphicsLayer {
 						alpha = visualState.nextCardAlpha
@@ -494,8 +497,7 @@ private fun SwipeCardDeck(
 		} else {
 			MatchingDeckPlaceholderCard(
 				message = stringResource(R.string.matching_empty_message),
-				modifier = Modifier
-					.fillMaxSize()
+				modifier = cardModifier
 					.padding(horizontal = dim.extraSmall / 2)
 					.graphicsLayer {
 						alpha = if (currentProfile != null) visualState.nextCardAlpha else 1f
@@ -507,8 +509,7 @@ private fun SwipeCardDeck(
 				profile = activeProfile,
 				onMoreClick = onMoreClick,
 				onClick = onProfileClick,
-				modifier = Modifier
-					.fillMaxSize()
+				modifier = cardModifier
 					.padding(horizontal = dim.extraSmall / 2)
 					.graphicsLayer {
 						translationX = offsetX
@@ -626,7 +627,9 @@ private fun SwipeCardDeck(
 				SwipeActionAffordance(
 					affordance = affordance,
 					progress = rawProgress,
-					modifier = affordanceOverlayModifier
+					modifier = cardModifier
+						.clip(shapes.largeRounded)
+						.then(affordanceOverlayModifier)
 				)
 			}
 		}
@@ -635,7 +638,9 @@ private fun SwipeCardDeck(
 			SwipeActionAffordance(
 				affordance = affordance,
 				progress = dismissedAffordanceProgress.value,
-				modifier = affordanceOverlayModifier
+				modifier = cardModifier
+					.clip(shapes.largeRounded)
+					.then(affordanceOverlayModifier)
 			)
 		}
 	}

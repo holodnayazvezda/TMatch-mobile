@@ -13,7 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.prod.ui.theme.LocalDimensions
 import com.tanishranjan.cropkit.CropDefaults
 import com.tanishranjan.cropkit.CropRatio
 import com.tanishranjan.cropkit.CropShape
@@ -47,6 +48,7 @@ import com.prod.ui.components.buttons.AppMediumButton
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
 import kotlin.math.roundToInt
+import androidx.core.graphics.scale
 
 enum class ProfileImageStyle {
 	Avatar,
@@ -64,6 +66,7 @@ fun SelectableProfileImage(
 	style: ProfileImageStyle = ProfileImageStyle.Avatar,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
 	val imageModifier = when (style) {
 		ProfileImageStyle.Avatar -> Modifier
 			.size(168.dp)
@@ -71,7 +74,7 @@ fun SelectableProfileImage(
 
 		ProfileImageStyle.DatingPhoto -> Modifier
 			.fillMaxWidth(0.62f)
-			.height(260.dp)
+			.aspectRatio(dim.profileCardAspectRatio)
 			.clip(RoundedCornerShape(28.dp))
 	}
 
@@ -319,11 +322,9 @@ private fun Bitmap.scaleDownIfNeeded(maxDimension: Int): Bitmap {
 	}
 
 	val scale = maxDimension.toFloat() / longestSide.toFloat()
-	val scaledBitmap = Bitmap.createScaledBitmap(
-		this,
+	val scaledBitmap = this.scale(
 		(width * scale).roundToInt().coerceAtLeast(1),
-		(height * scale).roundToInt().coerceAtLeast(1),
-		true
+		(height * scale).roundToInt().coerceAtLeast(1)
 	)
 
 	if (scaledBitmap !== this) {

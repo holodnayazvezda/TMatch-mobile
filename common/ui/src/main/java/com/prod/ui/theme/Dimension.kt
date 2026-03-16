@@ -1,4 +1,4 @@
-package com.prod.core.ui.theme
+package com.prod.ui.theme
 
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.unit.Dp
@@ -35,7 +35,8 @@ data class Dimensions(
 	val cardStackInset: Dp = 10.dp,
 	val cardStackVerticalInset: Dp = 18.dp,
 	val sheetHandleHeight: Dp = 5.dp,
-	val actionButtonHeight: Dp = 56.dp
+	val actionButtonHeight: Dp = 56.dp,
+	val profileCardAspectRatio: Float = 0.625f
 )
 
 val LocalDimensions = compositionLocalOf { Dimensions() }

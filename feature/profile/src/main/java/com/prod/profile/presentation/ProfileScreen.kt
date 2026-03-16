@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,11 +19,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -32,7 +29,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,7 +40,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -53,12 +48,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.compose.SubcomposeAsyncImage
-import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalDimensions
 import com.prod.profile.R
 import com.prod.ui.components.AppBottomScrimInfo
 import com.prod.ui.components.AppHeroCardFrame
 import com.prod.ui.components.AppHeroPagerIndicator
-import com.prod.ui.components.AppInfoChip
 import com.prod.ui.components.AppScreenTopBar
 import com.prod.ui.components.AppFactCard
 import com.prod.ui.components.AppSectionCard
@@ -238,8 +232,7 @@ private fun ProfileCardScene(
 		) {
 			Column(
 				modifier = Modifier
-					.fillMaxWidth()
-					.widthIn(max = 360.dp),
+					.fillMaxWidth(),
 				verticalArrangement = Arrangement.spacedBy(16.dp),
 				horizontalAlignment = Alignment.CenterHorizontally
 			) {
@@ -250,7 +243,7 @@ private fun ProfileCardScene(
 					isSubmitting = isSubmitting,
 					onClick = onChangePhotoClick,
 					modifier = contentCardModifier
-						.aspectRatio(0.74f)
+						.aspectRatio(dim.profileCardAspectRatio)
 				)
 
 				ProfileAboutSection(
@@ -330,26 +323,7 @@ internal fun ProfileAboutSection(
 		containerColor = MaterialTheme.colorScheme.surface
 	) {
 		Column(verticalArrangement = Arrangement.spacedBy(dim.small + dim.extraSmall / 2)) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.Top
-			) {
-				Column(
-					modifier = Modifier.weight(1f),
-					verticalArrangement = Arrangement.spacedBy(4.dp)
-				) {
-					AppSectionTitle(title = stringResource(R.string.profile_screen_details_title))
-				}
-				AppInfoChip(
-					text = stringResource(
-						R.string.profile_screen_photo_count,
-						profileCard.datingPhotoUrls.size.coerceAtLeast(1)
-					),
-					containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-					contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-				)
-			}
+			AppSectionTitle(title = stringResource(R.string.profile_screen_details_title))
 
 			FlowRow(
 				horizontalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),
@@ -398,11 +372,6 @@ private fun ProfilePhotoActionsSection(
 			AppBigButton(
 				buttonText = stringResource(R.string.profile_screen_change_photo_button),
 				isLoading = isSubmitting,
-				onClick = onChangePhotoClick
-			)
-			AppMediumButton(
-				buttonText = stringResource(R.string.profile_screen_change_photo_hint),
-				isLoading = false,
 				onClick = onChangePhotoClick
 			)
 		}
@@ -454,14 +423,6 @@ private fun StaticProfileCard(
 				style = MaterialTheme.typography.titleLarge,
 				color = extraColors.onBaseScrim,
 				fontWeight = FontWeight.SemiBold
-			)
-			AppInfoChip(
-				text = stringResource(
-					R.string.profile_screen_photo_count,
-					profileCard.datingPhotoUrls.size.coerceAtLeast(1)
-				),
-				containerColor = extraColors.accentGold,
-				contentColor = extraColors.onBaseScrim
 			)
 		}
 	}
