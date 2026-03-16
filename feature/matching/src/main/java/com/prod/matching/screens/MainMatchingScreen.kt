@@ -1,5 +1,10 @@
 package com.prod.matching.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -55,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -85,6 +91,7 @@ import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.abs
@@ -359,6 +366,20 @@ private fun MainMatchingContent(
 	val dim = LocalDimensions.current
 	val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 	val scope = rememberCoroutineScope()
+	var visibleError by remember { mutableStateOf<String?>(null) }
+
+	LaunchedEffect(error) {
+		if (error.isNullOrBlank()) {
+			visibleError = null
+			return@LaunchedEffect
+		}
+
+		visibleError = error
+		delay(2800)
+		if (visibleError == error) {
+			visibleError = null
+		}
+	}
 
 	Box(
 		modifier = modifier.fillMaxSize()
@@ -373,48 +394,65 @@ private fun MainMatchingContent(
 			return@Box
 		}
 
-		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(
-					start = dim.cardStackInset,
-					end = dim.cardStackInset,
-					bottom = dim.defaultSpacing
+			Column(
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(
+						start = dim.cardStackInset,
+						end = dim.cardStackInset,
+						bottom = dim.defaultSpacing
+					)
+			) {
+				MatchingHeader()
+				Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
+				SwipeCardDeck(
+					currentItem = controller.currentItem,
+					nextItem = controller.nextItem,
+					isLoadingMore = isLoadingMore,
+					onMoreClick = controller::onMoreClick,
+					onProfileClick = controller::onOpenCurrentProfile,
+					onSwiped = controller::onSwiped,
+					modifier = Modifier.weight(1f)
 				)
-		) {
-			MatchingHeader()
-			MatchingFeedSectionHeader(
-				currentItem = controller.currentItem
-			)
-			error?.let { errorText ->
+			}
+			AnimatedVisibility(
+				visible = visibleError != null,
+				modifier = Modifier
+					.align(Alignment.TopCenter)
+					.fillMaxWidth()
+					.padding(
+						start = dim.large,
+						end = dim.large,
+						top = dim.large + dim.defaultSpacing
+					),
+				enter = fadeIn(
+					animationSpec = tween(durationMillis = 180)
+				) + slideInVertically(
+					initialOffsetY = { -it / 2 },
+					animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
+				),
+				exit = fadeOut(
+					animationSpec = tween(durationMillis = 180)
+				) + slideOutVertically(
+					targetOffsetY = { -it / 3 },
+					animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+				)
+			) {
 				Surface(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(top = dim.small),
 					color = MaterialTheme.colorScheme.errorContainer,
 					contentColor = MaterialTheme.colorScheme.onErrorContainer,
-					shape = LocalShapes.current.mediumRounded
-					) {
-						Text(
-							text = errorText,
+					shape = LocalShapes.current.mediumRounded,
+					tonalElevation = 6.dp
+				) {
+					Text(
+						text = visibleError.orEmpty(),
 						modifier = Modifier.padding(dim.small),
 						style = MaterialTheme.typography.bodyMedium
 					)
 				}
 			}
-			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
-			SwipeCardDeck(
-				currentItem = controller.currentItem,
-				nextItem = controller.nextItem,
-				isLoadingMore = isLoadingMore,
-				onMoreClick = controller::onMoreClick,
-				onProfileClick = controller::onOpenCurrentProfile,
-				onSwiped = controller::onSwiped,
-				modifier = Modifier.weight(1f)
-			)
-		}
-		if (controller.isActionsSheetVisible) {
-			MatchingActionsBottomSheet(
+			if (controller.isActionsSheetVisible) {
+				MatchingActionsBottomSheet(
 				onDismiss = {
 					scope.launch {
 						sheetState.hide()
@@ -447,37 +485,6 @@ private fun MatchingHeader() {
 				)
 			}
 		}
-	)
-}
-
-@Composable
-private fun MatchingFeedSectionHeader(
-	currentItem: MatchingDeckItem?,
-	modifier: Modifier = Modifier
-) {
-	val dim = LocalDimensions.current
-	val text = when (currentItem) {
-		is Profile -> {
-			if (currentItem.isIncomingLike) {
-				stringResource(R.string.matching_incoming_likes_header)
-			} else {
-				null
-			}
-		}
-
-		is MatchingDeckItem.Transition -> null
-		null -> null
-	}
-
-	if (text == null) return
-
-	Text(
-		text = text,
-		modifier = modifier
-			.fillMaxWidth()
-			.padding(top = dim.small, start = dim.small, end = dim.small),
-		style = MaterialTheme.typography.titleSmall,
-		color = MaterialTheme.colorScheme.onSurfaceVariant
 	)
 }
 
@@ -800,6 +807,7 @@ private fun MatchingDeckPlaceholderCard(
 	val dim = LocalDimensions.current
 
 	AppHeroCardFrame(modifier = modifier) {
+		val contentColor = MaterialTheme.colorScheme.onBackground
 		Box(
 			modifier = Modifier
 				.fillMaxSize()
@@ -897,13 +905,36 @@ private fun ProfileCard(
 	val displayTitle = profile.age?.let {
 		stringResource(R.string.matching_profile_title_with_age, profile.name, it)
 	} ?: profile.name
+	val incomingLikeTransition = rememberInfiniteTransition(label = "incomingLikeCard")
+	val incomingLikeGlow = incomingLikeTransition.animateFloat(
+		initialValue = 0f,
+		targetValue = 1f,
+		animationSpec = infiniteRepeatable(
+			animation = tween(
+				durationMillis = 1400,
+				easing = FastOutSlowInEasing
+			),
+			repeatMode = RepeatMode.Reverse
+		),
+		label = "incomingLikeGlow"
+	)
+	val animatedFrameColor = if (profile.isIncomingLike) {
+		lerp(
+			start = Color.White,
+			stop = extraColors.accentGold.copy(alpha = 0.82f),
+			fraction = incomingLikeGlow.value * 0.55f
+		)
+	} else {
+		Color.White
+	}
 
 	AppHeroCardFrame(
 		modifier = if (onClick != null) {
 			modifier.clickable(onClick = onClick)
 		} else {
 			modifier
-		}
+		},
+		containerColor = animatedFrameColor
 	) {
 		AsyncImage(
 			model = profile.imageUrl,
@@ -953,6 +984,7 @@ private fun RecommendationsTransitionCard(
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
+	val contentColor = MaterialTheme.colorScheme.onBackground
 	val arrowTransition = rememberInfiniteTransition(label = "transitionArrow")
 	val arrowOffsetY = arrowTransition.animateFloat(
 		initialValue = 0f,
@@ -1001,25 +1033,25 @@ private fun RecommendationsTransitionCard(
 							alpha = arrowAlpha.value
 							rotationZ = 180f
 						},
-					tint = MaterialTheme.colorScheme.onTertiaryContainer
+					tint = contentColor
 				)
 				Text(
 					text = stringResource(R.string.matching_transition_title),
 					textAlign = TextAlign.Center,
 					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onTertiaryContainer
+					color = contentColor
 				)
 				Text(
 					text = stringResource(R.string.matching_transition_message),
 					textAlign = TextAlign.Center,
 					style = MaterialTheme.typography.bodyLarge,
-					color = MaterialTheme.colorScheme.onTertiaryContainer
+					color = contentColor
 				)
 				Text(
 					text = stringResource(R.string.matching_transition_cta),
 					textAlign = TextAlign.Center,
 					style = MaterialTheme.typography.titleSmall,
-					color = MaterialTheme.colorScheme.onTertiaryContainer
+					color = contentColor
 				)
 			}
 		}

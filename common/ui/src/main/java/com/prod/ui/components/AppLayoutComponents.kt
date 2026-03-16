@@ -282,6 +282,7 @@ fun AppOverlayIconBadge(
 @Composable
 fun AppHeroCardFrame(
 	modifier: Modifier = Modifier,
+	containerColor: Color = Color.White,
 	content: @Composable BoxScope.() -> Unit
 ) {
 	val dim = LocalDimensions.current
@@ -291,7 +292,7 @@ fun AppHeroCardFrame(
 	Surface(
 		modifier = modifier,
 		shape = shapes.largeRounded,
-		color = Color.White
+		color = containerColor
 	) {
 		Box(
 			modifier = Modifier
