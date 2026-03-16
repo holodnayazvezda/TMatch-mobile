@@ -3,6 +3,8 @@ package com.prod.tmatch_api.common.data.network
 import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.common.api.model.SERVICE_UNAVAILABLE_USER_MESSAGE
+import com.prod.common.api.model.sanitizeUserFacingApiMessage
 import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
@@ -17,7 +19,7 @@ internal class KtorGatewaySupport(
 	private val authSessionStore: AuthSessionStore
 ) {
 	private fun ApiErrorDto?.resolvedMessage(): String? {
-		return this?.detail ?: this?.message
+		return (this?.detail ?: this?.message).sanitizeUserFacingApiMessage()
 	}
 
 	fun mapErrorResponse(
@@ -71,9 +73,14 @@ internal class KtorGatewaySupport(
 				) {
 					ApiOperationResult.NoInternet
 				} else {
+					val sanitizedMessage = exception.message.sanitizeUserFacingApiMessage()
 					ApiOperationResult.ApiError(
-						reason = ApiErrorReason.RequestFailed,
-						message = exception.message?.takeIf { it.isNotBlank() }
+						reason = if (sanitizedMessage == SERVICE_UNAVAILABLE_USER_MESSAGE) {
+							ApiErrorReason.ServiceUnavailable
+						} else {
+							ApiErrorReason.RequestFailed
+						},
+						message = sanitizedMessage
 					)
 				}
 			}

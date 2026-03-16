@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.common.api.model.sanitizeUserFacingApiMessage
 import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.domain.model.MatchAction
 import com.prod.matching.domain.model.PendingMatchAction
@@ -308,6 +309,6 @@ class MainMatchingViewModel(
 	private fun String?.orDefaultErrorMessage(
 		fallback: String = "Произошла ошибка"
 	): String {
-		return this?.takeIf { it.isNotBlank() } ?: fallback
+		return sanitizeUserFacingApiMessage() ?: fallback
 	}
 }

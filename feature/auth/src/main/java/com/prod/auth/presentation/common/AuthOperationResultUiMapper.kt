@@ -3,19 +3,20 @@ package com.prod.auth.presentation.common
 import com.prod.auth.R
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.common.api.model.sanitizeUserFacingApiMessage
 
 class AuthOperationResultUiMapper {
 
 	fun mapValidationError(error: ApiOperationResult.ValidationError): UiText {
 		return error.message
-			?.takeIf { it.isNotBlank() }
+			.sanitizeUserFacingApiMessage()
 			?.let(UiText::DynamicString)
 			?: UiText.StringResource(R.string.auth_error_invalid_input)
 	}
 
 	fun mapApiError(error: ApiOperationResult.ApiError): UiText {
 		error.message
-			?.takeIf { it.isNotBlank() }
+			.sanitizeUserFacingApiMessage()
 			?.let(UiText::DynamicString)
 			?.let { return it }
 

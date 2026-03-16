@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.common.api.model.sanitizeUserFacingApiMessage
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
 import com.prod.profile.domain.usecase.GetOwnAccountProfileUseCase
@@ -280,7 +281,7 @@ class ProfileViewModel(
 	private fun String?.orDefaultErrorMessage(
 		fallback: String = "Произошла ошибка"
 	): String {
-		return this?.takeIf { it.isNotBlank() } ?: fallback
+		return sanitizeUserFacingApiMessage() ?: fallback
 	}
 
 	private fun Profile.toProfileCardUiState(
