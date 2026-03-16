@@ -33,6 +33,7 @@ import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.navigation.matchingGraph
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.navigation.ProfileNavKey
+import com.prod.profile.navigation.UserProfileNavKey
 import com.prod.profile.navigation.profileGraph
 import com.prod.t_match.debug.DebugNetworkOverridesNavKey
 import com.prod.t_match.debug.DebugNetworkOverridesScreen
@@ -143,6 +144,11 @@ fun TMatchApp() {
 						state = authGraphState
 					)
 					profileGraph(
+						onBack = {
+							if (backStack.size > 1) {
+								backStack.removeLastOrNull()
+							}
+						},
 						onUnauthorized = authGraphState::onUnauthorized,
 						onProfileMissing = authGraphState::onProfileMissing,
 						onLogout = authGraphState::onLogout,
@@ -150,7 +156,15 @@ fun TMatchApp() {
 					)
 					matchingGraph(
 						onUnauthorized = authGraphState::onUnauthorized,
-						onRequestNoInternet = authGraphState::onRequestNoInternet
+						onRequestNoInternet = authGraphState::onRequestNoInternet,
+						onOpenProfile = { userId ->
+							backStack.add(
+								UserProfileNavKey(
+									userId = userId,
+									source = "matching_card"
+								)
+							)
+						}
 					)
 					chatsGraph()
 					entry<DebugNetworkOverridesNavKey> {

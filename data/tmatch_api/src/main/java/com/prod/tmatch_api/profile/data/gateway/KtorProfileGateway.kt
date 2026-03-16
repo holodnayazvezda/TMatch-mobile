@@ -15,6 +15,10 @@ import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
 import com.prod.profile.domain.model.DatingTrait
 import com.prod.profile.domain.model.OwnCard
+import com.prod.profile.domain.model.UserCard
+import com.prod.profile.domain.model.UserCardDatingProfile
+import com.prod.profile.domain.model.UserCardDatingTrait
+import com.prod.profile.domain.model.UserCardProfile
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
@@ -46,6 +50,28 @@ class KtorProfileGateway(
 
 			if (response.status.isSuccess()) {
 				ApiOperationResult.Success(response.body<OwnCardDto>().toDomain())
+			} else {
+				gatewaySupport.mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			gatewaySupport.handleException(exception)
+		}
+	}
+
+	override suspend fun getUserCard(userId: String): ApiOperationResult<UserCard> {
+		return try {
+			val response = httpClient.get("/profile/card/$userId") {
+				accept(ContentType.Application.Json)
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
+			}
+
+			if (response.status.isSuccess()) {
+				ApiOperationResult.Success(response.body<OwnCardDto>().toUserCard())
 			} else {
 				gatewaySupport.mapErrorResponse(
 					status = response.status,
@@ -154,10 +180,44 @@ class KtorProfileGateway(
 		)
 	}
 
+	private fun OwnCardDto.toUserCard(): UserCard {
+		return UserCard(
+			userId = userId,
+			profile = profile?.toDomain(),
+			datingProfile = datingProfile?.toDomain()
+		)
+	}
+
 	private fun DatingTraitDto.toDomain(): DatingTrait {
 		return DatingTrait(
 			traitCode = traitCode,
 			score = score,
+			isHidden = isHidden
+		)
+	}
+
+	private fun com.prod.tmatch_api.profile.data.dto.CardProfileDto.toDomain(): UserCardProfile {
+		return UserCardProfile(
+			firstName = firstName,
+			lastName = lastName,
+			birthDate = birthDate,
+			gender = gender,
+			region = region,
+			avatarUrl = avatarUrl
+		)
+	}
+
+	private fun com.prod.tmatch_api.profile.data.dto.CardDatingProfileDto.toDomain(): UserCardDatingProfile {
+		return UserCardDatingProfile(
+			photos = photos,
+			traits = traits.map { it.toDomain() }
+		)
+	}
+
+	private fun com.prod.tmatch_api.profile.data.dto.CardDatingTraitDto.toDomain(): UserCardDatingTrait {
+		return UserCardDatingTrait(
+			traitCode = traitCode,
+			score = score.toFloat(),
 			isHidden = isHidden
 		)
 	}

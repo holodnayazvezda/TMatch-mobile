@@ -250,6 +250,7 @@ fun MainMatchingScreen(
 	modifier: Modifier = Modifier,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	onOpenProfile: (userId: String) -> Unit,
 	viewModel: MainMatchingViewModel = koinViewModel()
 ) {
 	LaunchedEffect(viewModel, onUnauthorized, onRequestNoInternet) {
@@ -280,6 +281,11 @@ fun MainMatchingScreen(
 		override fun onDismissSheet() {
 			viewModel.onDismissSheet()
 		}
+
+		override fun onOpenCurrentProfile() {
+			viewModel.onDismissSheet()
+			uiState.currentProfile?.let { onOpenProfile(it.id) }
+		}
 	}
 
 	MainMatchingContent(
@@ -300,6 +306,7 @@ private interface MainMatchingContentController {
 	fun onMoreClick()
 	fun onSwiped(direction: SwipeDirection)
 	fun onDismissSheet()
+	fun onOpenCurrentProfile()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -356,6 +363,7 @@ private fun MainMatchingContent(
 				nextProfile = controller.nextProfile,
 				isLoadingMore = isLoadingMore,
 				onMoreClick = controller::onMoreClick,
+				onProfileClick = controller::onOpenCurrentProfile,
 				onSwiped = controller::onSwiped,
 				modifier = Modifier.weight(1f)
 			)
@@ -368,6 +376,7 @@ private fun MainMatchingContent(
 						controller.onDismissSheet()
 					}
 				},
+				onOpenProfile = controller::onOpenCurrentProfile,
 				sheetState = sheetState
 			)
 		}
@@ -406,6 +415,7 @@ private fun SwipeCardDeck(
 	nextProfile: MatchProfile?,
 	isLoadingMore: Boolean,
 	onMoreClick: () -> Unit,
+	onProfileClick: () -> Unit,
 	onSwiped: (SwipeDirection) -> Unit,
 	modifier: Modifier = Modifier
 ) {
@@ -473,6 +483,7 @@ private fun SwipeCardDeck(
 			ProfileCard(
 				profile = activeProfile,
 				onMoreClick = onMoreClick,
+				onClick = onProfileClick,
 				modifier = Modifier
 					.fillMaxSize()
 					.padding(horizontal = dim.extraSmall / 2)
@@ -708,6 +719,7 @@ private fun SwipeActionAffordance(
 private fun ProfileCard(
 	profile: MatchProfile,
 	modifier: Modifier = Modifier,
+	onClick: (() -> Unit)? = null,
 	onMoreClick: (() -> Unit)? = null
 ) {
 	val dim = LocalDimensions.current
@@ -718,7 +730,11 @@ private fun ProfileCard(
 	val innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
 
 	CardFrame(
-		modifier = modifier,
+		modifier = if (onClick != null) {
+			modifier.clickable(onClick = onClick)
+		} else {
+			modifier
+		},
 		outerShape = outerShape,
 		innerShape = innerShape
 	) {
@@ -778,6 +794,7 @@ private fun ProfileCard(
 @Composable
 private fun MatchingActionsBottomSheet(
 	onDismiss: () -> Unit,
+	onOpenProfile: () -> Unit,
 	sheetState: SheetState
 ) {
 	val dim = LocalDimensions.current
@@ -798,7 +815,7 @@ private fun MatchingActionsBottomSheet(
 			BottomSheetHandle()
 			ActionSheetButton(
 				text = "Открыть профиль",
-				onClick = onDismiss,
+				onClick = onOpenProfile,
 				accent = colors.primaryContainer,
 				onAccent = colors.onPrimaryContainer
 			)
@@ -967,6 +984,10 @@ private fun MainMatchingScreenPreview() {
 		}
 
 		override fun onDismissSheet() {
+			isActionsSheetVisible = false
+		}
+
+		override fun onOpenCurrentProfile() {
 			isActionsSheetVisible = false
 		}
 	}

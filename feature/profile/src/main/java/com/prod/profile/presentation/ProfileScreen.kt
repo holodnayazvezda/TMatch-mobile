@@ -302,7 +302,7 @@ private fun ProfileHeader(
 	}
 
 @Composable
-private fun ProfileAccountInfo(
+internal fun ProfileAccountInfo(
 	profileCard: ProfileCardUiState,
 	modifier: Modifier = Modifier
 ) {
@@ -536,7 +536,7 @@ private fun BoxScope.ScrimInfoBlock(content: @Composable ColumnScope.() -> Unit)
 }
 
 @Composable
-private fun ProfileLoadingError(
+internal fun ProfileLoadingError(
 	message: String,
 	onRetry: () -> Unit,
 	modifier: Modifier = Modifier

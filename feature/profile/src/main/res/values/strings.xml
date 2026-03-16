@@ -16,4 +16,8 @@
     <string name="profile_screen_crop_apply">Применить</string>
     <string name="profile_screen_empty_photo_prompt">Загрузите фото для анкеты</string>
     <string name="profile_screen_uploading_photo">Загружаем фото...</string>
+    <string name="user_profile_title">Профиль</string>
+    <string name="user_profile_back_button">Назад</string>
+    <string name="user_profile_traits_title">Интересы и черты</string>
+    <string name="user_profile_photo_placeholder">Фото недоступно</string>
 </resources>

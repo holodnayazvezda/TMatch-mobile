@@ -616,6 +616,13 @@ private val debugEndpointDefinitions = listOf(
 		defaultBody = """{"user_id":"debug-user","first_name":"Max","last_name":"Ivanov","birth_date":"1995-01-01","gender":"male","region":"Moscow","avatar_url":"$DefaultMockImageUrl"}"""
 	),
 	DebugEndpointDefinition(
+		title = "Get User Card",
+		method = HttpMethod.Get,
+		path = "/profile/card/{user_id}",
+		defaultStatusCode = 200,
+		defaultBody = """{"user_id":"candidate-1","profile":{"first_name":"Anna","last_name":"Smirnova","birth_date":"1997-04-03","gender":"female","region":"Saint Petersburg","avatar_url":"$DefaultMockImageUrl"},"dating_profile":{"photos":["$DefaultMockImageUrl","$DefaultMockImageUrl"],"traits":[{"trait_code":"kind","score":0.93,"is_hidden":false},{"trait_code":"active_lifestyle","score":0.81,"is_hidden":false}]}}"""
+	),
+	DebugEndpointDefinition(
 		title = "Upsert Own Profile",
 		method = HttpMethod.Put,
 		path = "/profile",

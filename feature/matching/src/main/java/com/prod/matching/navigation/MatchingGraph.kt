@@ -10,12 +10,14 @@ import org.koin.androidx.compose.koinViewModel
 
 fun EntryProviderScope<Any>.matchingGraph(
 	onUnauthorized: () -> Unit,
-	onRequestNoInternet: (retryAction: () -> Unit) -> Unit
+	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	onOpenProfile: (userId: String) -> Unit
 ) {
 	entry<MatchingNavKey> {
 		MatchingScreen(
 			onUnauthorized = onUnauthorized,
-			onRequestNoInternet = onRequestNoInternet
+			onRequestNoInternet = onRequestNoInternet,
+			onOpenProfile = onOpenProfile
 		)
 	}
 }
@@ -23,12 +25,14 @@ fun EntryProviderScope<Any>.matchingGraph(
 @Composable
 private fun MatchingScreen(
 	onUnauthorized: () -> Unit,
-	onRequestNoInternet: (retryAction: () -> Unit) -> Unit
+	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
+	onOpenProfile: (userId: String) -> Unit
 ) {
 	Box(modifier = Modifier) {
 		MainMatchingScreen(
 			onUnauthorized = onUnauthorized,
 			onRequestNoInternet = onRequestNoInternet,
+			onOpenProfile = onOpenProfile,
 			viewModel = koinViewModel()
 		)
 	}
