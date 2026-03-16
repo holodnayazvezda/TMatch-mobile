@@ -5,6 +5,7 @@ import com.prod.auth.navigation.OnboardingNavKey
 import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
+import com.prod.match.navigation.MatchingNavKey
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.navigation.ProfileNavKey
 
@@ -29,7 +30,11 @@ class AppStartDestinationResolver(
 				authSessionStore.setProfileCompleted(isProfileCompleted)
 				authSessionStore.setHasDatingProfile(hasDatingProfile)
 				if (isProfileCompleted) {
-					ProfileNavKey(source = "startup_resolver")
+					if (hasDatingProfile) {
+						MatchingNavKey(source = "startup_resolver")
+					} else {
+						ProfileNavKey(source = "startup_resolver")
+					}
 				} else {
 					authSessionStore.setHasDatingProfile(false)
 					ProfileSetupNavKey()
@@ -52,7 +57,11 @@ class AppStartDestinationResolver(
 
 	private fun fallbackDestination(): Any {
 		return if (authSessionStore.isProfileCompleted()) {
-			ProfileNavKey(source = "startup_fallback")
+			if (authSessionStore.hasDatingProfile()) {
+				MatchingNavKey(source = "startup_fallback")
+			} else {
+				ProfileNavKey(source = "startup_fallback")
+			}
 		} else {
 			authSessionStore.setHasDatingProfile(false)
 			ProfileSetupNavKey()

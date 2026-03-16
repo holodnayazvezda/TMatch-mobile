@@ -6,6 +6,7 @@ import com.prod.auth.navigation.ProfileSetupNavKey
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
+import com.prod.match.navigation.MatchingNavKey
 import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
@@ -62,7 +63,7 @@ class AppStartDestinationResolverTest {
 	}
 
 	@Test
-	fun `returns profile when account and dating profiles both exist`() = runBlocking {
+	fun `returns matching when account and dating profiles both exist`() = runBlocking {
 		val sessionStore = FakeAuthSessionStore().apply {
 			save(UserSession(accessToken = "token", userId = "user"))
 			setProfileCompleted(false)
@@ -83,7 +84,7 @@ class AppStartDestinationResolverTest {
 
 		val destination = resolver.resolve()
 
-		assertEquals(ProfileNavKey(source = "startup_resolver"), destination)
+		assertEquals(MatchingNavKey(source = "startup_resolver"), destination)
 		assertTrue(sessionStore.isProfileCompleted())
 		assertTrue(sessionStore.hasDatingProfile())
 	}
@@ -116,10 +117,11 @@ class AppStartDestinationResolverTest {
 	}
 
 	@Test
-	fun `falls back to cached profile state when network is unavailable`() = runBlocking {
+	fun `falls back to cached matching when network is unavailable and dating profile exists`() = runBlocking {
 		val sessionStore = FakeAuthSessionStore().apply {
 			save(UserSession(accessToken = "token", userId = "user"))
 			setProfileCompleted(true)
+			setHasDatingProfile(true)
 		}
 		val resolver = AppStartDestinationResolver(
 			authSessionStore = sessionStore,
@@ -131,7 +133,7 @@ class AppStartDestinationResolverTest {
 
 		val destination = resolver.resolve()
 
-		assertEquals(ProfileNavKey(source = "startup_fallback"), destination)
+		assertEquals(MatchingNavKey(source = "startup_fallback"), destination)
 	}
 
 	@Test

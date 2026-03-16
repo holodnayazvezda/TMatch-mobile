@@ -7,8 +7,8 @@
     <string name="push_notification_fallback_body">Откройте приложение, чтобы посмотреть детали</string>
     <string name="main_tab_profile">Профиль</string>
     <string name="main_tab_profile_short">П</string>
-    <string name="main_tab_matching">Мэтчинг</string>
-    <string name="main_tab_matching_short">М</string>
+    <string name="main_tab_matching">Лента</string>
+    <string name="main_tab_matching_short">Л</string>
     <string name="main_tab_chats">Чаты</string>
     <string name="main_tab_chats_short">Ч</string>
 </resources>
