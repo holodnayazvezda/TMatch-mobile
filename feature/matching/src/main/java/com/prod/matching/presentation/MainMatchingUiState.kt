@@ -1,18 +1,25 @@
 package com.prod.matching.presentation
 
-import com.prod.matching.model.MatchProfile
+import com.prod.matching.model.MatchingDeckItem
+import com.prod.matching.model.MatchingDeckItem.Profile
 
 data class MainMatchingUiState(
 	val isLoading: Boolean = false,
 	val isLoadingMore: Boolean = false,
 	val error: String? = null,
-	val profiles: List<MatchProfile> = emptyList(),
+	val items: List<MatchingDeckItem> = emptyList(),
 	val currentIndex: Int = 0,
 	val isActionsSheetVisible: Boolean = false
 ) {
-	val currentProfile: MatchProfile?
-		get() = profiles.getOrNull(currentIndex)
+	val currentItem: MatchingDeckItem?
+		get() = items.getOrNull(currentIndex)
 
-	val nextProfile: MatchProfile?
-		get() = profiles.getOrNull(currentIndex + 1)
+	val nextItem: MatchingDeckItem?
+		get() = items.getOrNull(currentIndex + 1)
+
+	val currentProfile: Profile?
+		get() = currentItem as? Profile
+
+	val nextProfile: Profile?
+		get() = nextItem as? Profile
 }

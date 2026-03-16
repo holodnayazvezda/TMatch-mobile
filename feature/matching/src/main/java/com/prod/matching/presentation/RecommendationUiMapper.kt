@@ -4,7 +4,7 @@ import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.match.domain.model.IncomingLike
 import com.prod.match.domain.model.Recommendation
 import com.prod.match.domain.model.RecommendationCandidateProfile
-import com.prod.matching.model.MatchProfile
+import com.prod.matching.model.MatchingDeckItem.Profile
 import java.time.LocalDate
 import java.time.Period
 
@@ -14,10 +14,10 @@ class RecommendationUiMapper {
 		description = "Этот пользователь уже лайкнул вас и ждёт вашего ответа."
 	)
 
-	fun mapIncomingLikes(items: List<IncomingLike>): List<MatchProfile> {
+	fun mapIncomingLikes(items: List<IncomingLike>): List<Profile> {
 		return items.map { incomingLike ->
 			val profile = incomingLike.candidateCard?.profile
-			MatchProfile(
+			Profile(
 				id = incomingLike.likerUserId,
 				name = profile.toDisplayName(
 					fallback = "Пользователь ${incomingLike.likerUserId.take(8)}"
@@ -31,10 +31,10 @@ class RecommendationUiMapper {
 		}
 	}
 
-	fun mapRecommendations(items: List<Recommendation>): List<MatchProfile> {
+	fun mapRecommendations(items: List<Recommendation>): List<Profile> {
 		return items.map { recommendation ->
 			val profile = recommendation.candidateCard?.profile
-			MatchProfile(
+			Profile(
 				id = recommendation.candidateUserId,
 				name = profile.toDisplayName(
 					fallback = "Пользователь ${recommendation.candidateUserId.take(8)}"

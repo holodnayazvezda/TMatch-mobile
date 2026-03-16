@@ -2,7 +2,11 @@ package com.prod.matching.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -67,7 +71,8 @@ import com.prod.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.matching.R
 import com.prod.matching.domain.model.MatchAction
-import com.prod.matching.model.MatchProfile
+import com.prod.matching.model.MatchingDeckItem
+import com.prod.matching.model.MatchingDeckItem.Profile
 import com.prod.matching.presentation.MainMatchingViewModel
 import com.prod.ui.R as UiR
 import com.prod.ui.components.AppBottomScrimInfo
@@ -133,19 +138,24 @@ private const val SwipeAffordanceFadeOutDurationMillis = 180
 private fun buildSwipeDeckVisualState(
 	offsetX: Float,
 	offsetY: Float,
-	deckHeight: Int
+	deckHeight: Int,
+	allowedDirections: Set<SwipeDirection>
 ): SwipeDeckVisualState {
 	val verticalDismissOffset = deckHeight.toFloat() + SwipeOffscreenMargin
 	val swipeDistance = maxOf(abs(offsetX), abs(offsetY))
 	val swipeProgress = (swipeDistance / SwipeDismissOffset).coerceIn(0f, 1f)
 	val upSwipeProgress = (-offsetY / SwipeDismissOffset).coerceIn(0f, 1f)
 
-	return SwipeDeckVisualState(
-		verticalDismissOffset = verticalDismissOffset,
-		activeDirection = resolveActiveSwipeDirection(offsetX = offsetX, offsetY = offsetY),
-		swipeProgress = swipeProgress,
-		upSwipeProgress = upSwipeProgress,
-		nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress,
+		return SwipeDeckVisualState(
+			verticalDismissOffset = verticalDismissOffset,
+			activeDirection = resolveActiveSwipeDirection(
+				offsetX = offsetX,
+				offsetY = offsetY,
+				allowedDirections = allowedDirections
+			),
+			swipeProgress = swipeProgress,
+			upSwipeProgress = upSwipeProgress,
+			nextCardAlpha = NextCardMinAlpha + (1f - NextCardMinAlpha) * swipeProgress,
 		currentCardScale = 1f - UpSwipeScaleDelta * upSwipeProgress,
 		currentCardAlpha = 1f - UpSwipeAlphaDelta * upSwipeProgress
 	)
@@ -153,21 +163,28 @@ private fun buildSwipeDeckVisualState(
 
 private fun resolveActiveSwipeDirection(
 	offsetX: Float,
-	offsetY: Float
+	offsetY: Float,
+	allowedDirections: Set<SwipeDirection>
 ): SwipeDirection? = when {
-	offsetY < 0f && abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
-	offsetX > 0f -> SwipeDirection.Right
-	offsetX < 0f -> SwipeDirection.Left
+	SwipeDirection.Up in allowedDirections &&
+		offsetY < 0f &&
+		abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
+	SwipeDirection.Right in allowedDirections && offsetX > 0f -> SwipeDirection.Right
+	SwipeDirection.Left in allowedDirections && offsetX < 0f -> SwipeDirection.Left
 	else -> null
 }
 
 private fun resolveDismissDirection(
 	offsetX: Float,
-	offsetY: Float
+	offsetY: Float,
+	allowedDirections: Set<SwipeDirection>
 ): SwipeDirection? = when {
-	abs(offsetY) > SwipeDismissThreshold && abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
-	abs(offsetX) > SwipeDismissThreshold ->
-		if (offsetX >= 0f) SwipeDirection.Right else SwipeDirection.Left
+	SwipeDirection.Up in allowedDirections &&
+		abs(offsetY) > SwipeDismissThreshold &&
+		abs(offsetY) > abs(offsetX) -> SwipeDirection.Up
+	(SwipeDirection.Left in allowedDirections || SwipeDirection.Right in allowedDirections) &&
+		abs(offsetX) > SwipeDismissThreshold ->
+			if (offsetX >= 0f) SwipeDirection.Right else SwipeDirection.Left
 
 	else -> null
 }
@@ -259,7 +276,7 @@ fun MainMatchingScreen(
 	modifier: Modifier = Modifier,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
-	onOpenProfile: (profile: MatchProfile) -> Unit,
+	onOpenProfile: (profile: Profile) -> Unit,
 	onProfileActionHandlerReady: ((userId: String, action: UserProfileFeedAction) -> Unit) -> Unit,
 	viewModel: MainMatchingViewModel = koinViewModel()
 ) {
@@ -283,8 +300,8 @@ fun MainMatchingScreen(
 
 	val uiState = viewModel.uiState
 	val controller = object : MainMatchingContentController {
-		override val currentProfile: MatchProfile? = uiState.currentProfile
-		override val nextProfile: MatchProfile? = uiState.nextProfile
+		override val currentItem: MatchingDeckItem? = uiState.currentItem
+		override val nextItem: MatchingDeckItem? = uiState.nextItem
 		override val isActionsSheetVisible: Boolean = uiState.isActionsSheetVisible
 
 		override fun onMoreClick() {
@@ -320,8 +337,8 @@ fun MainMatchingScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 private interface MainMatchingContentController {
-	val currentProfile: MatchProfile?
-	val nextProfile: MatchProfile?
+	val currentItem: MatchingDeckItem?
+	val nextItem: MatchingDeckItem?
 	val isActionsSheetVisible: Boolean
 
 	fun onMoreClick()
@@ -366,6 +383,9 @@ private fun MainMatchingContent(
 				)
 		) {
 			MatchingHeader()
+			MatchingFeedSectionHeader(
+				currentItem = controller.currentItem
+			)
 			error?.let { errorText ->
 				Surface(
 					modifier = Modifier
@@ -384,8 +404,8 @@ private fun MainMatchingContent(
 			}
 			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
 			SwipeCardDeck(
-				currentProfile = controller.currentProfile,
-				nextProfile = controller.nextProfile,
+				currentItem = controller.currentItem,
+				nextItem = controller.nextItem,
 				isLoadingMore = isLoadingMore,
 				onMoreClick = controller::onMoreClick,
 				onProfileClick = controller::onOpenCurrentProfile,
@@ -431,9 +451,40 @@ private fun MatchingHeader() {
 }
 
 @Composable
+private fun MatchingFeedSectionHeader(
+	currentItem: MatchingDeckItem?,
+	modifier: Modifier = Modifier
+) {
+	val dim = LocalDimensions.current
+	val text = when (currentItem) {
+		is Profile -> {
+			if (currentItem.isIncomingLike) {
+				stringResource(R.string.matching_incoming_likes_header)
+			} else {
+				null
+			}
+		}
+
+		is MatchingDeckItem.Transition -> null
+		null -> null
+	}
+
+	if (text == null) return
+
+	Text(
+		text = text,
+		modifier = modifier
+			.fillMaxWidth()
+			.padding(top = dim.small, start = dim.small, end = dim.small),
+		style = MaterialTheme.typography.titleSmall,
+		color = MaterialTheme.colorScheme.onSurfaceVariant
+	)
+}
+
+@Composable
 private fun SwipeCardDeck(
-	currentProfile: MatchProfile?,
-	nextProfile: MatchProfile?,
+	currentItem: MatchingDeckItem?,
+	nextItem: MatchingDeckItem?,
 	isLoadingMore: Boolean,
 	onMoreClick: () -> Unit,
 	onProfileClick: () -> Unit,
@@ -442,12 +493,20 @@ private fun SwipeCardDeck(
 ) {
 	val dim = LocalDimensions.current
 	val shapes = LocalShapes.current
-	var offsetX by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
-	var offsetY by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
-	var rotation by remember(currentProfile?.id) { mutableFloatStateOf(0f) }
+	val currentProfile = currentItem as? Profile
+	val nextProfile = nextItem as? Profile
+	var offsetX by remember(currentItem) { mutableFloatStateOf(0f) }
+	var offsetY by remember(currentItem) { mutableFloatStateOf(0f) }
+	var rotation by remember(currentItem) { mutableFloatStateOf(0f) }
 	var deckHeight by remember { mutableIntStateOf(0) }
 	val scope = rememberCoroutineScope()
 	val colors = MaterialTheme.colorScheme
+	val allowedSwipeDirections = remember(currentItem) {
+		when (currentItem) {
+			is MatchingDeckItem.Transition -> setOf(SwipeDirection.Up)
+			else -> SwipeDirection.entries.toSet()
+		}
+	}
 	val resetSpec = remember {
 		tween<Float>(
 			durationMillis = SwipeDismissDurationMillis,
@@ -478,24 +537,38 @@ private fun SwipeCardDeck(
 			.fillMaxWidth()
 			.onSizeChanged { deckHeight = it.height },
 		contentAlignment = Alignment.Center
-	) {
-		val visualState = buildSwipeDeckVisualState(
-			offsetX = offsetX,
-			offsetY = offsetY,
-			deckHeight = deckHeight
-		)
+		) {
+			val visualState = buildSwipeDeckVisualState(
+				offsetX = offsetX,
+				offsetY = offsetY,
+				deckHeight = deckHeight,
+				allowedDirections = allowedSwipeDirections
+			)
 
-		if (nextProfile != null) {
-			ProfileCard(
-				profile = nextProfile,
+			when (nextItem) {
+				is Profile -> {
+				ProfileCard(
+					profile = nextItem,
 				modifier = cardModifier
 					.padding(horizontal = dim.extraSmall / 2)
 					.graphicsLayer {
 						alpha = visualState.nextCardAlpha
 					}
 			)
-		} else {
-			MatchingDeckPlaceholderCard(
+			}
+
+				is MatchingDeckItem.Transition -> {
+					RecommendationsTransitionCard(
+						modifier = cardModifier
+							.padding(horizontal = dim.extraSmall / 2)
+							.graphicsLayer {
+								alpha = visualState.nextCardAlpha
+							}
+					)
+				}
+
+				null -> {
+				MatchingDeckPlaceholderCard(
 				message = stringResource(R.string.matching_empty_message),
 				modifier = cardModifier
 					.padding(horizontal = dim.extraSmall / 2)
@@ -503,23 +576,25 @@ private fun SwipeCardDeck(
 						alpha = if (currentProfile != null) visualState.nextCardAlpha else 1f
 					}
 			)
+			}
 		}
-		currentProfile?.let { activeProfile ->
-			ProfileCard(
-				profile = activeProfile,
-				onMoreClick = onMoreClick,
-				onClick = onProfileClick,
-				modifier = cardModifier
-					.padding(horizontal = dim.extraSmall / 2)
-					.graphicsLayer {
-						translationX = offsetX
-						translationY = offsetY
-						rotationZ = rotation
-						scaleX = visualState.currentCardScale
-						scaleY = visualState.currentCardScale
-						alpha = visualState.currentCardAlpha
-					}
-					.pointerInput(activeProfile.id) {
+		when (val activeItem = currentItem) {
+			is Profile -> {
+				ProfileCard(
+					profile = activeItem,
+					onMoreClick = onMoreClick,
+					onClick = onProfileClick,
+					modifier = cardModifier
+						.padding(horizontal = dim.extraSmall / 2)
+						.graphicsLayer {
+							translationX = offsetX
+							translationY = offsetY
+							rotationZ = rotation
+							scaleX = visualState.currentCardScale
+							scaleY = visualState.currentCardScale
+							alpha = visualState.currentCardAlpha
+						}
+						.pointerInput(activeItem.id) {
 						detectDragGestures(
 							onDrag = { change, dragAmount ->
 								change.consume()
@@ -532,10 +607,11 @@ private fun SwipeCardDeck(
 								val targetX = offsetX
 								val targetY = offsetY
 								val targetRotation = rotation
-								val direction = resolveDismissDirection(
-									offsetX = targetX,
-									offsetY = targetY
-								)
+									val direction = resolveDismissDirection(
+										offsetX = targetX,
+										offsetY = targetY,
+										allowedDirections = allowedSwipeDirections
+									)
 
 								scope.launch {
 									if (direction != null) {
@@ -612,13 +688,79 @@ private fun SwipeCardDeck(
 								}
 							}
 						)
-					}
-			)
+						}
+				)
+			}
+
+			is MatchingDeckItem.Transition -> {
+				RecommendationsTransitionCard(
+					modifier = cardModifier
+						.padding(horizontal = dim.extraSmall / 2)
+						.graphicsLayer {
+							translationX = offsetX
+							translationY = offsetY
+							rotationZ = rotation
+							scaleX = visualState.currentCardScale
+							scaleY = visualState.currentCardScale
+							alpha = visualState.currentCardAlpha
+						}
+						.pointerInput(activeItem.id) {
+								detectDragGestures(
+									onDrag = { change, dragAmount ->
+										change.consume()
+										offsetX = 0f
+										offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
+										rotation = 0f
+									},
+									onDragEnd = {
+										val direction = resolveDismissDirection(
+											offsetX = offsetX,
+											offsetY = offsetY,
+											allowedDirections = allowedSwipeDirections
+										)
+									scope.launch {
+										if (direction != null) {
+											onSwiped(direction)
+										} else {
+											listOf(
+												async {
+													animate(
+														initialValue = offsetX,
+														targetValue = 0f,
+														animationSpec = resetSpec
+													) { value, _ -> offsetX = value }
+												},
+												async {
+													animate(
+														initialValue = offsetY,
+														targetValue = 0f,
+														animationSpec = resetSpec
+													) { value, _ -> offsetY = value }
+												},
+												async {
+													animate(
+														initialValue = rotation,
+														targetValue = 0f,
+														animationSpec = resetSpec
+													) { value, _ -> rotation = value }
+												}
+											).awaitAll()
+										}
+									}
+								}
+							)
+						}
+				)
+			}
+
+			null -> Unit
 		}
-		swipeAffordances.forEach { affordance ->
-			val rawProgress = swipeAffordanceProgress(
-				affordanceDirection = affordance.direction,
-				activeDirection = visualState.activeDirection,
+			swipeAffordances
+				.filter { it.direction in allowedSwipeDirections }
+				.forEach { affordance ->
+				val rawProgress = swipeAffordanceProgress(
+					affordanceDirection = affordance.direction,
+					activeDirection = visualState.activeDirection,
 				swipeProgress = visualState.swipeProgress,
 				upSwipeProgress = visualState.upSwipeProgress
 			)
@@ -633,10 +775,14 @@ private fun SwipeCardDeck(
 				)
 			}
 		}
-		if (visualState.activeDirection == null && dismissedAffordance != null) {
-			val affordance = dismissedAffordance ?: return@Box
-			SwipeActionAffordance(
-				affordance = affordance,
+			if (
+				visualState.activeDirection == null &&
+				dismissedAffordance != null &&
+				dismissedAffordance?.direction in allowedSwipeDirections
+			) {
+				val affordance = dismissedAffordance ?: return@Box
+				SwipeActionAffordance(
+					affordance = affordance,
 				progress = dismissedAffordanceProgress.value,
 				modifier = cardModifier
 					.clip(shapes.largeRounded)
@@ -740,7 +886,7 @@ private fun SwipeActionAffordance(
 
 @Composable
 private fun ProfileCard(
-	profile: MatchProfile,
+	profile: Profile,
 	modifier: Modifier = Modifier,
 	onClick: (() -> Unit)? = null,
 	onMoreClick: (() -> Unit)? = null
@@ -797,6 +943,84 @@ private fun ProfileCard(
 						contentColor = extraColors.onBaseScrim
 					)
 				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun RecommendationsTransitionCard(
+	modifier: Modifier = Modifier
+) {
+	val dim = LocalDimensions.current
+	val arrowTransition = rememberInfiniteTransition(label = "transitionArrow")
+	val arrowOffsetY = arrowTransition.animateFloat(
+		initialValue = 0f,
+		targetValue = -18f,
+		animationSpec = infiniteRepeatable(
+			animation = tween(
+				durationMillis = 900,
+				easing = FastOutSlowInEasing
+			),
+			repeatMode = RepeatMode.Reverse
+		),
+		label = "transitionArrowOffset"
+	)
+	val arrowAlpha = arrowTransition.animateFloat(
+		initialValue = 0.55f,
+		targetValue = 1f,
+		animationSpec = infiniteRepeatable(
+			animation = tween(
+				durationMillis = 900,
+				easing = FastOutSlowInEasing
+			),
+			repeatMode = RepeatMode.Reverse
+		),
+		label = "transitionArrowAlpha"
+	)
+
+		AppHeroCardFrame(modifier = modifier) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.background(MaterialTheme.colorScheme.background),
+				contentAlignment = Alignment.Center
+			) {
+			Column(
+				modifier = Modifier.padding(dim.large),
+				verticalArrangement = Arrangement.spacedBy(dim.small),
+				horizontalAlignment = Alignment.CenterHorizontally
+			) {
+				Icon(
+					painter = painterResource(UiR.drawable.outline_arrow_drop_down_24),
+					contentDescription = null,
+					modifier = Modifier
+						.size(dim.extraLarge)
+						.graphicsLayer {
+							translationY = arrowOffsetY.value
+							alpha = arrowAlpha.value
+							rotationZ = 180f
+						},
+					tint = MaterialTheme.colorScheme.onTertiaryContainer
+				)
+				Text(
+					text = stringResource(R.string.matching_transition_title),
+					textAlign = TextAlign.Center,
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onTertiaryContainer
+				)
+				Text(
+					text = stringResource(R.string.matching_transition_message),
+					textAlign = TextAlign.Center,
+					style = MaterialTheme.typography.bodyLarge,
+					color = MaterialTheme.colorScheme.onTertiaryContainer
+				)
+				Text(
+					text = stringResource(R.string.matching_transition_cta),
+					textAlign = TextAlign.Center,
+					style = MaterialTheme.typography.titleSmall,
+					color = MaterialTheme.colorScheme.onTertiaryContainer
+				)
 			}
 		}
 	}
@@ -878,7 +1102,7 @@ private fun ActionSheetButton(
 private fun MainMatchingScreenPreview() {
 	val previewProfiles = remember {
 		listOf(
-			MatchProfile(
+			Profile(
 				id = "preview-current",
 				name = "Марина Орлова",
 				age = 63,
@@ -890,7 +1114,7 @@ private fun MainMatchingScreenPreview() {
 				imageUrl = null,
 				recommendationId = "preview-rec-1"
 			),
-			MatchProfile(
+			Profile(
 				id = "preview-next",
 				name = "Александр Белый",
 				age = 70,
@@ -906,9 +1130,9 @@ private fun MainMatchingScreenPreview() {
 	var currentIndex by rememberSaveable { mutableIntStateOf(0) }
 	var isActionsSheetVisible by rememberSaveable { mutableStateOf(false) }
 	val previewController = object : MainMatchingContentController {
-		override val currentProfile: MatchProfile?
+		override val currentItem: MatchingDeckItem?
 			get() = previewProfiles.getOrNull(currentIndex)
-		override val nextProfile: MatchProfile?
+		override val nextItem: MatchingDeckItem?
 			get() = previewProfiles.getOrNull(currentIndex + 1)
 		override val isActionsSheetVisible: Boolean
 			get() = isActionsSheetVisible
