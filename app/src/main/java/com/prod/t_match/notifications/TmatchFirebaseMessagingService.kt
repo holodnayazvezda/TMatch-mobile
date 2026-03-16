@@ -1,6 +1,7 @@
 package com.prod.t_match.notifications
 
 import android.Manifest
+import android.graphics.BitmapFactory
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -93,7 +94,8 @@ class TmatchFirebaseMessagingService : FirebaseMessagingService() {
 		)
 
 		val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-			.setSmallIcon(R.mipmap.ic_launcher)
+			.setSmallIcon(R.mipmap.ic_launcher_round)
+			.setLargeIcon(BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher_round))
 			.setContentTitle(title)
 			.setContentText(body)
 			.setStyle(NotificationCompat.BigTextStyle().bigText(body))
