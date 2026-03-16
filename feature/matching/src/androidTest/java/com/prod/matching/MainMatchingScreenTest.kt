@@ -18,6 +18,9 @@ import com.prod.match.domain.model.Recommendation
 import com.prod.match.domain.model.RecommendationCandidateCard
 import com.prod.match.domain.model.RecommendationCandidateDatingProfile
 import com.prod.match.domain.model.RecommendationCandidateProfile
+import com.prod.match.domain.model.TargetGender
+import com.prod.match.domain.model.TargetingPreferences
+import com.prod.match.domain.model.TargetingPreferencesDraft
 import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.domain.model.PendingMatchAction
 import com.prod.matching.domain.usecase.GetMatchingFeedUseCase
@@ -162,6 +165,30 @@ class MainMatchingScreenTest {
 		override suspend fun getIncomingLikes(): ApiOperationResult<List<IncomingLike>> = incomingLikesResult
 
 		override suspend fun getRecommendations(): ApiOperationResult<List<Recommendation>> = recommendationsResult
+
+		override suspend fun getOwnTargeting(): ApiOperationResult<TargetingPreferences> {
+			return ApiOperationResult.Success(
+				TargetingPreferences(
+					region = null,
+					genderTarget = TargetGender.Both,
+					ageFrom = 18,
+					ageTo = 30
+				)
+			)
+		}
+
+		override suspend fun upsertOwnTargeting(
+			draft: TargetingPreferencesDraft
+		): ApiOperationResult<TargetingPreferences> {
+			return ApiOperationResult.Success(
+				TargetingPreferences(
+					region = draft.region,
+					genderTarget = draft.genderTarget,
+					ageFrom = draft.ageFrom,
+					ageTo = draft.ageTo
+				)
+			)
+		}
 
 		override suspend fun createInteraction(
 			candidateUserId: String,

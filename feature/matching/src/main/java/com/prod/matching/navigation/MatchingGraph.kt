@@ -16,8 +16,9 @@ fun EntryProviderScope<Any>.matchingGraph(
 	onOpenProfile: (profile: Profile) -> Unit,
 	onProfileActionHandlerReady: ((userId: String, action: UserProfileFeedAction) -> Unit) -> Unit
 ) {
-	entry<MatchingNavKey> {
+	entry<MatchingNavKey> { key ->
 		MatchingScreen(
+			reloadToken = key.reloadToken,
 			onUnauthorized = onUnauthorized,
 			onRequestNoInternet = onRequestNoInternet,
 			onOpenProfile = onOpenProfile,
@@ -28,6 +29,7 @@ fun EntryProviderScope<Any>.matchingGraph(
 
 @Composable
 private fun MatchingScreen(
+	reloadToken: Int,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	onOpenProfile: (profile: Profile) -> Unit,
@@ -35,6 +37,7 @@ private fun MatchingScreen(
 ) {
 	Box(modifier = Modifier) {
 		MainMatchingScreen(
+			reloadToken = reloadToken,
 			onUnauthorized = onUnauthorized,
 			onRequestNoInternet = onRequestNoInternet,
 			onOpenProfile = onOpenProfile,

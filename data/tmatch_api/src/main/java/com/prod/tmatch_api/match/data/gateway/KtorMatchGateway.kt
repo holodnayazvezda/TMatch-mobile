@@ -14,6 +14,9 @@ import com.prod.match.domain.model.RecommendationCandidateDatingTrait
 import com.prod.match.domain.model.RecommendationCandidateProfile
 import com.prod.match.domain.model.RecommendationReason
 import com.prod.match.domain.model.RecommendationReasonType
+import com.prod.match.domain.model.TargetGender
+import com.prod.match.domain.model.TargetingPreferences
+import com.prod.match.domain.model.TargetingPreferencesDraft
 import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import com.prod.tmatch_api.common.data.network.KtorGatewaySupport
 import com.prod.tmatch_api.match.data.dto.CreateInteractionRequestDto
@@ -26,12 +29,15 @@ import com.prod.tmatch_api.match.data.dto.RecommendationCandidateDatingTraitDto
 import com.prod.tmatch_api.match.data.dto.RecommendationCandidateProfileDto
 import com.prod.tmatch_api.match.data.dto.RecommendationDto
 import com.prod.tmatch_api.match.data.dto.RecommendationsResponseDto
+import com.prod.tmatch_api.match.data.dto.TargetingResponseDto
+import com.prod.tmatch_api.match.data.dto.UpsertTargetingRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -81,6 +87,61 @@ class KtorMatchGateway(
 				ApiOperationResult.Success(
 					response.body<RecommendationsResponseDto>().items.map { it.toDomain() }
 				)
+			} else {
+				gatewaySupport.mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			gatewaySupport.handleException(exception)
+		}
+	}
+
+	override suspend fun getOwnTargeting(): ApiOperationResult<TargetingPreferences> {
+		return try {
+			val response = httpClient.get("/targeting/me") {
+				accept(ContentType.Application.Json)
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
+			}
+
+			if (response.status.isSuccess()) {
+				response.body<TargetingResponseDto>().toDomainOrError()
+			} else {
+				gatewaySupport.mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			gatewaySupport.handleException(exception)
+		}
+	}
+
+	override suspend fun upsertOwnTargeting(
+		draft: TargetingPreferencesDraft
+	): ApiOperationResult<TargetingPreferences> {
+		return try {
+			val response = httpClient.put("/targeting/me") {
+				accept(ContentType.Application.Json)
+				header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
+				setBody(
+					UpsertTargetingRequestDto(
+						region = draft.region,
+						genderTarget = draft.genderTarget.toApiValue(),
+						ageFrom = draft.ageFrom,
+						ageTo = draft.ageTo
+					)
+				)
+			}
+
+			if (response.status.isSuccess()) {
+				response.body<TargetingResponseDto>().toDomainOrError()
 			} else {
 				gatewaySupport.mapErrorResponse(
 					status = response.status,
@@ -202,6 +263,22 @@ class KtorMatchGateway(
 		)
 	}
 
+	private fun TargetingResponseDto.toDomainOrError(): ApiOperationResult<TargetingPreferences> {
+		val domainGender = genderTarget.toDomainTargetGenderOrNull()
+			?: return ApiOperationResult.ApiError(
+				reason = ApiErrorReason.RequestFailed,
+				message = "Unsupported target gender in response"
+			)
+		return ApiOperationResult.Success(
+			TargetingPreferences(
+				region = region,
+				genderTarget = domainGender,
+				ageFrom = ageFrom,
+				ageTo = ageTo
+			)
+		)
+	}
+
 	private fun InteractionAction.toApiValue(): String {
 		return when (this) {
 			InteractionAction.Like -> "like"
@@ -217,6 +294,23 @@ class KtorMatchGateway(
 			"like" -> InteractionAction.Like
 			"block" -> InteractionAction.Block
 			"unblock" -> InteractionAction.Unblock
+			else -> null
+		}
+	}
+
+	private fun TargetGender.toApiValue(): String {
+		return when (this) {
+			TargetGender.Male -> "male"
+			TargetGender.Female -> "female"
+			TargetGender.Both -> "both"
+		}
+	}
+
+	private fun String.toDomainTargetGenderOrNull(): TargetGender? {
+		return when (this) {
+			"male" -> TargetGender.Male
+			"female" -> TargetGender.Female
+			"both" -> TargetGender.Both
 			else -> null
 		}
 	}

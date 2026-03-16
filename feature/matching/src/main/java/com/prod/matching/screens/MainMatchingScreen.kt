@@ -82,6 +82,7 @@ import com.prod.matching.model.MatchProfile
 import com.prod.matching.model.MatchingDeckItem
 import com.prod.matching.presentation.PendingDeckAction
 import com.prod.matching.presentation.MainMatchingViewModel
+import com.prod.matching.presentation.TargetingPreferencesViewModel
 import com.prod.ui.R as UiR
 import com.prod.ui.components.AppBottomScrimInfo
 import com.prod.ui.components.AppBottomSheetHandle
@@ -289,17 +290,23 @@ private fun buildDismissTargets(
 @Composable
 fun MainMatchingScreen(
 	modifier: Modifier = Modifier,
+	reloadToken: Int = 0,
 	onUnauthorized: () -> Unit,
 	onRequestNoInternet: (retryAction: () -> Unit) -> Unit,
 	onOpenProfile: (profile: MatchProfile) -> Unit,
 	onProfileActionHandlerReady: ((userId: String, action: UserProfileFeedAction) -> Unit) -> Unit,
 	viewModel: MainMatchingViewModel = koinViewModel()
 ) {
-	LaunchedEffect(viewModel, onUnauthorized, onRequestNoInternet) {
+	var isPreferencesSheetVisible by rememberSaveable { mutableStateOf(false) }
+	LaunchedEffect(viewModel, onUnauthorized, onRequestNoInternet, reloadToken) {
 		viewModel.initialize(
 			onUnauthorized = onUnauthorized,
-			onNoInternet = onRequestNoInternet
+			onNoInternet = onRequestNoInternet,
+			reloadToken = reloadToken
 		)
+	}
+	LaunchedEffect(viewModel, reloadToken) {
+		viewModel.refreshForReloadToken(reloadToken)
 	}
 	LaunchedEffect(viewModel, onProfileActionHandlerReady) {
 		onProfileActionHandlerReady { userId, action ->
@@ -370,8 +377,29 @@ fun MainMatchingScreen(
 		isLoading = uiState.isLoading,
 		isLoadingMore = uiState.isLoadingMore,
 		error = uiState.error,
+		onOpenPreferences = {
+			isPreferencesSheetVisible = true
+		},
 		modifier = modifier
 	)
+
+	if (isPreferencesSheetVisible) {
+		val targetingViewModel: TargetingPreferencesViewModel = koinViewModel()
+		val targetingSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+		TargetingPreferencesBottomSheet(
+			sheetState = targetingSheetState,
+			onDismiss = {
+				isPreferencesSheetVisible = false
+			},
+			onSaved = {
+				isPreferencesSheetVisible = false
+				viewModel.refreshAfterTargetingChange()
+			},
+			onUnauthorized = onUnauthorized,
+			onRequestNoInternet = onRequestNoInternet,
+			viewModel = targetingViewModel
+		)
+	}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -397,6 +425,7 @@ private fun MainMatchingContent(
 	isLoading: Boolean,
 	isLoadingMore: Boolean,
 	error: String?,
+	onOpenPreferences: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -439,7 +468,7 @@ private fun MainMatchingContent(
 					bottom = dim.defaultSpacing
 				)
 		) {
-			MatchingHeader()
+			MatchingHeader(onOpenPreferences = onOpenPreferences)
 			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
 			SwipeCardDeck(
 				currentItem = controller.currentItem,
@@ -507,11 +536,18 @@ private fun MainMatchingContent(
 }
 
 @Composable
-private fun MatchingHeader() {
+private fun MatchingHeader(
+	onOpenPreferences: () -> Unit
+) {
 	AppScreenTopBar(
 		title = stringResource(R.string.matching_title),
 		modifier = Modifier.fillMaxWidth(),
 		actions = {
+			AppTopBarIconAction(
+				iconRes = R.drawable.ic_tune_24,
+				contentDescription = stringResource(R.string.matching_preferences_open),
+				onClick = onOpenPreferences
+			)
 			AppTopBarIconAction(
 				iconRes = R.drawable.ic_history_24,
 				contentDescription = stringResource(R.string.matching_history),
@@ -1377,6 +1413,7 @@ private fun MainMatchingScreenPreview() {
 				isLoading = false,
 				isLoadingMore = false,
 				error = null,
+				onOpenPreferences = {},
 				modifier = Modifier.padding(it)
 			)
 		}

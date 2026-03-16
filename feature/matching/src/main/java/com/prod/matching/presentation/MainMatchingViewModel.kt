@@ -34,6 +34,7 @@ class MainMatchingViewModel(
 	private val pendingActionsMutex = Mutex()
 	// Guards one-time recovery of persisted actions and initial feed loading.
 	private var isInitialized = false
+	private var lastAppliedReloadToken = 0
 	// Navigation callback is injected from the screen because ViewModel must not own navigation.
 	private var unauthorizedHandler: (() -> Unit)? = null
 	private var noInternetHandler: (((() -> Unit)) -> Unit)? = null
@@ -50,7 +51,8 @@ class MainMatchingViewModel(
 
 	fun initialize(
 		onUnauthorized: () -> Unit,
-		onNoInternet: (retryAction: () -> Unit) -> Unit
+		onNoInternet: (retryAction: () -> Unit) -> Unit,
+		reloadToken: Int = 0
 	) {
 		unauthorizedHandler = onUnauthorized
 		noInternetHandler = onNoInternet
@@ -59,6 +61,7 @@ class MainMatchingViewModel(
 		}
 
 		isInitialized = true
+		lastAppliedReloadToken = reloadToken
 		// Recover optimistic actions from the previous process before talking to the network.
 		restorePendingActions()
 		loadFeed()
@@ -119,6 +122,41 @@ class MainMatchingViewModel(
 
 		uiState = uiState.copy(pendingDeckAction = null)
 		submitAction(pendingDeckAction.action)
+	}
+
+	fun refreshForReloadToken(reloadToken: Int) {
+		if (!isInitialized || reloadToken == lastAppliedReloadToken) {
+			return
+		}
+
+		lastAppliedReloadToken = reloadToken
+		incomingLikeProfiles = emptyList()
+		recommendationQueue.clear()
+		uiState = uiState.copy(
+			items = emptyList(),
+			currentIndex = 0,
+			isActionsSheetVisible = false,
+			pendingDeckAction = null,
+			error = null
+		)
+		loadFeed()
+	}
+
+	fun refreshAfterTargetingChange() {
+		if (!isInitialized) {
+			return
+		}
+
+		incomingLikeProfiles = emptyList()
+		recommendationQueue.clear()
+		uiState = uiState.copy(
+			items = emptyList(),
+			currentIndex = 0,
+			isActionsSheetVisible = false,
+			pendingDeckAction = null,
+			error = null
+		)
+		loadFeed()
 	}
 
 	private fun loadFeed() {

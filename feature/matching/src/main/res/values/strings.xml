@@ -15,4 +15,22 @@
     <string name="matching_transition_title">Входящие лайки закончились</string>
     <string name="matching_transition_message">Дальше обычные рекомендации.</string>
     <string name="matching_transition_cta">Смахните в любую сторону</string>
+    <string name="matching_preferences_open">Предпочтения</string>
+    <string name="matching_preferences_title">Кого показывать</string>
+    <string name="matching_preferences_back">Назад</string>
+    <string name="matching_preferences_save">Сохранить</string>
+    <string name="matching_preferences_summary_title">Ваши предпочтения</string>
+    <string name="matching_preferences_summary_description">Обновите правила показа, чтобы лента лучше соответствовала вашим ожиданиям.</string>
+    <string name="matching_preferences_basic_filters">Основные фильтры</string>
+    <string name="matching_preferences_gender_label">Кого искать</string>
+    <string name="matching_preferences_gender_field_title">Пол</string>
+    <string name="matching_preferences_region_label">Регион</string>
+    <string name="matching_preferences_region_field_title">Регион поиска</string>
+    <string name="matching_preferences_region_search_hint">Начните вводить регион</string>
+    <string name="matching_preferences_region_reset">Любой регион</string>
+    <string name="matching_preferences_age_title">Возрастной диапазон</string>
+    <string name="matching_preferences_age_from">От</string>
+    <string name="matching_preferences_age_to">До</string>
+    <string name="matching_preferences_retry_hint">Проверьте введённые значения или попробуйте ещё раз.</string>
+    <string name="matching_preferences_retry_action">Обновить экран</string>
 </resources>

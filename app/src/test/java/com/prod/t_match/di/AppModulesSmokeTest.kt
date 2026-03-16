@@ -20,6 +20,9 @@ import com.prod.match.domain.model.IncomingLike
 import com.prod.match.domain.model.Interaction
 import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.Recommendation
+import com.prod.match.domain.model.TargetGender
+import com.prod.match.domain.model.TargetingPreferences
+import com.prod.match.domain.model.TargetingPreferencesDraft
 import com.prod.matching.di.matchingFeatureModule
 import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.domain.model.PendingMatchAction
@@ -165,6 +168,27 @@ class AppModulesSmokeTest {
 
 		override suspend fun getRecommendations(): ApiOperationResult<List<Recommendation>> =
 			ApiOperationResult.Success(emptyList())
+
+		override suspend fun getOwnTargeting(): ApiOperationResult<TargetingPreferences> =
+			ApiOperationResult.Success(
+				TargetingPreferences(
+					region = null,
+					genderTarget = TargetGender.Both,
+					ageFrom = 18,
+					ageTo = 30
+				)
+			)
+
+		override suspend fun upsertOwnTargeting(
+			draft: TargetingPreferencesDraft
+		): ApiOperationResult<TargetingPreferences> = ApiOperationResult.Success(
+			TargetingPreferences(
+				region = draft.region,
+				genderTarget = draft.genderTarget,
+				ageFrom = draft.ageFrom,
+				ageTo = draft.ageTo
+			)
+		)
 
 		override suspend fun createInteraction(
 			candidateUserId: String,

@@ -6,6 +6,7 @@ import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
 import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.RecommendationReasonType
+import com.prod.match.domain.model.TargetGender
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -98,6 +99,60 @@ class KtorMatchGatewayTest {
 		assertEquals(
 			listOf(RecommendationReasonType.Unknown, RecommendationReasonType.ACTIVITY_FREQUENCY),
 			recommendations.single().reasons.map { it.reasonType }
+		)
+	}
+
+	@Test
+	fun `maps targeting response`() = runBlocking {
+		val gateway = KtorMatchGateway(
+			httpClient = createHttpClient(
+				status = HttpStatusCode.OK,
+				body = """
+					{
+					  "region": "Москва",
+					  "gender_target": "female",
+					  "age_from": 24,
+					  "age_to": 31
+					}
+				""".trimIndent()
+			),
+			authSessionStore = FakeAuthSessionStore()
+		)
+
+		val result = gateway.getOwnTargeting()
+
+		assertTrue(result is ApiOperationResult.Success)
+		val targeting = (result as ApiOperationResult.Success).data
+		assertEquals("Москва", targeting.region)
+		assertEquals(TargetGender.Female, targeting.genderTarget)
+		assertEquals(24, targeting.ageFrom)
+		assertEquals(31, targeting.ageTo)
+	}
+
+	@Test
+	fun `returns request failed for unknown target gender`() = runBlocking {
+		val gateway = KtorMatchGateway(
+			httpClient = createHttpClient(
+				status = HttpStatusCode.OK,
+				body = """
+					{
+					  "gender_target": "everyone",
+					  "age_from": 18,
+					  "age_to": 25
+					}
+				""".trimIndent()
+			),
+			authSessionStore = FakeAuthSessionStore()
+		)
+
+		val result = gateway.getOwnTargeting()
+
+		assertEquals(
+			ApiOperationResult.ApiError(
+				reason = ApiErrorReason.RequestFailed,
+				message = "Unsupported target gender in response"
+			),
+			result
 		)
 	}
 
