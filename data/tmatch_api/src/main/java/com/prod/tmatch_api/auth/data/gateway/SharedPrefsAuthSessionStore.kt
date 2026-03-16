@@ -60,11 +60,30 @@ class SharedPrefsAuthSessionStore(
 			.apply()
 	}
 
+	override fun hasDatingProfile(): Boolean {
+		if (get() == null) {
+			return false
+		}
+
+		return if (preferences.contains(KEY_HAS_DATING_PROFILE)) {
+			preferences.getBoolean(KEY_HAS_DATING_PROFILE, false)
+		} else {
+			false
+		}
+	}
+
+	override fun setHasDatingProfile(hasDatingProfile: Boolean) {
+		preferences.edit()
+			.putBoolean(KEY_HAS_DATING_PROFILE, hasDatingProfile)
+			.apply()
+	}
+
 	override fun clear() {
 		preferences.edit()
 			.remove(KEY_ACCESS_TOKEN)
 			.remove(KEY_USER_ID)
 			.remove(KEY_PROFILE_COMPLETED)
+			.remove(KEY_HAS_DATING_PROFILE)
 			.apply()
 	}
 
@@ -73,5 +92,6 @@ class SharedPrefsAuthSessionStore(
 		const val KEY_ACCESS_TOKEN = "access_token"
 		const val KEY_USER_ID = "user_id"
 		const val KEY_PROFILE_COMPLETED = "profile_completed"
+		const val KEY_HAS_DATING_PROFILE = "has_dating_profile"
 	}
 }

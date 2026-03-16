@@ -84,6 +84,7 @@ class AuthGraphStateTest {
 		assertEquals(listOf(ProfileSetupNavKey()), backStack.toList())
 		assertTrue(sessionStore.get() != null)
 		assertEquals(false, sessionStore.isProfileCompleted())
+		assertEquals(false, sessionStore.hasDatingProfile())
 	}
 
 	@Test
@@ -151,6 +152,7 @@ class AuthGraphStateTest {
 	private class FakeAuthSessionStore : AuthSessionStore {
 		private var session: UserSession? = null
 		private var isProfileCompleted = false
+		private var hasDatingProfile = false
 
 		override fun get(): UserSession? = session
 
@@ -164,9 +166,16 @@ class AuthGraphStateTest {
 			isProfileCompleted = isCompleted
 		}
 
+		override fun hasDatingProfile(): Boolean = hasDatingProfile
+
+		override fun setHasDatingProfile(hasDatingProfile: Boolean) {
+			this.hasDatingProfile = hasDatingProfile
+		}
+
 		override fun clear() {
 			session = null
 			isProfileCompleted = false
+			hasDatingProfile = false
 		}
 	}
 

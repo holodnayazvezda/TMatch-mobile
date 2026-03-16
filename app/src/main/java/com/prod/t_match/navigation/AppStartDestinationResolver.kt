@@ -26,10 +26,13 @@ class AppStartDestinationResolver(
 		return when (val result = profileGateway.getOwnCard()) {
 			is ApiOperationResult.Success -> {
 				val isProfileCompleted = result.data.hasAccountProfile
+				val hasDatingProfile = result.data.hasDatingProfile
 				authSessionStore.setProfileCompleted(isProfileCompleted)
+				authSessionStore.setHasDatingProfile(hasDatingProfile)
 				if (isProfileCompleted) {
 					ProfileNavKey(source = "startup_resolver")
 				} else {
+					authSessionStore.setHasDatingProfile(false)
 					ProfileSetupNavKey()
 				}
 			}
@@ -53,6 +56,7 @@ class AppStartDestinationResolver(
 		return if (authSessionStore.isProfileCompleted()) {
 			ProfileNavKey(source = "startup_fallback")
 		} else {
+			authSessionStore.setHasDatingProfile(false)
 			ProfileSetupNavKey()
 		}
 	}

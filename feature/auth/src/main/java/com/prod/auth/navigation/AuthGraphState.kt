@@ -33,6 +33,7 @@ class AuthGraphState(
 	suspend fun onSignUpSuccess(session: UserSession) {
 		authSessionStore.save(session)
 		authSessionStore.setProfileCompleted(false)
+		authSessionStore.setHasDatingProfile(false)
 		onSessionStarted()
 		backStack.clear()
 		backStack.add(ProfileSetupNavKey())
@@ -40,12 +41,14 @@ class AuthGraphState(
 
 	fun onProfileCompleted() {
 		authSessionStore.setProfileCompleted(true)
+		authSessionStore.setHasDatingProfile(false)
 		backStack.clear()
 		backStack.add(ProfileNavKey())
 	}
 
 	fun onProfileMissing() {
 		authSessionStore.setProfileCompleted(false)
+		authSessionStore.setHasDatingProfile(false)
 		backStack.clear()
 		backStack.add(ProfileSetupNavKey())
 	}

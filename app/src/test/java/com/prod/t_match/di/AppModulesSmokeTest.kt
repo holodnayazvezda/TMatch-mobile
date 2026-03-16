@@ -23,6 +23,7 @@ import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
 import com.prod.profile.domain.model.OwnCard
+import com.prod.profile.domain.model.UserCard
 import com.prod.profile.di.profileFeatureModule
 import com.prod.profile.presentation.ProfileViewModel
 import org.junit.After
@@ -66,6 +67,7 @@ class AppModulesSmokeTest {
 	private class FakeAuthSessionStore : AuthSessionStore {
 		private var session: UserSession? = null
 		private var isProfileCompleted: Boolean = false
+		private var hasDatingProfile: Boolean = false
 
 		override fun get(): UserSession? = session
 
@@ -79,9 +81,16 @@ class AppModulesSmokeTest {
 			isProfileCompleted = isCompleted
 		}
 
+		override fun hasDatingProfile(): Boolean = hasDatingProfile
+
+		override fun setHasDatingProfile(hasDatingProfile: Boolean) {
+			this.hasDatingProfile = hasDatingProfile
+		}
+
 		override fun clear() {
 			session = null
 			isProfileCompleted = false
+			hasDatingProfile = false
 		}
 	}
 
@@ -117,6 +126,9 @@ class AppModulesSmokeTest {
 				)
 			)
 		}
+
+		override suspend fun getUserCard(userId: String): ApiOperationResult<UserCard> =
+			ApiOperationResult.ValidationError()
 
 		override suspend fun getOwnDatingProfile(): ApiOperationResult<DatingProfile?> =
 			ApiOperationResult.Success(null)

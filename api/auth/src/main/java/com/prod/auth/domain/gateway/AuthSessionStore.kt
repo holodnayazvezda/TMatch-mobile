@@ -7,5 +7,7 @@ interface AuthSessionStore {
 	fun save(session: UserSession)
 	fun isProfileCompleted(): Boolean
 	fun setProfileCompleted(isCompleted: Boolean)
+	fun hasDatingProfile(): Boolean
+	fun setHasDatingProfile(hasDatingProfile: Boolean)
 	fun clear()
 }

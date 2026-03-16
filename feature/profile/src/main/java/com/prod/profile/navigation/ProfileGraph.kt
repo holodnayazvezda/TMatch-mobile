@@ -8,6 +8,7 @@ import com.prod.profile.presentation.UserProfileScreen
 fun EntryProviderScope<Any>.profileGraph(
 	onBack: () -> Unit,
 	onFeedAction: (userId: String, action: UserProfileFeedAction) -> Unit,
+	onDatingProfileAvailabilityChanged: (Boolean) -> Unit,
 	onUnauthorized: () -> Unit,
 	onProfileMissing: () -> Unit,
 	onLogout: () -> Unit,
@@ -15,6 +16,7 @@ fun EntryProviderScope<Any>.profileGraph(
 ) {
 	entry<ProfileNavKey> {
 		ProfileScreen(
+			onDatingProfileAvailabilityChanged = onDatingProfileAvailabilityChanged,
 			onUnauthorized = onUnauthorized,
 			onProfileMissing = onProfileMissing,
 			onLogout = onLogout,

@@ -166,6 +166,30 @@ fun AppScreenTopBar(
 }
 
 @Composable
+fun AppTopBarIconAction(
+	iconRes: Int,
+	contentDescription: String,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier,
+	enabled: Boolean = true
+) {
+	val dim = LocalDimensions.current
+
+	IconButton(
+		onClick = onClick,
+		enabled = enabled,
+		modifier = modifier
+	) {
+		Icon(
+			painter = painterResource(iconRes),
+			contentDescription = contentDescription,
+			modifier = Modifier.size(dim.iconMedium),
+			tint = MaterialTheme.colorScheme.onBackground
+		)
+	}
+}
+
+@Composable
 fun AppSectionCard(
 	modifier: Modifier = Modifier,
 	containerColor: Color = MaterialTheme.colorScheme.surface,

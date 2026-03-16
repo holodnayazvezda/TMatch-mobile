@@ -136,6 +136,10 @@ class KtorProfileGatewayTest {
 
 		override fun setProfileCompleted(isCompleted: Boolean) = Unit
 
+		override fun hasDatingProfile(): Boolean = false
+
+		override fun setHasDatingProfile(hasDatingProfile: Boolean) = Unit
+
 		override fun clear() = Unit
 	}
 }

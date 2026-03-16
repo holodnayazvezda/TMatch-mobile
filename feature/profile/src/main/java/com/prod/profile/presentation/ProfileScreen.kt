@@ -26,8 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,6 +51,7 @@ import com.prod.ui.components.AppBottomScrimInfo
 import com.prod.ui.components.AppHeroCardFrame
 import com.prod.ui.components.AppHeroPagerIndicator
 import com.prod.ui.components.AppScreenTopBar
+import com.prod.ui.components.AppTopBarIconAction
 import com.prod.ui.components.AppFactCard
 import com.prod.ui.components.AppSectionCard
 import com.prod.ui.components.AppSectionTitle
@@ -72,6 +70,7 @@ import java.io.File
 
 @Composable
 fun ProfileScreen(
+	onDatingProfileAvailabilityChanged: (Boolean) -> Unit,
 	onUnauthorized: () -> Unit,
 	onProfileMissing: () -> Unit,
 	onLogout: () -> Unit,
@@ -97,6 +96,12 @@ fun ProfileScreen(
 			onUnauthorized = onUnauthorized,
 			onProfileMissing = onProfileMissing,
 			onNoInternet = onRequestNoInternet
+		)
+	}
+
+	LaunchedEffect(uiState.profileCard?.datingPhotoUrls) {
+		onDatingProfileAvailabilityChanged(
+			uiState.profileCard?.datingPhotoUrls?.isNotEmpty() == true
 		)
 	}
 
@@ -226,7 +231,12 @@ private fun ProfileCardScene(
 			modifier = Modifier
 				.weight(1f)
 				.verticalScroll(rememberScrollState())
-				.padding(horizontal = dim.medium, vertical = dim.cardOuterPadding),
+				.padding(
+					start = dim.medium,
+					top = dim.small,
+					end = dim.medium,
+					bottom = dim.cardOuterPadding
+				),
 			horizontalAlignment = Alignment.CenterHorizontally,
 			verticalArrangement = Arrangement.Top
 		) {
@@ -284,29 +294,16 @@ private fun ProfileHeader(
 	isLogoutEnabled: Boolean,
 	modifier: Modifier = Modifier
 ) {
-	val dim = LocalDimensions.current
 	AppScreenTopBar(
 		title = stringResource(R.string.profile_screen_title),
-		modifier = modifier
-			.fillMaxWidth()
-			.padding(
-				start = dim.verySmall,
-				top = dim.verySmall,
-				end = dim.small,
-				bottom = dim.extraSmall
-			),
+		modifier = modifier.fillMaxWidth(),
 		actions = {
-			IconButton(
+			AppTopBarIconAction(
+				iconRes = R.drawable.logout,
+				contentDescription = stringResource(R.string.profile_screen_logout_button),
 				enabled = isLogoutEnabled,
 				onClick = onLogoutClick
-			) {
-				Icon(
-					painter = painterResource(R.drawable.logout),
-					contentDescription = stringResource(R.string.profile_screen_logout_button),
-					tint = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.size(22.dp)
-				)
-			}
+			)
 		}
 	)
 }

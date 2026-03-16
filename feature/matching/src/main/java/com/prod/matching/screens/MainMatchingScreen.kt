@@ -28,7 +28,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -76,6 +75,7 @@ import com.prod.ui.components.AppHeroCardFrame
 import com.prod.ui.components.AppInfoChip
 import com.prod.ui.components.AppOverlayIconBadge
 import com.prod.ui.components.AppScreenTopBar
+import com.prod.ui.components.AppTopBarIconAction
 import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
 import kotlinx.coroutines.async
@@ -382,7 +382,7 @@ private fun MainMatchingContent(
 					)
 				}
 			}
-			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
+			Spacer(modifier = Modifier.height(dim.small))
 			SwipeCardDeck(
 				currentProfile = controller.currentProfile,
 				nextProfile = controller.nextProfile,
@@ -410,22 +410,15 @@ private fun MainMatchingContent(
 
 @Composable
 private fun MatchingHeader() {
-	val dim = LocalDimensions.current
-	val colors = MaterialTheme.colorScheme
 	AppScreenTopBar(
 		title = stringResource(R.string.matching_title),
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = dim.small, vertical = dim.verySmall),
+		modifier = Modifier.fillMaxWidth(),
 		actions = {
-			IconButton(onClick = {}) {
-				Icon(
-					painter = painterResource(R.drawable.ic_history_24),
-					contentDescription = stringResource(R.string.matching_history),
-					modifier = Modifier.size(dim.iconMedium),
-					tint = colors.onBackground
-				)
-			}
+			AppTopBarIconAction(
+				iconRes = R.drawable.ic_history_24,
+				contentDescription = stringResource(R.string.matching_history),
+				onClick = {}
+			)
 		}
 	)
 }

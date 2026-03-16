@@ -94,6 +94,9 @@ fun TMatchApp() {
 		val backStack = remember(resolvedStartDestination) {
 			mutableStateListOf<Any>(resolvedStartDestination)
 		}
+		var hasDatingProfileAccess by remember(resolvedStartDestination) {
+			mutableStateOf(authSessionStore.hasDatingProfile())
+		}
 		val authGraphState = rememberAuthGraphState(
 			backStack = backStack,
 			authSessionStore = authSessionStore,
@@ -118,6 +121,10 @@ fun TMatchApp() {
 			fcmTokenRegistrar.syncCurrentTokenIfAuthorized()
 		}
 
+		LaunchedEffect(currentDestination) {
+			hasDatingProfileAccess = authSessionStore.hasDatingProfile()
+		}
+
 		if (BuildConfig.DEBUG) {
 			DebugShakeToOpenEffect(
 				onShake = {
@@ -134,7 +141,7 @@ fun TMatchApp() {
 				.background(backgroundBrush),
 			contentWindowInsets = WindowInsets(0, 0, 0, 0),
 			bottomBar = {
-				if (currentDestination.isMainTabDestination()) {
+				if (hasDatingProfileAccess && currentDestination.isMainTabDestination()) {
 					MainBottomBar(
 						currentDestination = currentDestination,
 						onTabSelected = { destination ->
@@ -179,6 +186,10 @@ fun TMatchApp() {
 							if (backStack.size > 1) {
 								backStack.removeLastOrNull()
 							}
+						},
+						onDatingProfileAvailabilityChanged = { hasDatingProfile ->
+							hasDatingProfileAccess = hasDatingProfile
+							authSessionStore.setHasDatingProfile(hasDatingProfile)
 						},
 						onUnauthorized = authGraphState::onUnauthorized,
 						onProfileMissing = authGraphState::onProfileMissing,
