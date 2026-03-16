@@ -8,5 +8,6 @@ data class MatchProfile(
 	val age: Int?,
 	val reasons: List<RecommendationReasonSummary>,
 	val imageUrl: String?,
-	val recommendationId: String? = null
+	val recommendationId: String? = null,
+	val isIncomingLike: Boolean = false
 )

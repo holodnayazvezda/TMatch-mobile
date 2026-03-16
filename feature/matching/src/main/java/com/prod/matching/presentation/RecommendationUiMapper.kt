@@ -1,6 +1,7 @@
 package com.prod.matching.presentation
 
 import com.prod.common.api.model.RecommendationReasonSummary
+import com.prod.match.domain.model.IncomingLike
 import com.prod.match.domain.model.Recommendation
 import com.prod.match.domain.model.RecommendationCandidateProfile
 import com.prod.matching.model.MatchProfile
@@ -8,6 +9,28 @@ import java.time.LocalDate
 import java.time.Period
 
 class RecommendationUiMapper {
+	private val incomingLikeReason = RecommendationReasonSummary(
+		label = "Вы понравились",
+		description = "Этот пользователь уже лайкнул вас и ждёт вашего ответа."
+	)
+
+	fun mapIncomingLikes(items: List<IncomingLike>): List<MatchProfile> {
+		return items.map { incomingLike ->
+			val profile = incomingLike.candidateCard?.profile
+			MatchProfile(
+				id = incomingLike.likerUserId,
+				name = profile.toDisplayName(
+					fallback = "Пользователь ${incomingLike.likerUserId.take(8)}"
+				),
+				age = profile?.birthDate?.toAgeOrNull(),
+				reasons = listOf(incomingLikeReason),
+				imageUrl = incomingLike.candidateCard?.datingProfile?.photos?.firstOrNull(),
+				recommendationId = null,
+				isIncomingLike = true
+			)
+		}
+	}
+
 	fun mapRecommendations(items: List<Recommendation>): List<MatchProfile> {
 		return items.map { recommendation ->
 			val profile = recommendation.candidateCard?.profile
@@ -34,7 +57,8 @@ class RecommendationUiMapper {
 						)
 					},
 				imageUrl = recommendation.candidateCard?.datingProfile?.photos?.firstOrNull(),
-				recommendationId = recommendation.mlRecommendationId
+				recommendationId = recommendation.mlRecommendationId,
+				isIncomingLike = false
 			)
 		}
 	}

@@ -23,6 +23,48 @@ import org.junit.Test
 class KtorMatchGatewayTest {
 
 	@Test
+	fun `maps incoming likes response`() = runBlocking {
+		val gateway = KtorMatchGateway(
+			httpClient = createHttpClient(
+				status = HttpStatusCode.OK,
+				body = """
+					{
+					  "items": [
+					    {
+					      "liker_user_id": "candidate-1",
+					      "candidate_card": {
+					        "user_id": "candidate-1",
+					        "profile": {
+					          "first_name": "Alex",
+					          "birth_date": "1998-05-10"
+					        },
+					        "dating_profile": {
+					          "photos": ["https://example.com/photo-1.jpg"],
+					          "traits": []
+					        }
+					      }
+					    }
+					  ]
+					}
+				""".trimIndent()
+			),
+			authSessionStore = FakeAuthSessionStore()
+		)
+
+		val result = gateway.getIncomingLikes()
+
+		assertTrue(result is ApiOperationResult.Success)
+		val likes = (result as ApiOperationResult.Success).data
+		assertEquals(1, likes.size)
+		assertEquals("candidate-1", likes.single().likerUserId)
+		assertEquals("Alex", likes.single().candidateCard?.profile?.firstName)
+		assertEquals(
+			"https://example.com/photo-1.jpg",
+			likes.single().candidateCard?.datingProfile?.photos?.single()
+		)
+	}
+
+	@Test
 	fun `maps known and unknown recommendation reasons from backend keys`() = runBlocking {
 		val gateway = KtorMatchGateway(
 			httpClient = createHttpClient(

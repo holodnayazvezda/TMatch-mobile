@@ -11,13 +11,16 @@ import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.domain.model.MatchAction
 import com.prod.matching.domain.model.PendingMatchAction
 import com.prod.matching.domain.usecase.GetMatchingFeedUseCase
+import com.prod.matching.domain.usecase.GetRecommendationsUseCase
 import com.prod.matching.domain.usecase.SubmitMatchActionUseCase
+import com.prod.matching.model.MatchProfile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import java.util.ArrayDeque
 
 class MainMatchingViewModel(
 	private val getMatchingFeedUseCase: GetMatchingFeedUseCase,
+	private val getRecommendationsUseCase: GetRecommendationsUseCase,
 	private val submitMatchActionUseCase: SubmitMatchActionUseCase,
 	private val recommendationUiMapper: RecommendationUiMapper,
 	private val pendingMatchActionStore: PendingMatchActionStore
@@ -93,11 +96,15 @@ class MainMatchingViewModel(
 			uiState = uiState.copy(isLoading = true, error = null)
 			when (val result = getMatchingFeedUseCase()) {
 				is ApiOperationResult.Success -> {
-					val profiles = recommendationUiMapper.mapRecommendations(result.data)
+					val incomingLikeProfiles = recommendationUiMapper.mapIncomingLikes(result.data.incomingLikes)
+					val incomingLikeUserIds = incomingLikeProfiles.mapTo(hashSetOf(), MatchProfile::id)
+					val recommendationProfiles = recommendationUiMapper
+						.mapRecommendations(result.data.recommendations)
+						.filterNot { it.id in incomingLikeUserIds }
 					uiState = uiState.copy(
 						isLoading = false,
 						error = null,
-						profiles = profiles,
+						profiles = incomingLikeProfiles + recommendationProfiles,
 						currentIndex = 0
 					)
 				}
@@ -226,12 +233,14 @@ class MainMatchingViewModel(
 		viewModelScope.launch {
 			try {
 				uiState = uiState.copy(isLoadingMore = true)
-				when (val result = getMatchingFeedUseCase()) {
+				when (val result = getRecommendationsUseCase()) {
 					is ApiOperationResult.Success -> {
 						val appendedProfiles = recommendationUiMapper.mapRecommendations(result.data)
 						val knownRecommendationIds = uiState.profiles.mapNotNull { it.recommendationId }.toHashSet()
+						val knownUserIds = uiState.profiles.mapTo(hashSetOf(), MatchProfile::id)
 						val newProfiles = appendedProfiles.filterNot { profile ->
-							profile.recommendationId != null && profile.recommendationId in knownRecommendationIds
+							profile.id in knownUserIds ||
+								(profile.recommendationId != null && profile.recommendationId in knownRecommendationIds)
 						}
 						uiState = uiState.copy(
 							isLoadingMore = false,

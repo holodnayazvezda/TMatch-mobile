@@ -11,6 +11,7 @@ import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
 import com.prod.profile.domain.model.OwnCard
+import com.prod.profile.domain.model.UserCard
 import com.prod.profile.navigation.ProfileNavKey
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -180,6 +181,9 @@ class AppStartDestinationResolverTest {
 			ApiOperationResult.ValidationError()
 	) : ProfileGateway {
 		override suspend fun getOwnCard(): ApiOperationResult<OwnCard> = ownCardResult
+
+		override suspend fun getUserCard(userId: String): ApiOperationResult<UserCard> =
+			ApiOperationResult.ValidationError()
 
 		override suspend fun getOwnDatingProfile(): ApiOperationResult<DatingProfile?> =
 			ApiOperationResult.Success(null)

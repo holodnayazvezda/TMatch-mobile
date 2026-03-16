@@ -12,6 +12,7 @@ import com.prod.auth.presentation.signup.SignUpViewModel
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
 import com.prod.match.domain.gateway.MatchGateway
+import com.prod.match.domain.model.IncomingLike
 import com.prod.match.domain.model.Interaction
 import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.Recommendation
@@ -23,6 +24,7 @@ import com.prod.profile.domain.gateway.ProfileGateway
 import com.prod.profile.domain.model.DatingProfile
 import com.prod.profile.domain.model.DatingProfileDraft
 import com.prod.profile.domain.model.OwnCard
+import com.prod.profile.domain.model.UserCard
 import com.prod.profile.di.profileFeatureModule
 import com.prod.profile.presentation.ProfileViewModel
 import org.junit.After
@@ -118,6 +120,9 @@ class AppModulesSmokeTest {
 			)
 		}
 
+		override suspend fun getUserCard(userId: String): ApiOperationResult<UserCard> =
+			ApiOperationResult.ValidationError()
+
 		override suspend fun getOwnDatingProfile(): ApiOperationResult<DatingProfile?> =
 			ApiOperationResult.Success(null)
 
@@ -132,6 +137,9 @@ class AppModulesSmokeTest {
 	}
 
 	private class FakeMatchGateway : MatchGateway {
+		override suspend fun getIncomingLikes(): ApiOperationResult<List<IncomingLike>> =
+			ApiOperationResult.Success(emptyList())
+
 		override suspend fun getRecommendations(): ApiOperationResult<List<Recommendation>> =
 			ApiOperationResult.Success(emptyList())
 
