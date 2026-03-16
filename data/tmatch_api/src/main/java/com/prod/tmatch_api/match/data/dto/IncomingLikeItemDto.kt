@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class IncomingLikeItemDto(
 	@SerialName("liker_user_id")
 	val likerUserId: String,
-	val reasons: Map<String, Float> = emptyMap(),
+	val reasons: Map<String, Float>? = emptyMap(),
 	@SerialName("candidate_card")
 	val candidateCard: RecommendationCandidateCardDto? = null
 )

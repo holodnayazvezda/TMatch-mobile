@@ -205,7 +205,7 @@ class KtorMatchGateway(
 	private fun IncomingLikeItemDto.toDomain(): IncomingLike {
 		return IncomingLike(
 			likerUserId = likerUserId,
-			reasons = reasons.toDomainReasons(),
+			reasons = (reasons?:emptyMap()).toDomainReasons(),
 			candidateCard = candidateCard?.toDomain()
 		)
 	}
