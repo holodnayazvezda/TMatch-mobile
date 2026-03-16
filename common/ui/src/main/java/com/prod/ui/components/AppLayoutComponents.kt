@@ -171,7 +171,6 @@ fun AppInfoChip(
 ) {
 	val dim = LocalDimensions.current
 	val shapes = LocalShapes.current
-	val innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
 
 	Surface(
 		modifier = modifier,

@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.profile.R
+import com.prod.ui.components.AppBottomScrimInfo
+import com.prod.ui.components.AppHeroCardFrame
 import com.prod.ui.components.AppCircularActionButton
 import com.prod.ui.components.AppFactCard
 import com.prod.ui.components.AppInfoChip
@@ -275,70 +277,65 @@ private fun UserProfileHeroCard(
 		pageCount = { heroImages.size }
 	)
 
-	AppSectionCard(
-		modifier = modifier,
-		shape = com.prod.core.ui.theme.LocalShapes.current.largeRounded
+	AppHeroCardFrame(
+		modifier = modifier
 	) {
-		Column(
-			modifier = Modifier.padding(vertical = 14.dp),
-			verticalArrangement = Arrangement.spacedBy(14.dp)
-		) {
-			HorizontalPager(
-				state = pagerState,
-				modifier = Modifier.fillMaxWidth(),
-				pageSpacing = 0.dp
-			) { index ->
-					UserProfilePhoto(
-						imageUrl = heroImages[index],
-						contentDescription = stringResource(
-							R.string.user_profile_photo_content_description,
-							profileCard.fullName,
-							index + 1
-						),
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(horizontal = 14.dp)
-					)
-			}
+		HorizontalPager(
+			state = pagerState,
+			modifier = Modifier.fillMaxSize(),
+			pageSpacing = 0.dp
+		) { index ->
+			UserProfilePhoto(
+				imageUrl = heroImages[index],
+				contentDescription = stringResource(
+					R.string.user_profile_photo_content_description,
+					profileCard.fullName,
+					index + 1
+				),
+				modifier = Modifier.fillMaxSize()
+			)
+		}
 
-			if (heroImages.size > 1) {
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.Center
-				) {
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(6.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						repeat(heroImages.size) { index ->
-							Surface(
-								modifier = Modifier.size(
-									width = if (pagerState.currentPage == index) 18.dp else 8.dp,
-									height = 8.dp
-								),
-								shape = CircleShape,
-								color = if (pagerState.currentPage == index) {
-									MaterialTheme.colorScheme.primary
-								} else {
-									MaterialTheme.colorScheme.outlineVariant
-								}
-							) {}
+		if (heroImages.size > 1) {
+			Row(
+				modifier = Modifier
+					.align(Alignment.TopCenter)
+					.padding(top = 18.dp),
+				horizontalArrangement = Arrangement.spacedBy(6.dp),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				repeat(heroImages.size) { index ->
+					Surface(
+						modifier = Modifier.size(
+							width = if (pagerState.currentPage == index) 18.dp else 8.dp,
+							height = 8.dp
+						),
+						shape = CircleShape,
+						color = if (pagerState.currentPage == index) {
+							MaterialTheme.colorScheme.surface
+						} else {
+							MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
 						}
-					}
+					) {}
 				}
 			}
+		}
 
-			Column(
-				modifier = Modifier.padding(horizontal = 18.dp),
-				verticalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				Text(
-					text = displayTitle,
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onSurface,
-					fontWeight = FontWeight.SemiBold
-				)
-			}
+		AppBottomScrimInfo {
+			Text(
+				text = displayTitle,
+				style = MaterialTheme.typography.titleLarge,
+				color = com.prod.ui.theme.LocalTmatchExtraColors.current.onBaseScrim,
+				fontWeight = FontWeight.SemiBold
+			)
+			AppInfoChip(
+				text = stringResource(
+					R.string.user_profile_photo_count,
+					profileCard.datingPhotoUrls.size.coerceAtLeast(1)
+				),
+				containerColor = com.prod.ui.theme.LocalTmatchExtraColors.current.accentGold,
+				contentColor = com.prod.ui.theme.LocalTmatchExtraColors.current.onBaseScrim
+			)
 		}
 	}
 }
@@ -485,13 +482,12 @@ private fun UserProfilePhoto(
 ) {
 	Surface(
 		modifier = modifier,
-		shape = RoundedCornerShape(22.dp),
+		shape = RoundedCornerShape(28.dp),
 		color = MaterialTheme.colorScheme.surfaceContainerHigh
 	) {
 		Box(
 			modifier = Modifier
-				.fillMaxWidth()
-				.height(420.dp)
+				.fillMaxSize()
 				.background(MaterialTheme.colorScheme.surfaceContainerHigh),
 			contentAlignment = Alignment.Center
 		) {
