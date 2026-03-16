@@ -34,6 +34,10 @@ class KtorMatchGatewayTest {
 					  "items": [
 					    {
 					      "liker_user_id": "candidate-1",
+					      "reasons": {
+					        "RESTAURANTS": 0.91,
+					        "new_backend_reason": 0.42
+					      },
 					      "candidate_card": {
 					        "user_id": "candidate-1",
 					        "profile": {
@@ -60,6 +64,10 @@ class KtorMatchGatewayTest {
 		assertEquals(1, likes.size)
 		assertEquals("candidate-1", likes.single().likerUserId)
 		assertEquals("Alex", likes.single().candidateCard?.profile?.firstName)
+		assertEquals(
+			listOf(RecommendationReasonType.RESTAURANTS, RecommendationReasonType.Unknown),
+			likes.single().reasons.map { it.reasonType }
+		)
 		assertEquals(
 			"https://example.com/photo-1.jpg",
 			likes.single().candidateCard?.datingProfile?.photos?.single()

@@ -271,6 +271,55 @@ class MainMatchingViewModelTest {
 		assertTrue(viewModel.uiState.currentProfile?.id == "recommendation-2")
 	}
 
+	@Test
+	fun `load more keeps new candidates even when ml recommendation id repeats`() = runTest {
+		val viewModel = createViewModel(
+			matchGateway = FakeMatchGateway(
+				incomingLikesResult = ApiOperationResult.Success(emptyList()),
+				recommendationsResults = listOf(
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-1",
+								firstName = "Bob",
+								recommendationId = "batch-1"
+							)
+						)
+					),
+					ApiOperationResult.Success(
+						listOf(
+							recommendation(
+								candidateUserId = "recommendation-2",
+								firstName = "Carol",
+								recommendationId = "batch-1"
+							),
+							recommendation(
+								candidateUserId = "recommendation-3",
+								firstName = "Dave",
+								recommendationId = "batch-1"
+							)
+						)
+					)
+				)
+			)
+		)
+
+		viewModel.initialize(
+			onUnauthorized = {},
+			onNoInternet = {}
+		)
+		advanceUntilIdle()
+
+		viewModel.onSwipeUp()
+		advanceUntilIdle()
+
+		val recommendationIds = viewModel.uiState.items
+			.filterIsInstance<MatchingDeckItem.Profile>()
+			.map { it.id }
+		assertEquals(listOf("recommendation-1", "recommendation-2", "recommendation-3"), recommendationIds)
+		assertEquals("recommendation-2", viewModel.uiState.currentProfile?.id)
+	}
+
 	private fun createViewModel(
 		matchGateway: MatchGateway
 	): MainMatchingViewModel {

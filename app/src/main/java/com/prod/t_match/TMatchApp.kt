@@ -13,8 +13,13 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
@@ -49,6 +54,7 @@ import com.prod.t_match.navigation.rememberTMatchAppState
 import com.prod.ui.components.rememberAppGradientBrush
 import com.prod.ui.navigation.commonUiGraph
 import com.prod.ui.theme.TmatchTheme
+import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -84,6 +90,17 @@ fun TMatchApp() {
 		val saveableStateHolder = rememberSaveableStateHolder()
 		val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current)
 		val currentDestination = appState.currentDestination
+		val shouldShowBottomBar = appState.hasDatingProfileAccess && currentDestination.isMainTabDestination()
+		var isBottomBarVisible by remember(appState) { mutableStateOf(shouldShowBottomBar) }
+
+		LaunchedEffect(shouldShowBottomBar) {
+			if (shouldShowBottomBar) {
+				isBottomBarVisible = true
+			} else {
+				awaitFrame()
+				isBottomBarVisible = false
+			}
+		}
 
 		if (BuildConfig.DEBUG) {
 			DebugShakeToOpenEffect(
@@ -100,7 +117,7 @@ fun TMatchApp() {
 				.fillMaxSize()
 				.background(backgroundBrush),
 			bottomBar = {
-				if (appState.hasDatingProfileAccess && currentDestination.isMainTabDestination()) {
+				if (isBottomBarVisible) {
 					MainBottomBar(
 						currentDestination = currentDestination,
 						onTabSelected = appState::onMainTabSelected

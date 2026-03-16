@@ -469,7 +469,6 @@ private fun MainMatchingContent(
 				)
 		) {
 			MatchingHeader(onOpenPreferences = onOpenPreferences)
-			Spacer(modifier = Modifier.height(dim.medium - dim.extraSmall))
 			SwipeCardDeck(
 				currentItem = controller.currentItem,
 				nextItem = controller.nextItem,
@@ -480,7 +479,9 @@ private fun MainMatchingContent(
 				onProfileClick = controller::onOpenCurrentProfile,
 				onSwiped = controller::onSwiped,
 				onPendingDeckActionAnimated = controller::onPendingDeckActionAnimated,
-				modifier = Modifier.weight(1f)
+				modifier = Modifier
+					.weight(1f)
+					.padding(top = dim.cardOuterPadding)
 			)
 		}
 		AnimatedVisibility(
@@ -705,7 +706,7 @@ private fun SwipeCardDeck(
 		modifier = modifier
 			.fillMaxWidth()
 			.onSizeChanged { deckHeight = it.height },
-		contentAlignment = Alignment.Center
+		contentAlignment = Alignment.TopCenter
 	) {
 		val visualState = buildSwipeDeckVisualState(
 			offsetX = offsetX,

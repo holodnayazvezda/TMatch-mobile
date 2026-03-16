@@ -1,5 +1,6 @@
 package com.prod.matching.presentation
 
+import com.prod.match.domain.model.IncomingLike
 import com.prod.match.domain.model.Recommendation
 import com.prod.match.domain.model.RecommendationCandidateCard
 import com.prod.match.domain.model.RecommendationCandidateDatingProfile
@@ -11,6 +12,48 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class RecommendationUiMapperTest {
+
+	@Test
+	fun `maps incoming like reasons to visible labels and keeps liked me badge`() {
+		val mapper = RecommendationUiMapper()
+
+		val profiles = mapper.mapIncomingLikes(
+			listOf(
+				IncomingLike(
+					likerUserId = "candidate-1",
+					reasons = listOf(
+						RecommendationReason(
+							score = 0.9f,
+							reasonType = RecommendationReasonType.RESTAURANTS
+						),
+						RecommendationReason(
+							score = 0.8f,
+							reasonType = RecommendationReasonType.EVENING_ACTIVITY
+						)
+					),
+					candidateCard = RecommendationCandidateCard(
+						userId = "candidate-1",
+						profile = RecommendationCandidateProfile(
+							firstName = "Анна",
+							lastName = "Иванова",
+							birthDate = "1998-01-01",
+							region = null,
+							avatarUrl = null
+						),
+						datingProfile = RecommendationCandidateDatingProfile(
+							photos = listOf("https://example.com/photo.jpg"),
+							traits = emptyList()
+						)
+					)
+				)
+			)
+		)
+
+		assertEquals(
+			listOf("Вы понравились", "Рестораны", "Вечерняя активность"),
+			profiles.single().reasons.map { it.label }
+		)
+	}
 
 	@Test
 	fun `maps all recommendation reasons to visible labels`() {
