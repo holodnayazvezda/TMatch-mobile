@@ -7,9 +7,11 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -19,6 +21,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,9 +57,13 @@ import com.prod.core.ui.theme.LocalDimensions
 import com.prod.profile.R
 import com.prod.ui.components.AppBottomScrimInfo
 import com.prod.ui.components.AppHeroCardFrame
+import com.prod.ui.components.AppHeroPagerIndicator
+import com.prod.ui.components.AppInfoChip
 import com.prod.ui.components.AppScreenTopBar
+import com.prod.ui.components.AppFactCard
 import com.prod.ui.components.AppSectionCard
 import com.prod.ui.components.AppSectionTitle
+import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
 import com.prod.ui.components.profile.ProfileImageCropDialog
 import com.prod.ui.components.profile.ProfileImageStyle
@@ -211,6 +219,7 @@ private fun ProfileCardScene(
 	onLogoutClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
 	Column(
 		modifier = modifier
 	) {
@@ -223,49 +232,55 @@ private fun ProfileCardScene(
 			modifier = Modifier
 				.weight(1f)
 				.verticalScroll(rememberScrollState())
-				.padding(horizontal = 20.dp, vertical = 6.dp),
+				.padding(horizontal = dim.medium, vertical = dim.cardOuterPadding),
 			horizontalAlignment = Alignment.CenterHorizontally,
-			verticalArrangement = Arrangement.spacedBy(16.dp)
+			verticalArrangement = Arrangement.Top
 		) {
-			StaticProfileCard(
-				profileCard = profileCard,
-				isSubmitting = isSubmitting,
-				onClick = onChangePhotoClick,
+			Column(
 				modifier = Modifier
-					.fillMaxWidth(0.9f)
-					.widthIn(max = 360.dp)
-					.aspectRatio(0.74f)
-			)
+					.fillMaxWidth()
+					.widthIn(max = 360.dp),
+				verticalArrangement = Arrangement.spacedBy(16.dp),
+				horizontalAlignment = Alignment.CenterHorizontally
+			) {
+				val contentCardModifier = Modifier.fillMaxWidth()
 
-			ProfileAccountInfo(
-				profileCard = profileCard,
-				modifier = Modifier.fillMaxWidth()
-			)
+				StaticProfileCard(
+					profileCard = profileCard,
+					isSubmitting = isSubmitting,
+					onClick = onChangePhotoClick,
+					modifier = contentCardModifier
+						.aspectRatio(0.74f)
+				)
 
-			if (error != null) {
-				Surface(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(bottom = 12.dp),
-					shape = RoundedCornerShape(18.dp),
-					color = MaterialTheme.colorScheme.errorContainer,
-					contentColor = MaterialTheme.colorScheme.onErrorContainer
-				) {
-					Text(
-						text = error,
-						style = MaterialTheme.typography.bodyMedium,
-						modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-					)
+				ProfileAboutSection(
+					profileCard = profileCard,
+					modifier = contentCardModifier
+				)
+
+				ProfilePhotoActionsSection(
+					isSubmitting = isSubmitting,
+					onChangePhotoClick = onChangePhotoClick,
+					modifier = contentCardModifier
+				)
+
+				if (error != null) {
+					AppSectionCard(
+						modifier = contentCardModifier,
+						containerColor = MaterialTheme.colorScheme.errorContainer,
+						contentColor = MaterialTheme.colorScheme.onErrorContainer,
+						shape = RoundedCornerShape(18.dp),
+						tonalElevation = 0.dp
+					) {
+						Text(
+							text = error,
+							style = MaterialTheme.typography.bodyMedium
+						)
+					}
 				}
+
+				Spacer(modifier = Modifier.height(12.dp))
 			}
-
-			AppMediumButton(
-				buttonText = stringResource(R.string.profile_screen_change_photo_button),
-				isLoading = isSubmitting,
-				onClick = onChangePhotoClick
-			)
-
-			Spacer(modifier = Modifier.height(12.dp))
 		}
 	}
 }
@@ -276,11 +291,17 @@ private fun ProfileHeader(
 	isLogoutEnabled: Boolean,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
 	AppScreenTopBar(
 		title = stringResource(R.string.profile_screen_title),
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(start = 8.dp, top = 8.dp, end = 12.dp, bottom = 4.dp),
+			.padding(
+				start = dim.verySmall,
+				top = dim.verySmall,
+				end = dim.small,
+				bottom = dim.extraSmall
+			),
 		actions = {
 			IconButton(
 				enabled = isLogoutEnabled,
@@ -297,61 +318,94 @@ private fun ProfileHeader(
 	)
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ProfileAccountInfo(
+internal fun ProfileAboutSection(
 	profileCard: ProfileCardUiState,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
 	AppSectionCard(
 		modifier = modifier,
 		containerColor = MaterialTheme.colorScheme.surface
 	) {
-		Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-			AppSectionTitle(title = stringResource(R.string.profile_screen_details_title))
-			ProfileInfoRow(
-				label = stringResource(R.string.profile_screen_name_label),
-				value = profileCard.fullName
-			)
-			ProfileInfoRow(
-				label = stringResource(R.string.profile_screen_age_label),
-				value = profileCard.age?.toString()
-					?: stringResource(R.string.profile_screen_not_specified)
-			)
-			ProfileInfoRow(
-				label = stringResource(R.string.profile_screen_birth_date_label),
-				value = profileCard.birthDateLabel
-			)
-			ProfileInfoRow(
-				label = stringResource(R.string.profile_screen_region_label),
-				value = profileCard.region
-					?: stringResource(R.string.profile_screen_not_specified)
-			)
+		Column(verticalArrangement = Arrangement.spacedBy(dim.small + dim.extraSmall / 2)) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.Top
+			) {
+				Column(
+					modifier = Modifier.weight(1f),
+					verticalArrangement = Arrangement.spacedBy(4.dp)
+				) {
+					AppSectionTitle(title = stringResource(R.string.profile_screen_details_title))
+				}
+				AppInfoChip(
+					text = stringResource(
+						R.string.profile_screen_photo_count,
+						profileCard.datingPhotoUrls.size.coerceAtLeast(1)
+					),
+					containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+					contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+				)
+			}
+
+			FlowRow(
+				horizontalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),
+				verticalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2)
+			) {
+				AppFactCard(
+					title = stringResource(R.string.profile_screen_age_label),
+					value = profileCard.age?.toString()
+						?: stringResource(R.string.profile_screen_not_specified),
+					modifier = Modifier.fillMaxWidth(0.48f)
+				)
+				AppFactCard(
+					title = stringResource(R.string.profile_screen_birth_date_label),
+					value = profileCard.birthDateLabel,
+					modifier = Modifier.fillMaxWidth(0.48f)
+				)
+				AppFactCard(
+					title = stringResource(R.string.profile_screen_name_label),
+					value = profileCard.fullName,
+					modifier = Modifier.fillMaxWidth()
+				)
+				AppFactCard(
+					title = stringResource(R.string.profile_screen_region_label),
+					value = profileCard.region
+						?: stringResource(R.string.profile_screen_not_specified),
+					modifier = Modifier.fillMaxWidth()
+				)
+			}
 		}
 	}
 }
 
 @Composable
-private fun ProfileInfoRow(
-	label: String,
-	value: String,
+private fun ProfilePhotoActionsSection(
+	isSubmitting: Boolean,
+	onChangePhotoClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
-	Row(
-		modifier = modifier.fillMaxWidth(),
-		horizontalArrangement = Arrangement.SpaceBetween,
-		verticalAlignment = Alignment.CenterVertically
+	val dim = LocalDimensions.current
+	AppSectionCard(
+		modifier = modifier,
+		containerColor = MaterialTheme.colorScheme.surface
 	) {
-		Text(
-			text = label,
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant
-		)
-		Text(
-			text = value,
-			style = MaterialTheme.typography.titleMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-			fontWeight = FontWeight.Medium
-		)
+		Column(verticalArrangement = Arrangement.spacedBy(dim.small)) {
+			AppSectionTitle(title = stringResource(R.string.profile_screen_actions_title))
+			AppBigButton(
+				buttonText = stringResource(R.string.profile_screen_change_photo_button),
+				isLoading = isSubmitting,
+				onClick = onChangePhotoClick
+			)
+			AppMediumButton(
+				buttonText = stringResource(R.string.profile_screen_change_photo_hint),
+				isLoading = false,
+				onClick = onChangePhotoClick
+			)
+		}
 	}
 }
 
@@ -362,10 +416,15 @@ private fun StaticProfileCard(
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
+	val heroImages = profileCard.datingPhotoUrls.ifEmpty { listOf<String?>(null) }
 	val displayTitle = profileCard.age?.let {
 		stringResource(R.string.profile_display_title_with_age, profileCard.fullName, it)
 	} ?: profileCard.fullName
 	val extraColors = LocalTmatchExtraColors.current
+	val pagerState = rememberPagerState(
+		initialPage = 0,
+		pageCount = { heroImages.size }
+	)
 
 	AppHeroCardFrame(
 		modifier = modifier.clickable(
@@ -373,11 +432,21 @@ private fun StaticProfileCard(
 			onClick = onClick
 		)
 	) {
-		DatingPhotoSurface(
-			photoUrl = profileCard.datingPhotoUrls.firstOrNull(),
-			isUploading = isSubmitting,
-			title = displayTitle,
-			modifier = Modifier.fillMaxSize()
+		HorizontalPager(
+			state = pagerState,
+			modifier = Modifier.fillMaxSize(),
+			pageSpacing = 0.dp
+		) { index ->
+			DatingPhotoSurface(
+				photoUrl = heroImages[index],
+				isUploading = isSubmitting,
+				title = displayTitle,
+				modifier = Modifier.fillMaxSize()
+			)
+		}
+		AppHeroPagerIndicator(
+			total = heroImages.size,
+			current = pagerState.currentPage
 		)
 		AppBottomScrimInfo {
 			Text(
@@ -386,13 +455,14 @@ private fun StaticProfileCard(
 				color = extraColors.onBaseScrim,
 				fontWeight = FontWeight.SemiBold
 			)
-			profileCard.region?.takeIf { it.isNotBlank() }?.let { region ->
-				com.prod.ui.components.AppInfoChip(
-					text = region,
-					containerColor = extraColors.accentGold,
-					contentColor = extraColors.onBaseScrim
-				)
-			}
+			AppInfoChip(
+				text = stringResource(
+					R.string.profile_screen_photo_count,
+					profileCard.datingPhotoUrls.size.coerceAtLeast(1)
+				),
+				containerColor = extraColors.accentGold,
+				contentColor = extraColors.onBaseScrim
+			)
 		}
 	}
 }

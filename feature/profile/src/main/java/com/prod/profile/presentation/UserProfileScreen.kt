@@ -49,6 +49,7 @@ import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.profile.R
 import com.prod.ui.components.AppBottomScrimInfo
 import com.prod.ui.components.AppHeroCardFrame
+import com.prod.ui.components.AppHeroPagerIndicator
 import com.prod.ui.components.AppCircularActionButton
 import com.prod.ui.components.AppFactCard
 import com.prod.ui.components.AppInfoChip
@@ -56,6 +57,8 @@ import com.prod.ui.components.AppScreenTopBar
 import com.prod.ui.components.AppSectionCard
 import com.prod.ui.components.AppSectionTitle
 import com.prod.ui.R as UiR
+import com.prod.core.ui.theme.LocalDimensions
+import com.prod.ui.theme.LocalTmatchExtraColors
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -218,13 +221,14 @@ private fun UserProfileHeader(
 	onBan: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
 	var isMenuExpanded by remember { mutableStateOf(false) }
 
 	AppScreenTopBar(
 		title = stringResource(R.string.user_profile_title),
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(horizontal = 12.dp, vertical = 8.dp),
+			.padding(horizontal = dim.small, vertical = dim.verySmall),
 		navigation = {
 			TextButton(
 				onClick = onBack
@@ -268,6 +272,8 @@ private fun UserProfileHeroCard(
 	profileCard: UserProfileCardUiState,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
+	val extraColors = LocalTmatchExtraColors.current
 	val heroImages = profileCard.heroImages()
 	val displayTitle = profileCard.age?.let {
 		stringResource(R.string.user_profile_display_title_with_age, profileCard.fullName, it)
@@ -296,36 +302,16 @@ private fun UserProfileHeroCard(
 			)
 		}
 
-		if (heroImages.size > 1) {
-			Row(
-				modifier = Modifier
-					.align(Alignment.TopCenter)
-					.padding(top = 18.dp),
-				horizontalArrangement = Arrangement.spacedBy(6.dp),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				repeat(heroImages.size) { index ->
-					Surface(
-						modifier = Modifier.size(
-							width = if (pagerState.currentPage == index) 18.dp else 8.dp,
-							height = 8.dp
-						),
-						shape = CircleShape,
-						color = if (pagerState.currentPage == index) {
-							MaterialTheme.colorScheme.surface
-						} else {
-							MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
-						}
-					) {}
-				}
-			}
-		}
+		AppHeroPagerIndicator(
+			total = heroImages.size,
+			current = pagerState.currentPage
+		)
 
 		AppBottomScrimInfo {
 			Text(
 				text = displayTitle,
 				style = MaterialTheme.typography.titleLarge,
-				color = com.prod.ui.theme.LocalTmatchExtraColors.current.onBaseScrim,
+				color = extraColors.onBaseScrim,
 				fontWeight = FontWeight.SemiBold
 			)
 			AppInfoChip(
@@ -333,8 +319,8 @@ private fun UserProfileHeroCard(
 					R.string.user_profile_photo_count,
 					profileCard.datingPhotoUrls.size.coerceAtLeast(1)
 				),
-				containerColor = com.prod.ui.theme.LocalTmatchExtraColors.current.accentGold,
-				contentColor = com.prod.ui.theme.LocalTmatchExtraColors.current.onBaseScrim
+				containerColor = extraColors.accentGold,
+				contentColor = extraColors.onBaseScrim
 			)
 		}
 	}
@@ -346,11 +332,12 @@ private fun UserProfileAboutSection(
 	profileCard: UserProfileCardUiState,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
 	AppSectionCard(
 		modifier = modifier,
 		containerColor = MaterialTheme.colorScheme.surface
 	) {
-		Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+		Column(verticalArrangement = Arrangement.spacedBy(dim.small + dim.extraSmall / 2)) {
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
@@ -373,8 +360,8 @@ private fun UserProfileAboutSection(
 			}
 
 			FlowRow(
-				horizontalArrangement = Arrangement.spacedBy(10.dp),
-				verticalArrangement = Arrangement.spacedBy(10.dp)
+				horizontalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),
+				verticalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2)
 			) {
 				AppFactCard(
 					title = stringResource(R.string.user_profile_age_title),

@@ -317,6 +317,38 @@ fun AppBottomSheetHandle(
 }
 
 @Composable
+fun BoxScope.AppHeroPagerIndicator(
+	total: Int,
+	current: Int,
+	modifier: Modifier = Modifier,
+	activeColor: Color = MaterialTheme.colorScheme.surface,
+	inactiveColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
+) {
+	if (total <= 1) return
+
+	val dim = LocalDimensions.current
+
+	Row(
+		modifier = modifier
+			.align(Alignment.TopCenter)
+			.padding(top = dim.pagerIndicatorInset),
+		horizontalArrangement = Arrangement.spacedBy(dim.pagerIndicatorGap),
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		repeat(total) { index ->
+			Surface(
+				modifier = Modifier.size(
+					width = if (current == index) dim.pagerIndicatorActiveWidth else dim.pagerIndicatorInactiveWidth,
+					height = dim.pagerIndicatorHeight
+				),
+				shape = CircleShape,
+				color = if (current == index) activeColor else inactiveColor
+			) {}
+		}
+	}
+}
+
+@Composable
 fun BoxScope.AppBottomScrimInfo(
 	content: @Composable ColumnScope.() -> Unit
 ) {

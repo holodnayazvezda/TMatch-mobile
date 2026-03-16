@@ -30,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -360,7 +361,11 @@ private fun MainMatchingContent(
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
-				.padding(horizontal = dim.cardStackInset)
+				.padding(
+					start = dim.cardStackInset,
+					end = dim.cardStackInset,
+					bottom = dim.defaultSpacing
+				)
 		) {
 			MatchingHeader()
 			error?.let { errorText ->
@@ -370,7 +375,7 @@ private fun MainMatchingContent(
 						.padding(top = dim.small),
 					color = MaterialTheme.colorScheme.errorContainer,
 					contentColor = MaterialTheme.colorScheme.onErrorContainer,
-					shape = RoundedCornerShape(18.dp)
+					shape = LocalShapes.current.mediumRounded
 					) {
 						Text(
 							text = errorText,
@@ -411,13 +416,18 @@ private fun MatchingHeader() {
 	val colors = MaterialTheme.colorScheme
 	AppScreenTopBar(
 		title = stringResource(R.string.matching_title),
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = dim.small, vertical = dim.verySmall),
 		actions = {
-			Icon(
-				painter = painterResource(R.drawable.ic_history_24),
-				contentDescription = stringResource(R.string.matching_history),
-				modifier = Modifier.size(dim.iconMedium),
-				tint = colors.onBackground
-			)
+			IconButton(onClick = {}) {
+				Icon(
+					painter = painterResource(R.drawable.ic_history_24),
+					contentDescription = stringResource(R.string.matching_history),
+					modifier = Modifier.size(dim.iconMedium),
+					tint = colors.onBackground
+				)
+			}
 		}
 	)
 }
@@ -636,6 +646,8 @@ private fun MatchingDeckPlaceholderCard(
 	message: String,
 	modifier: Modifier = Modifier
 ) {
+	val dim = LocalDimensions.current
+
 	AppHeroCardFrame(modifier = modifier) {
 		Box(
 			modifier = Modifier
@@ -644,14 +656,14 @@ private fun MatchingDeckPlaceholderCard(
 			contentAlignment = Alignment.Center
 		) {
 			Column(
-				modifier = Modifier.padding(24.dp),
-				verticalArrangement = Arrangement.spacedBy(12.dp),
+				modifier = Modifier.padding(dim.large),
+				verticalArrangement = Arrangement.spacedBy(dim.small),
 				horizontalAlignment = Alignment.CenterHorizontally
 			) {
 				Icon(
 					painter = painterResource(R.drawable.ic_history_24),
 					contentDescription = null,
-					modifier = Modifier.size(32.dp),
+					modifier = Modifier.size(dim.extraLarge),
 					tint = MaterialTheme.colorScheme.primary
 				)
 				Text(
@@ -675,7 +687,7 @@ private fun SwipeActionAffordance(
 
 	Box(
 		modifier = modifier
-			.clip(RoundedCornerShape(28.dp))
+			.clip(LocalShapes.current.largeRounded)
 			// The tint follows the card position directly, so the feedback feels attached
 			// to the gesture instead of behaving like a separate animation layer.
 			.background(affordance.color.copy(alpha = 0.24f * progress))
