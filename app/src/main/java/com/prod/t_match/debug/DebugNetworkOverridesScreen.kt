@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -31,11 +32,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.prod.t_match.R
 import com.prod.tmatch_api.common.data.network.ApiResponseOverride
 import com.prod.tmatch_api.common.data.network.ApiResponseOverrideRegistry
 import com.prod.ui.components.buttons.AppBigButton
@@ -193,10 +197,21 @@ private fun DebugScreenScaffold(
 	) {
 		AppScreenTopBar(
 			title = title,
+			titleFontSize = 18.sp,
 			applySafeDrawingPadding = false,
 			navigation = {
 				TextButton(onClick = onNavigation) {
-					Text(text = "\u2190 $navigationLabel")
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Icon(
+							painter = painterResource(R.drawable.back),
+							contentDescription = navigationLabel,
+							tint = MaterialTheme.colorScheme.onBackground
+						)
+						Text(text = navigationLabel)
+					}
 				}
 			}
 		)

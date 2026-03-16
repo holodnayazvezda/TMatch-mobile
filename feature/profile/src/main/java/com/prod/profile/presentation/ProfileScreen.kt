@@ -99,10 +99,9 @@ fun ProfileScreen(
 		)
 	}
 
-	LaunchedEffect(uiState.profileCard?.datingPhotoUrls) {
-		onDatingProfileAvailabilityChanged(
-			uiState.profileCard?.datingPhotoUrls?.isNotEmpty() == true
-		)
+	LaunchedEffect(uiState.profileCard) {
+		val profileCard = uiState.profileCard ?: return@LaunchedEffect
+		onDatingProfileAvailabilityChanged(profileCard.datingPhotoUrls.isNotEmpty())
 	}
 
 	Box(

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.prod.ui.theme.LocalDimensions
@@ -121,6 +122,7 @@ fun AppScreenTopBar(
 	modifier: Modifier = Modifier,
 	horizontalPadding: Dp = LocalDimensions.current.small,
 	verticalPadding: Dp = LocalDimensions.current.verySmall,
+	titleFontSize: TextUnit = 22.sp,
 	applySafeDrawingPadding: Boolean = true,
 	navigation: (@Composable RowScope.() -> Unit)? = null,
 	actions: (@Composable RowScope.() -> Unit)? = null
@@ -148,7 +150,7 @@ fun AppScreenTopBar(
 		Text(
 			text = title,
 			modifier = Modifier.weight(1f),
-			style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+			style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
 			color = MaterialTheme.colorScheme.onBackground,
 			textAlign = TextAlign.Center,
 			maxLines = 1,
