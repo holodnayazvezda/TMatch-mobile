@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -33,6 +36,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -290,55 +294,55 @@ private fun ChatComposer(
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
+	val colorScheme = MaterialTheme.colorScheme
 
-	Surface(
-		modifier = modifier,
-		color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-		tonalElevation = 6.dp,
-		shadowElevation = 8.dp
+	Row(
+		modifier = modifier
+			.fillMaxWidth()
+			.height(IntrinsicSize.Max)
+			.padding(
+				start = dim.medium,
+				top = dim.small,
+				end = dim.medium,
+				bottom = dim.small
+			),
+		horizontalArrangement = Arrangement.spacedBy(dim.small),
+		verticalAlignment = Alignment.CenterVertically
 	) {
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(
-					start = dim.medium,
-					top = dim.small,
-					end = dim.medium,
-					bottom = dim.small
-				),
-			horizontalArrangement = Arrangement.spacedBy(dim.small),
-			verticalAlignment = Alignment.Bottom
-		) {
-			AppTextField(
-				modifier = Modifier.weight(1f),
-				value = value,
-				onValueChange = onValueChange,
-				label = stringResource(R.string.chat_input_placeholder),
-				focusedPlaceholder = stringResource(R.string.chat_input_placeholder),
-				singleLine = false,
-				maxLines = 6,
-				minHeight = 56.dp,
-				keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
-			)
+		AppTextField(
+			modifier = Modifier.weight(1f),
+			value = value,
+			onValueChange = onValueChange,
+			label = stringResource(R.string.chat_input_placeholder),
+			focusedPlaceholder = stringResource(R.string.chat_input_placeholder),
+			singleLine = false,
+			maxLines = 6,
+			minHeight = 56.dp,
+			keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
+		)
 
-			FilledIconButton(
-				onClick = onSend,
-				enabled = value.isNotBlank() && !isSending,
-				modifier = Modifier
-					.size(56.dp)
-					.clip(CircleShape)
-			) {
-				if (isSending) {
-					CircularProgressIndicator(
-						modifier = Modifier.size(20.dp),
-						strokeWidth = 2.dp
-					)
-				} else {
-					Icon(
-						painter = painterResource(R.drawable.ic_send_24),
-						contentDescription = stringResource(R.string.chat_send_content_description)
-					)
-				}
+		FilledIconButton(
+			onClick = onSend,
+			colors = IconButtonDefaults.filledIconButtonColors(
+				containerColor = colorScheme.primary,
+				contentColor = colorScheme.onPrimary
+			),
+			modifier = Modifier
+				.aspectRatio(1f)
+				.fillMaxHeight()
+				.clip(CircleShape)
+		) {
+			if (isSending) {
+				CircularProgressIndicator(
+					modifier = Modifier.size(20.dp),
+					strokeWidth = 2.dp
+				)
+			} else {
+				Icon(
+					painter = painterResource(R.drawable.ic_send_24),
+					contentDescription = stringResource(R.string.chat_send_content_description),
+					tint = colorScheme.onPrimary
+				)
 			}
 		}
 	}

@@ -81,7 +81,7 @@ fun AppTextField(
     }
 
     Box(
-        modifier = Modifier.heightIn(min = containerMinHeight),
+        modifier = modifier.heightIn(min = containerMinHeight),
     ) {
         Box(
             Modifier
@@ -94,7 +94,7 @@ fun AppTextField(
                 )
         )
         OutlinedTextField(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = textFieldMinHeight)
                 .offset(y = dim.extraSmall + dim.extraSmall / 4)
@@ -115,8 +115,8 @@ fun AppTextField(
                 )
             },
             isError = error != null,
-            supportingText = {
-                if (error != null) {
+            supportingText = if (error != null) {
+                {
                     Spacer(Modifier.height(5.dp))
                     Text(
                         text = error,
@@ -124,6 +124,8 @@ fun AppTextField(
                         fontSize = 12.sp
                     )
                 }
+            } else {
+                null
             },
             keyboardOptions = keyboardOptions,
             keyboardActions = KeyboardActions(
