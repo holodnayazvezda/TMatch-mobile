@@ -113,7 +113,13 @@ fun SignInScreen(
 		SignInJuryUserPickerDialog(
 			users = uiState.juryPreviewUsers,
 			onDismiss = viewModel::dismissJuryPicker,
-			onUserSelected = viewModel::applyJuryPreviewUser
+			onUserSelected = { user ->
+				viewModel.applyJuryPreviewUser(user)
+				viewModel.submit(
+					onSuccess = onAuthSuccess,
+					onNoInternet = onRequestNoInternet
+				)
+			}
 		)
 	}
 }

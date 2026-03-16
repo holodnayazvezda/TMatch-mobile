@@ -8,8 +8,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
@@ -108,7 +110,6 @@ fun ProfileSetupScreen(
 			Column(
 				modifier = Modifier
 					.fillMaxSize()
-					.verticalScroll(rememberScrollState())
 					.padding(horizontal = 24.dp, vertical = 16.dp),
 				verticalArrangement = Arrangement.spacedBy(16.dp)
 			) {
@@ -124,100 +125,108 @@ fun ProfileSetupScreen(
 					enabled = !uiState.isSubmitting && !uiState.isCheckingProfile,
 					modifier = Modifier.align(Alignment.End)
 				)
-				SelectableProfileImage(
-					imageBitmap = avatarBitmap,
-					placeholderText = stringResource(R.string.profile_setup_avatar_placeholder),
-					contentDescription = stringResource(R.string.profile_setup_avatar_content_description),
-					style = ProfileImageStyle.Avatar,
-					onClick = {
-						pickerLauncher.launch(
-							PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-						)
-					},
-					modifier = Modifier.fillMaxWidth()
-				)
-				AppTextField(
-					value = uiState.firstName,
-					onValueChange = viewModel::onFirstNameChange,
-					label = stringResource(R.string.profile_setup_first_name),
-					error = uiState.firstNameError.asStringOrNull(),
-					keyboardOptions = KeyboardOptions(
-						keyboardType = KeyboardType.Text,
-						imeAction = ImeAction.Next
-					),
-					onNext = { lastNameFocusRequester.requestFocus() }
-				)
-				AppTextField(
-					modifier = Modifier.focusRequester(lastNameFocusRequester),
-					value = uiState.lastName,
-					onValueChange = viewModel::onLastNameChange,
-					label = stringResource(R.string.profile_setup_last_name),
-					keyboardOptions = KeyboardOptions(
-						keyboardType = KeyboardType.Text,
-						imeAction = ImeAction.Next
-					),
-					onNext = { birthDateFocusRequester.requestFocus() }
-				)
-				AppTextField(
+				Column(
 					modifier = Modifier
-						.focusRequester(birthDateFocusRequester)
-						.onFocusChanged { focusState ->
-							if (focusState.isFocused && !showDatePicker) {
-								showDatePicker = true
-							}
+						.weight(1f)
+						.verticalScroll(rememberScrollState()),
+					verticalArrangement = Arrangement.spacedBy(16.dp)
+				) {
+					SelectableProfileImage(
+						imageBitmap = avatarBitmap,
+						placeholderText = stringResource(R.string.profile_setup_avatar_placeholder),
+						contentDescription = stringResource(R.string.profile_setup_avatar_content_description),
+						style = ProfileImageStyle.Avatar,
+						onClick = {
+							pickerLauncher.launch(
+								PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+							)
 						},
-					value = uiState.birthDateDisplay,
-					onValueChange = {},
-					readOnly = true,
-					onClick = { showDatePicker = true },
-					label = stringResource(R.string.profile_setup_birth_date),
-					error = uiState.birthDateError.asStringOrNull(),
-					keyboardOptions = KeyboardOptions(
-						keyboardType = KeyboardType.Number,
-						imeAction = ImeAction.Next
-					),
-					onNext = { showDatePicker = true }
-				)
-				AppTextFieldWithDropdown(
-					modifier = Modifier.focusRequester(genderFocusRequester),
-					value = uiState.genderDisplay,
-					label = stringResource(R.string.profile_setup_gender),
-					error = uiState.genderError.asStringOrNull(),
-					dropdownItems = Gender.entries,
-					onDropdownItemSelected = { selectedGender ->
-						viewModel.onGenderSelected(selectedGender)
-						regionFocusRequester.requestFocus()
-					},
-					dropDownItem = { option ->
-						androidx.compose.material3.Text(
-							text = when (option) {
-								Gender.Male -> stringResource(R.string.profile_setup_gender_male)
-								Gender.Female -> stringResource(R.string.profile_setup_gender_female)
-							}
-						)
-					}
-				)
-				AppTextFieldWithDropdown(
-					modifier = Modifier.focusRequester(regionFocusRequester),
-					value = uiState.region,
-					label = stringResource(R.string.profile_setup_region),
-					dropdownItems = RussianRegions.all,
-					onDropdownItemSelected = viewModel::onRegionChange,
-					dropDownItem = { region ->
-						androidx.compose.material3.Text(text = region)
-					}
-				)
-				uiState.formError?.let { message ->
-					AuthFormErrorCard(
-						message = message.asString(),
 						modifier = Modifier.fillMaxWidth()
 					)
+					AppTextField(
+						value = uiState.firstName,
+						onValueChange = viewModel::onFirstNameChange,
+						label = stringResource(R.string.profile_setup_first_name),
+						error = uiState.firstNameError.asStringOrNull(),
+						keyboardOptions = KeyboardOptions(
+							keyboardType = KeyboardType.Text,
+							imeAction = ImeAction.Next
+						),
+						onNext = { lastNameFocusRequester.requestFocus() }
+					)
+					AppTextField(
+						modifier = Modifier.focusRequester(lastNameFocusRequester),
+						value = uiState.lastName,
+						onValueChange = viewModel::onLastNameChange,
+						label = stringResource(R.string.profile_setup_last_name),
+						keyboardOptions = KeyboardOptions(
+							keyboardType = KeyboardType.Text,
+							imeAction = ImeAction.Next
+						),
+						onNext = { birthDateFocusRequester.requestFocus() }
+					)
+					AppTextField(
+						modifier = Modifier
+							.focusRequester(birthDateFocusRequester)
+							.onFocusChanged { focusState ->
+								if (focusState.isFocused && !showDatePicker) {
+									showDatePicker = true
+								}
+							},
+						value = uiState.birthDateDisplay,
+						onValueChange = {},
+						readOnly = true,
+						onClick = { showDatePicker = true },
+						label = stringResource(R.string.profile_setup_birth_date),
+						error = uiState.birthDateError.asStringOrNull(),
+						keyboardOptions = KeyboardOptions(
+							keyboardType = KeyboardType.Number,
+							imeAction = ImeAction.Next
+						),
+						onNext = { showDatePicker = true }
+					)
+					AppTextFieldWithDropdown(
+						modifier = Modifier.focusRequester(genderFocusRequester),
+						value = uiState.genderDisplay,
+						label = stringResource(R.string.profile_setup_gender),
+						error = uiState.genderError.asStringOrNull(),
+						dropdownItems = Gender.entries,
+						onDropdownItemSelected = { selectedGender ->
+							viewModel.onGenderSelected(selectedGender)
+							regionFocusRequester.requestFocus()
+						},
+						dropDownItem = { option ->
+							androidx.compose.material3.Text(
+								text = when (option) {
+									Gender.Male -> stringResource(R.string.profile_setup_gender_male)
+									Gender.Female -> stringResource(R.string.profile_setup_gender_female)
+								}
+							)
+						}
+					)
+					AppTextFieldWithDropdown(
+						modifier = Modifier.focusRequester(regionFocusRequester),
+						value = uiState.region,
+						label = stringResource(R.string.profile_setup_region),
+						dropdownItems = RussianRegions.all,
+						onDropdownItemSelected = viewModel::onRegionChange,
+						dropDownItem = { region ->
+							androidx.compose.material3.Text(text = region)
+						}
+					)
+					uiState.formError?.let { message ->
+						AuthFormErrorCard(
+							message = message.asString(),
+							modifier = Modifier.fillMaxWidth()
+						)
+					}
+					AppBigButton(
+						buttonText = stringResource(R.string.profile_setup_submit),
+						isLoading = uiState.isSubmitting,
+						onClick = submitProfile
+					)
+					Spacer(Modifier.height(15.dp))
 				}
-				AppBigButton(
-					buttonText = stringResource(R.string.profile_setup_submit),
-					isLoading = uiState.isSubmitting,
-					onClick = submitProfile
-				)
 			}
 		}
 	}
