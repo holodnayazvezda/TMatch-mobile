@@ -54,6 +54,7 @@ import org.koin.compose.koinInject
 @Composable
 fun DebugNetworkOverridesScreen(
 	onBack: () -> Unit,
+	onOpenLogs: () -> Unit,
 	modifier: Modifier = Modifier,
 	registry: ApiResponseOverrideRegistry = koinInject()
 ) {
@@ -97,6 +98,7 @@ fun DebugNetworkOverridesScreen(
 				modifier = Modifier.fillMaxSize(),
 				itemStateHolders = itemStateHolders,
 				onBack = onBack,
+				onOpenLogs = onOpenLogs,
 				onClearAll = {
 					registry.clear()
 					itemStateHolders.forEachIndexed { index, holder ->
@@ -229,6 +231,7 @@ private fun DebugOverridesListScreen(
 	modifier: Modifier,
 	itemStateHolders: List<EndpointOverrideItemStateHolder>,
 	onBack: () -> Unit,
+	onOpenLogs: () -> Unit,
 	onClearAll: () -> Unit,
 	onToggleEnabled: (EndpointOverrideItemStateHolder, Boolean) -> Unit,
 	onOpenConfig: (EndpointOverrideItemStateHolder) -> Unit
@@ -280,6 +283,15 @@ private fun DebugOverridesListScreen(
 					isLoading = false
 				)
 			}
+		}
+
+		item(key = "logs") {
+			AppBigButton(
+				modifier = Modifier.fillMaxWidth(),
+				onClick = onOpenLogs,
+				buttonText = "Открыть все логи приложения",
+				isLoading = false
+			)
 		}
 
 		items(

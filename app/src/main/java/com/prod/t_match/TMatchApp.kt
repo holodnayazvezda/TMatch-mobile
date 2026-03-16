@@ -48,6 +48,8 @@ import com.prod.profile.navigation.UserProfileNavKey
 import com.prod.profile.navigation.profileGraph
 import com.prod.t_match.debug.DebugNetworkOverridesNavKey
 import com.prod.t_match.debug.DebugNetworkOverridesScreen
+import com.prod.t_match.debug.DebugAppLogsNavKey
+import com.prod.t_match.debug.DebugAppLogsScreen
 import com.prod.t_match.debug.DebugShakeToOpenEffect
 import com.prod.t_match.navigation.AppStartDestinationResolver
 import com.prod.t_match.notifications.FcmTokenRegistrar
@@ -226,6 +228,18 @@ fun TMatchApp() {
 					)
 					entry<DebugNetworkOverridesNavKey> {
 						DebugNetworkOverridesScreen(
+							onOpenLogs = {
+								backStack.add(DebugAppLogsNavKey())
+							},
+							onBack = {
+								if (backStack.size > 1) {
+									backStack.removeLastOrNull()
+								}
+							}
+						)
+					}
+					entry<DebugAppLogsNavKey> {
+						DebugAppLogsScreen(
 							onBack = {
 								if (backStack.size > 1) {
 									backStack.removeLastOrNull()
