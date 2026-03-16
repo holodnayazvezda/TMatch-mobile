@@ -4,6 +4,7 @@ import com.prod.auth.domain.gateway.AuthSessionStore
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.match.domain.gateway.MatchGateway
+import com.prod.match.domain.model.IncomingLike
 import com.prod.match.domain.model.Interaction
 import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.Recommendation
@@ -16,6 +17,8 @@ import com.prod.match.domain.model.RecommendationReasonType
 import com.prod.tmatch_api.auth.data.dto.ApiErrorDto
 import com.prod.tmatch_api.common.data.network.KtorGatewaySupport
 import com.prod.tmatch_api.match.data.dto.CreateInteractionRequestDto
+import com.prod.tmatch_api.match.data.dto.IncomingLikeItemDto
+import com.prod.tmatch_api.match.data.dto.IncomingLikesResponseDto
 import com.prod.tmatch_api.match.data.dto.InteractionResponseDto
 import com.prod.tmatch_api.match.data.dto.RecommendationCandidateCardDto
 import com.prod.tmatch_api.match.data.dto.RecommendationCandidateDatingProfileDto
@@ -40,6 +43,30 @@ class KtorMatchGateway(
 ) : MatchGateway {
 
 	private val gatewaySupport = KtorGatewaySupport(authSessionStore)
+
+	override suspend fun getIncomingLikes(): ApiOperationResult<List<IncomingLike>> {
+		return try {
+			val response = httpClient.get("/likes/incoming/me") {
+				accept(ContentType.Application.Json)
+				with(gatewaySupport) {
+					applyAuthorizedRequest()
+				}
+			}
+
+			if (response.status.isSuccess()) {
+				ApiOperationResult.Success(
+					response.body<IncomingLikesResponseDto>().items.map { it.toDomain() }
+				)
+			} else {
+				gatewaySupport.mapErrorResponse(
+					status = response.status,
+					responseBody = runCatching { response.body<ApiErrorDto>() }.getOrNull()
+				)
+			}
+		} catch (exception: Exception) {
+			gatewaySupport.handleException(exception)
+		}
+	}
 
 	override suspend fun getRecommendations(): ApiOperationResult<List<Recommendation>> {
 		return try {
@@ -105,18 +132,25 @@ class KtorMatchGateway(
 	}
 
 	private fun RecommendationDto.toDomain(): Recommendation {
-			return Recommendation(
-				mlRecommendationId = mlRecommendationId,
-				userId = userId,
-				candidateUserId = candidateUserId,
-				reasons = reasons.map { (featureName, score) ->
-					RecommendationReason(
-						score = score,
-						reasonType = featureName.toRecommendationReasonType()
-					)
-				}.sortedByDescending { it.score },
-				candidateCard = candidateCard?.toDomain()
-			)
+		return Recommendation(
+			mlRecommendationId = mlRecommendationId,
+			userId = userId,
+			candidateUserId = candidateUserId,
+			reasons = reasons.map { (featureName, score) ->
+				RecommendationReason(
+					score = score,
+					reasonType = featureName.toRecommendationReasonType()
+				)
+			}.sortedByDescending { it.score },
+			candidateCard = candidateCard?.toDomain()
+		)
+	}
+
+	private fun IncomingLikeItemDto.toDomain(): IncomingLike {
+		return IncomingLike(
+			likerUserId = likerUserId,
+			candidateCard = candidateCard?.toDomain()
+		)
 	}
 
 	private fun RecommendationCandidateCardDto.toDomain(): RecommendationCandidateCard {

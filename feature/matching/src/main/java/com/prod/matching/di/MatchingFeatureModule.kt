@@ -3,6 +3,7 @@ package com.prod.matching.di
 import com.prod.matching.data.SharedPrefsPendingMatchActionStore
 import com.prod.matching.domain.gateway.PendingMatchActionStore
 import com.prod.matching.domain.usecase.GetMatchingFeedUseCase
+import com.prod.matching.domain.usecase.GetRecommendationsUseCase
 import com.prod.matching.domain.usecase.SubmitMatchActionUseCase
 import com.prod.matching.presentation.MainMatchingViewModel
 import com.prod.matching.presentation.RecommendationUiMapper
@@ -13,11 +14,13 @@ val matchingFeatureModule = module {
 	single { RecommendationUiMapper() }
 	single<PendingMatchActionStore> { SharedPrefsPendingMatchActionStore(context = get()) }
 	single { GetMatchingFeedUseCase(matchGateway = get()) }
+	single { GetRecommendationsUseCase(matchGateway = get()) }
 	single { SubmitMatchActionUseCase(matchGateway = get()) }
 
 	viewModel {
 		MainMatchingViewModel(
 			getMatchingFeedUseCase = get(),
+			getRecommendationsUseCase = get(),
 			submitMatchActionUseCase = get(),
 			recommendationUiMapper = get(),
 			pendingMatchActionStore = get()

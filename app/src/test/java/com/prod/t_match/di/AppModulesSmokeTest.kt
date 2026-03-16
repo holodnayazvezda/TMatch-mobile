@@ -12,6 +12,7 @@ import com.prod.auth.presentation.signup.SignUpViewModel
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.UserSession
 import com.prod.match.domain.gateway.MatchGateway
+import com.prod.match.domain.model.IncomingLike
 import com.prod.match.domain.model.Interaction
 import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.Recommendation
@@ -144,6 +145,9 @@ class AppModulesSmokeTest {
 	}
 
 	private class FakeMatchGateway : MatchGateway {
+		override suspend fun getIncomingLikes(): ApiOperationResult<List<IncomingLike>> =
+			ApiOperationResult.Success(emptyList())
+
 		override suspend fun getRecommendations(): ApiOperationResult<List<Recommendation>> =
 			ApiOperationResult.Success(emptyList())
 
