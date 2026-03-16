@@ -316,6 +316,11 @@ fun MainMatchingScreen(
 		}
 
 		override fun onSwiped(direction: SwipeDirection) {
+			if (uiState.currentItem is MatchingDeckItem.Transition) {
+				viewModel.onSwipeUp()
+				return
+			}
+
 			when (direction) {
 				SwipeDirection.Left -> viewModel.onSwipeLeft()
 				SwipeDirection.Right -> viewModel.onSwipeRight()
@@ -509,11 +514,9 @@ private fun SwipeCardDeck(
 	val scope = rememberCoroutineScope()
 	val colors = MaterialTheme.colorScheme
 	val allowedSwipeDirections = remember(currentItem) {
-		when (currentItem) {
-			is MatchingDeckItem.Transition -> setOf(SwipeDirection.Up)
-			else -> SwipeDirection.entries.toSet()
-		}
+		SwipeDirection.entries.toSet()
 	}
+	val showSwipeAffordances = currentItem !is MatchingDeckItem.Transition
 	val resetSpec = remember {
 		tween<Float>(
 			durationMillis = SwipeDismissDurationMillis,
@@ -711,45 +714,82 @@ private fun SwipeCardDeck(
 							scaleY = visualState.currentCardScale
 							alpha = visualState.currentCardAlpha
 						}
-						.pointerInput(activeItem.id) {
-								detectDragGestures(
-									onDrag = { change, dragAmount ->
-										change.consume()
-										offsetX = 0f
-										offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
-										rotation = 0f
-									},
-									onDragEnd = {
-										val direction = resolveDismissDirection(
-											offsetX = offsetX,
-											offsetY = offsetY,
-											allowedDirections = allowedSwipeDirections
-										)
-									scope.launch {
-										if (direction != null) {
-											onSwiped(direction)
-										} else {
-											listOf(
-												async {
-													animate(
-														initialValue = offsetX,
-														targetValue = 0f,
-														animationSpec = resetSpec
-													) { value, _ -> offsetX = value }
-												},
-												async {
-													animate(
-														initialValue = offsetY,
-														targetValue = 0f,
-														animationSpec = resetSpec
-													) { value, _ -> offsetY = value }
-												},
-												async {
-													animate(
-														initialValue = rotation,
-														targetValue = 0f,
-														animationSpec = resetSpec
-													) { value, _ -> rotation = value }
+							.pointerInput(activeItem.id) {
+									detectDragGestures(
+										onDrag = { change, dragAmount ->
+											change.consume()
+											offsetX += dragAmount.x
+											offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
+											rotation = (offsetX / SwipeRotationDivisor)
+												.coerceIn(-SwipeRotationLimit, SwipeRotationLimit)
+										},
+										onDragEnd = {
+											val targetX = offsetX
+											val targetY = offsetY
+											val targetRotation = rotation
+											val direction = resolveDismissDirection(
+												offsetX = targetX,
+												offsetY = targetY,
+												allowedDirections = allowedSwipeDirections
+											)
+										scope.launch {
+											if (direction != null) {
+												val dismissTargets = buildDismissTargets(
+													direction = direction,
+													offsetX = targetX,
+													offsetY = targetY,
+													verticalDismissOffset = visualState.verticalDismissOffset
+												)
+												val dismissSpec = tween<Float>(
+													durationMillis = dismissTargets.durationMillis,
+													easing = FastOutSlowInEasing
+												)
+												listOf(
+													async {
+														animate(
+															initialValue = targetX,
+															targetValue = dismissTargets.translationX,
+															animationSpec = dismissSpec
+														) { value, _ -> offsetX = value }
+													},
+													async {
+														animate(
+															initialValue = targetY,
+															targetValue = dismissTargets.translationY,
+															animationSpec = dismissSpec
+														) { value, _ -> offsetY = value }
+													},
+													async {
+														animate(
+															initialValue = targetRotation,
+															targetValue = dismissTargets.rotation,
+															animationSpec = dismissSpec
+														) { value, _ -> rotation = value }
+													}
+												).awaitAll()
+												onSwiped(direction)
+											} else {
+												listOf(
+													async {
+														animate(
+															initialValue = targetX,
+															targetValue = 0f,
+															animationSpec = resetSpec
+														) { value, _ -> offsetX = value }
+													},
+													async {
+														animate(
+															initialValue = targetY,
+															targetValue = 0f,
+															animationSpec = resetSpec
+														) { value, _ -> offsetY = value }
+													},
+													async {
+														animate(
+															initialValue = targetRotation,
+															targetValue = 0f,
+															animationSpec = resetSpec
+														) { value, _ -> rotation = value }
 												}
 											).awaitAll()
 										}
@@ -762,42 +802,44 @@ private fun SwipeCardDeck(
 
 			null -> Unit
 		}
-			swipeAffordances
-				.filter { it.direction in allowedSwipeDirections }
-				.forEach { affordance ->
-				val rawProgress = swipeAffordanceProgress(
-					affordanceDirection = affordance.direction,
-					activeDirection = visualState.activeDirection,
-				swipeProgress = visualState.swipeProgress,
-				upSwipeProgress = visualState.upSwipeProgress
-			)
+			if (showSwipeAffordances) {
+				swipeAffordances
+					.filter { it.direction in allowedSwipeDirections }
+					.forEach { affordance ->
+						val rawProgress = swipeAffordanceProgress(
+							affordanceDirection = affordance.direction,
+							activeDirection = visualState.activeDirection,
+							swipeProgress = visualState.swipeProgress,
+							upSwipeProgress = visualState.upSwipeProgress
+						)
 
-			if (rawProgress > 0.001f) {
-				SwipeActionAffordance(
-					affordance = affordance,
-					progress = rawProgress,
-					modifier = cardModifier
-						.clip(shapes.largeRounded)
-						.then(affordanceOverlayModifier)
-				)
+						if (rawProgress > 0.001f) {
+							SwipeActionAffordance(
+								affordance = affordance,
+								progress = rawProgress,
+								modifier = cardModifier
+									.clip(shapes.largeRounded)
+									.then(affordanceOverlayModifier)
+							)
+						}
+					}
+				if (
+					visualState.activeDirection == null &&
+					dismissedAffordance != null &&
+					dismissedAffordance?.direction in allowedSwipeDirections
+				) {
+					val affordance = dismissedAffordance ?: return@Box
+					SwipeActionAffordance(
+						affordance = affordance,
+						progress = dismissedAffordanceProgress.value,
+						modifier = cardModifier
+							.clip(shapes.largeRounded)
+							.then(affordanceOverlayModifier)
+					)
+				}
 			}
 		}
-			if (
-				visualState.activeDirection == null &&
-				dismissedAffordance != null &&
-				dismissedAffordance?.direction in allowedSwipeDirections
-			) {
-				val affordance = dismissedAffordance ?: return@Box
-				SwipeActionAffordance(
-					affordance = affordance,
-				progress = dismissedAffordanceProgress.value,
-				modifier = cardModifier
-					.clip(shapes.largeRounded)
-					.then(affordanceOverlayModifier)
-			)
-		}
 	}
-}
 
 @Composable
 private fun MatchingDeckPlaceholderCard(
