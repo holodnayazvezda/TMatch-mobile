@@ -2,13 +2,7 @@ package com.prod.auth.presentation.signin
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,7 +23,8 @@ import com.prod.auth.presentation.common.asStringOrNull
 import com.prod.auth.presentation.signup.components.SignUpJuryShortcutButton
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
-import androidx.compose.foundation.layout.safeDrawingPadding
+import com.prod.ui.components.AppScrollableScreen
+import com.prod.ui.components.AppSectionCard
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -48,19 +43,14 @@ fun SignInScreen(
 		viewModel.applyPrefilledEmail(prefilledEmail)
 	}
 
-	Column(
+	AppScrollableScreen(
 		modifier = modifier
-			.fillMaxSize()
-			.verticalScroll(rememberScrollState())
-			.safeDrawingPadding()
-			.padding(horizontal = 24.dp, vertical = 16.dp)
 	) {
 		AuthScreenHeader(
 			title = stringResource(R.string.auth_sign_in_title),
 			description = stringResource(R.string.auth_sign_in_description),
 			onBack = onBack
 		)
-		Spacer(modifier = Modifier.height(12.dp))
 		SignUpJuryShortcutButton(
 			onClick = {
 				viewModel.loadJuryPreviewUsers(onNoInternet = onRequestNoInternet)
@@ -68,45 +58,43 @@ fun SignInScreen(
 			enabled = !uiState.isLoading && !uiState.isJuryLoading,
 			modifier = Modifier.align(Alignment.End)
 		)
-		Spacer(modifier = Modifier.height(28.dp))
-		AuthCredentialsForm(
-			email = uiState.email,
-			password = uiState.password,
-			emailError = uiState.emailError.asStringOrNull(),
-			passwordError = uiState.passwordError.asStringOrNull(),
-			passwordLabelRes = R.string.auth_password,
-			onEmailChange = viewModel::onEmailChange,
-			onPasswordChange = viewModel::onPasswordChange,
-			onDone = {
-				viewModel.submit(
-					onSuccess = onAuthSuccess,
-					onNoInternet = onRequestNoInternet
-				)
+		AppSectionCard {
+			AuthCredentialsForm(
+				email = uiState.email,
+				password = uiState.password,
+				emailError = uiState.emailError.asStringOrNull(),
+				passwordError = uiState.passwordError.asStringOrNull(),
+				passwordLabelRes = R.string.auth_password,
+				onEmailChange = viewModel::onEmailChange,
+				onPasswordChange = viewModel::onPasswordChange,
+				onDone = {
+					viewModel.submit(
+						onSuccess = onAuthSuccess,
+						onNoInternet = onRequestNoInternet
+					)
+				}
+			)
+			uiState.formError?.let { message ->
+				AuthFormErrorCard(message = message.asString())
 			}
-		)
-		uiState.formError?.let { message ->
-			Spacer(modifier = Modifier.height(20.dp))
-			AuthFormErrorCard(message = message.asString())
+			AppBigButton(
+				buttonText = stringResource(R.string.auth_sign_in_button),
+				isLoading = uiState.isLoading,
+				onClick = {
+					viewModel.submit(
+						onSuccess = onAuthSuccess,
+						onNoInternet = onRequestNoInternet
+					)
+				}
+			)
+			AppMediumButton(
+				buttonText = stringResource(R.string.auth_switch_to_sign_up),
+				isLoading = false,
+				onClick = {
+					onSwitchToSignUp(uiState.email)
+				}
+			)
 		}
-		Spacer(modifier = Modifier.height(24.dp))
-		AppBigButton(
-			buttonText = stringResource(R.string.auth_sign_in_button),
-			isLoading = uiState.isLoading,
-			onClick = {
-				viewModel.submit(
-					onSuccess = onAuthSuccess,
-					onNoInternet = onRequestNoInternet
-				)
-			}
-		)
-		Spacer(modifier = Modifier.height(12.dp))
-		AppMediumButton(
-			buttonText = stringResource(R.string.auth_switch_to_sign_up),
-			isLoading = false,
-			onClick = {
-				onSwitchToSignUp(uiState.email)
-			}
-		)
 	}
 
 	if (uiState.isJuryPickerVisible) {

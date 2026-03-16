@@ -32,6 +32,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.prod.core.ui.theme.LocalDimensions
+import com.prod.core.ui.theme.LocalShapes
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +60,8 @@ fun AppTextField(
 ) {
     val typography = MaterialTheme.typography
     val colorScheme = MaterialTheme.colorScheme
+    val dim = LocalDimensions.current
+    val shapes = LocalShapes.current
 
     var isFocused by remember { mutableStateOf(false) }
 
@@ -73,22 +77,22 @@ fun AppTextField(
     }
 
     Box(
-        Modifier.height(73.dp),
+        Modifier.height(dim.actionButtonHeight + dim.medium - dim.verySmall + dim.extraSmall),
     ) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(59.dp)
-                .offset(x = 5.dp)
+                .height(dim.actionButtonHeight + dim.extraSmall)
+                .offset(x = dim.extraSmall + dim.extraSmall / 4)
                 .background(
                     color = colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(15.dp)
+                    shape = shapes.buttonRounded
                 )
         )
         OutlinedTextField(
             modifier = modifier
                 .fillMaxWidth()
-                .offset(y = 5.dp)
+                .offset(y = dim.extraSmall + dim.extraSmall / 4)
                 .onFocusChanged { isFocused = it.isFocused },
             value = textFieldValue,
             readOnly = readOnly,
@@ -147,7 +151,7 @@ fun AppTextField(
                 cursorColor = colorScheme.primary,
                 errorCursorColor = colorScheme.onErrorContainer
             ),
-            shape = RoundedCornerShape(15.dp),
+            shape = shapes.buttonRounded,
             trailingIcon = trailingIcon
         )
 
@@ -155,9 +159,9 @@ fun AppTextField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(59.dp)
-                    .offset(y = 5.dp)
-                    .clip(RoundedCornerShape(15.dp))
+                    .height(dim.actionButtonHeight + dim.extraSmall)
+                    .offset(y = dim.extraSmall + dim.extraSmall / 4)
+                    .clip(shapes.buttonRounded)
                     .clickable {onClick()}
             )
         }

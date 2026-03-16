@@ -47,6 +47,12 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.profile.R
+import com.prod.ui.components.AppCircularActionButton
+import com.prod.ui.components.AppFactCard
+import com.prod.ui.components.AppInfoChip
+import com.prod.ui.components.AppScreenTopBar
+import com.prod.ui.components.AppSectionCard
+import com.prod.ui.components.AppSectionTitle
 import com.prod.ui.R as UiR
 import org.koin.androidx.compose.koinViewModel
 
@@ -164,38 +170,18 @@ private fun UserProfileContent(
 				)
 
 				if (profileCard.visibleTraitLabels.isNotEmpty()) {
-					Surface(
+					AppSectionCard(
 						modifier = contentCardModifier,
-						shape = RoundedCornerShape(22.dp),
-						color = MaterialTheme.colorScheme.surface,
-						tonalElevation = 2.dp
+						containerColor = MaterialTheme.colorScheme.surface
 					) {
-						Column(
-							modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-							verticalArrangement = Arrangement.spacedBy(12.dp)
-						) {
-							Text(
-								text = stringResource(R.string.user_profile_traits_title),
-								style = MaterialTheme.typography.titleMedium,
-								color = MaterialTheme.colorScheme.onSurface,
-								fontWeight = FontWeight.SemiBold
-							)
+						Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+							AppSectionTitle(title = stringResource(R.string.user_profile_traits_title))
 							FlowRow(
 								horizontalArrangement = Arrangement.spacedBy(8.dp),
 								verticalArrangement = Arrangement.spacedBy(8.dp)
 							) {
 								profileCard.visibleTraitLabels.forEach { traitLabel ->
-									Surface(
-										shape = CircleShape,
-										color = MaterialTheme.colorScheme.secondaryContainer
-									) {
-										Text(
-											text = traitLabel,
-											modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-											style = MaterialTheme.typography.labelLarge,
-											color = MaterialTheme.colorScheme.onSecondaryContainer
-										)
-									}
+									AppInfoChip(text = traitLabel)
 								}
 							}
 						}
@@ -232,16 +218,12 @@ private fun UserProfileHeader(
 ) {
 	var isMenuExpanded by remember { mutableStateOf(false) }
 
-	Row(
+	AppScreenTopBar(
+		title = stringResource(R.string.user_profile_title),
 		modifier = modifier
 			.fillMaxWidth()
 			.padding(horizontal = 12.dp, vertical = 8.dp),
-		verticalAlignment = Alignment.CenterVertically
-	) {
-		Box(
-			modifier = Modifier.weight(1f),
-			contentAlignment = Alignment.CenterStart
-		) {
+		navigation = {
 			TextButton(
 				onClick = onBack
 			) {
@@ -250,18 +232,8 @@ private fun UserProfileHeader(
 					color = MaterialTheme.colorScheme.onBackground
 				)
 			}
-		}
-		Text(
-			text = stringResource(R.string.user_profile_title),
-			modifier = Modifier.weight(1f),
-			style = MaterialTheme.typography.titleLarge,
-			color = MaterialTheme.colorScheme.onBackground,
-			textAlign = TextAlign.Center
-		)
-		Box(
-			modifier = Modifier.weight(1f),
-			contentAlignment = Alignment.CenterEnd
-		) {
+		},
+		actions = {
 			if (showMenu) {
 				IconButton(
 					onClick = { isMenuExpanded = true }
@@ -286,7 +258,7 @@ private fun UserProfileHeader(
 				}
 			}
 		}
-	}
+	)
 }
 
 @Composable
@@ -295,16 +267,17 @@ private fun UserProfileHeroCard(
 	modifier: Modifier = Modifier
 ) {
 	val heroImages = profileCard.heroImages()
+	val displayTitle = profileCard.age?.let {
+		stringResource(R.string.user_profile_display_title_with_age, profileCard.fullName, it)
+	} ?: profileCard.fullName
 	val pagerState = rememberPagerState(
 		initialPage = 0,
 		pageCount = { heroImages.size }
 	)
 
-	Surface(
+	AppSectionCard(
 		modifier = modifier,
-		shape = RoundedCornerShape(28.dp),
-		color = MaterialTheme.colorScheme.surface,
-		tonalElevation = 2.dp
+		shape = com.prod.core.ui.theme.LocalShapes.current.largeRounded
 	) {
 		Column(
 			modifier = Modifier.padding(vertical = 14.dp),
@@ -317,7 +290,11 @@ private fun UserProfileHeroCard(
 			) { index ->
 					UserProfilePhoto(
 						imageUrl = heroImages[index],
-						contentDescription = "${profileCard.fullName} ${index + 1}",
+						contentDescription = stringResource(
+							R.string.user_profile_photo_content_description,
+							profileCard.fullName,
+							index + 1
+						),
 						modifier = Modifier
 							.fillMaxWidth()
 							.padding(horizontal = 14.dp)
@@ -356,7 +333,7 @@ private fun UserProfileHeroCard(
 				verticalArrangement = Arrangement.spacedBy(8.dp)
 			) {
 				Text(
-					text = profileCard.displayTitle(),
+					text = displayTitle,
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onSurface,
 					fontWeight = FontWeight.SemiBold
@@ -372,16 +349,11 @@ private fun UserProfileAboutSection(
 	profileCard: UserProfileCardUiState,
 	modifier: Modifier = Modifier
 ) {
-	Surface(
+	AppSectionCard(
 		modifier = modifier,
-		shape = RoundedCornerShape(22.dp),
-		color = MaterialTheme.colorScheme.surface,
-		tonalElevation = 2.dp
+		containerColor = MaterialTheme.colorScheme.surface
 	) {
-		Column(
-			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-			verticalArrangement = Arrangement.spacedBy(14.dp)
-		) {
+		Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
@@ -391,41 +363,33 @@ private fun UserProfileAboutSection(
 					modifier = Modifier.weight(1f),
 					verticalArrangement = Arrangement.spacedBy(4.dp)
 				) {
-					Text(
-						text = stringResource(R.string.user_profile_about_title),
-						style = MaterialTheme.typography.titleMedium,
-						color = MaterialTheme.colorScheme.onSurface,
-						fontWeight = FontWeight.SemiBold
-					)
+					AppSectionTitle(title = stringResource(R.string.user_profile_about_title))
 				}
-				Surface(
-					shape = CircleShape,
-					color = MaterialTheme.colorScheme.tertiaryContainer
-				) {
-					Text(
-						text = profileCard.photoCountLabel(),
-						modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-						style = MaterialTheme.typography.labelLarge,
-						color = MaterialTheme.colorScheme.onTertiaryContainer
-					)
-				}
+				AppInfoChip(
+					text = stringResource(
+						R.string.user_profile_photo_count,
+						profileCard.datingPhotoUrls.size.coerceAtLeast(1)
+					),
+					containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+					contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+				)
 			}
 
 			FlowRow(
 				horizontalArrangement = Arrangement.spacedBy(10.dp),
 				verticalArrangement = Arrangement.spacedBy(10.dp)
 			) {
-				UserProfileFactCard(
+				AppFactCard(
 					title = stringResource(R.string.user_profile_age_title),
 					value = profileCard.age?.toString() ?: stringResource(R.string.user_profile_not_specified),
 					modifier = Modifier.fillMaxWidth(0.48f)
 				)
-				UserProfileFactCard(
+				AppFactCard(
 					title = stringResource(R.string.user_profile_birth_date_title),
 					value = profileCard.birthDateLabel,
 					modifier = Modifier.fillMaxWidth(0.48f)
 				)
-				UserProfileFactCard(
+				AppFactCard(
 					title = stringResource(R.string.user_profile_region_title),
 					value = profileCard.region ?: stringResource(R.string.user_profile_not_specified),
 					modifier = Modifier.fillMaxWidth()
@@ -436,55 +400,17 @@ private fun UserProfileAboutSection(
 }
 
 @Composable
-private fun UserProfileFactCard(
-	title: String,
-	value: String,
-	modifier: Modifier = Modifier
-) {
-	Surface(
-		modifier = modifier,
-		shape = RoundedCornerShape(18.dp),
-		color = MaterialTheme.colorScheme.surfaceContainerHigh
-	) {
-		Column(
-			modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-			verticalArrangement = Arrangement.spacedBy(4.dp)
-		) {
-			Text(
-				text = title,
-				style = MaterialTheme.typography.labelMedium,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-			Text(
-				text = value,
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-				fontWeight = FontWeight.SemiBold
-			)
-		}
-	}
-}
-
-@Composable
 private fun UserProfileReasonsSection(
 	reasons: List<RecommendationReasonSummary>,
 	modifier: Modifier = Modifier
 ) {
-	Surface(
+	AppSectionCard(
 		modifier = modifier,
-		shape = RoundedCornerShape(22.dp),
-		color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+		containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
 		contentColor = MaterialTheme.colorScheme.onPrimaryContainer
 	) {
-		Column(
-			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-			verticalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			Text(
-				text = stringResource(R.string.user_profile_reasons_title),
-				style = MaterialTheme.typography.titleMedium,
-				fontWeight = FontWeight.SemiBold
-			)
+		Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+			AppSectionTitle(title = stringResource(R.string.user_profile_reasons_title))
 			Text(
 				text = stringResource(R.string.user_profile_reasons_description),
 				style = MaterialTheme.typography.bodyMedium
@@ -493,14 +419,11 @@ private fun UserProfileReasonsSection(
 				verticalArrangement = Arrangement.spacedBy(10.dp)
 			) {
 				reasons.forEach { reason ->
-					Surface(
-						shape = RoundedCornerShape(18.dp),
-						color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+					AppSectionCard(
+						containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+						shape = com.prod.core.ui.theme.LocalShapes.current.mediumRounded,
+						tonalElevation = 0.dp
 					) {
-						Column(
-							modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-							verticalArrangement = Arrangement.spacedBy(4.dp)
-						) {
 							Text(
 								text = reason.label,
 								style = MaterialTheme.typography.titleSmall,
@@ -512,7 +435,6 @@ private fun UserProfileReasonsSection(
 									style = MaterialTheme.typography.bodyMedium
 								)
 							}
-						}
 					}
 				}
 			}
@@ -526,34 +448,24 @@ private fun UserProfileActionsSection(
 	onDislike: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
-	Surface(
+	AppSectionCard(
 		modifier = modifier,
-		shape = RoundedCornerShape(22.dp),
-		color = MaterialTheme.colorScheme.surface,
-		tonalElevation = 2.dp
+		containerColor = MaterialTheme.colorScheme.surface
 	) {
-		Column(
-			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-			verticalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			Text(
-				text = stringResource(R.string.user_profile_actions_title),
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-				fontWeight = FontWeight.SemiBold
-			)
+		Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+			AppSectionTitle(title = stringResource(R.string.user_profile_actions_title))
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceEvenly
 			) {
-				UserProfileActionIconButton(
+				AppCircularActionButton(
 					iconRes = UiR.drawable.ic_dislike_24,
 					contentDescription = stringResource(R.string.user_profile_dislike_action),
 					containerColor = MaterialTheme.colorScheme.errorContainer,
 					contentColor = MaterialTheme.colorScheme.onErrorContainer,
 					onClick = onDislike
 				)
-				UserProfileActionIconButton(
+				AppCircularActionButton(
 					iconRes = UiR.drawable.ic_like_24,
 					contentDescription = stringResource(R.string.user_profile_like_action),
 					containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -561,34 +473,6 @@ private fun UserProfileActionsSection(
 					onClick = onLike
 				)
 			}
-		}
-	}
-}
-
-@Composable
-private fun UserProfileActionIconButton(
-	iconRes: Int,
-	contentDescription: String,
-	containerColor: androidx.compose.ui.graphics.Color,
-	contentColor: androidx.compose.ui.graphics.Color,
-	onClick: () -> Unit,
-	modifier: Modifier = Modifier
-) {
-	Surface(
-		modifier = modifier,
-		shape = CircleShape,
-		color = containerColor
-	) {
-		IconButton(
-			onClick = onClick,
-			modifier = Modifier.size(72.dp)
-		) {
-			Icon(
-				painter = painterResource(iconRes),
-				contentDescription = contentDescription,
-				tint = contentColor,
-				modifier = Modifier.size(28.dp)
-			)
 		}
 	}
 }
@@ -641,13 +525,4 @@ private fun UserProfilePhoto(
 
 private fun UserProfileCardUiState.heroImages(): List<String?> {
 	return datingPhotoUrls.takeIf { it.isNotEmpty() } ?: listOf(avatarUrl)
-}
-
-private fun UserProfileCardUiState.displayTitle(): String {
-	return age?.let { "$fullName, $it" } ?: fullName
-}
-
-private fun UserProfileCardUiState.photoCountLabel(): String {
-	val count = datingPhotoUrls.size.coerceAtLeast(1)
-	return "$count фото"
 }

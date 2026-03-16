@@ -20,6 +20,8 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -213,8 +215,8 @@ private fun MainBottomBar(
 			NavigationBarItem(
 				selected = currentDestination?.let { it::class } == destination.key::class,
 				onClick = { onTabSelected(destination.key) },
-				icon = { Text(destination.shortLabel) },
-				label = { Text(destination.title) }
+				icon = { Text(stringResource(destination.shortLabelRes)) },
+				label = { Text(stringResource(destination.titleRes)) }
 			)
 		}
 	}
@@ -225,23 +227,23 @@ private fun Any?.isMainTabDestination(): Boolean {
 }
 
 private enum class MainTabDestination(
-	val title: String,
-	val shortLabel: String,
+	@param:StringRes val titleRes: Int,
+	@param:StringRes val shortLabelRes: Int,
 	val key: Any
 ) {
 	Profile(
-		title = "Профиль",
-		shortLabel = "П",
+		titleRes = R.string.main_tab_profile,
+		shortLabelRes = R.string.main_tab_profile_short,
 		key = ProfileNavKey()
 	),
 	Matching(
-		title = "Мэтчинг",
-		shortLabel = "М",
+		titleRes = R.string.main_tab_matching,
+		shortLabelRes = R.string.main_tab_matching_short,
 		key = MatchingNavKey()
 	),
 	Chats(
-		title = "Чаты",
-		shortLabel = "Ч",
+		titleRes = R.string.main_tab_chats,
+		shortLabelRes = R.string.main_tab_chats_short,
 		key = ChatsNavKey()
 	)
 }

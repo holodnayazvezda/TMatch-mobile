@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">T-match</string>
+    <string name="main_tab_profile">Профиль</string>
+    <string name="main_tab_profile_short">П</string>
+    <string name="main_tab_matching">Мэтчинг</string>
+    <string name="main_tab_matching_short">М</string>
+    <string name="main_tab_chats">Чаты</string>
+    <string name="main_tab_chats_short">Ч</string>
 </resources>

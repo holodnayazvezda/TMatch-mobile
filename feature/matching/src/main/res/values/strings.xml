@@ -1,0 +1,11 @@
+<resources>
+    <string name="matching_title">Лента</string>
+    <string name="matching_history">История</string>
+    <string name="matching_loading">Загрузка рекомендаций</string>
+    <string name="matching_empty_message">Вы просмотрели всех пользователей.\nНовые рекомендации появятся позже.</string>
+    <string name="matching_open_profile">Открыть профиль</string>
+    <string name="matching_block">Заблокировать</string>
+    <string name="matching_close">Закрыть</string>
+    <string name="matching_photo_description">Фото %1$s</string>
+    <string name="matching_profile_title_with_age">%1$s, %2$d</string>
+</resources>

@@ -9,9 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -42,7 +40,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -53,8 +50,12 @@ import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.compose.SubcomposeAsyncImage
 import com.prod.core.ui.theme.LocalDimensions
-import com.prod.core.ui.theme.LocalShapes
 import com.prod.profile.R
+import com.prod.ui.components.AppBottomScrimInfo
+import com.prod.ui.components.AppHeroCardFrame
+import com.prod.ui.components.AppScreenTopBar
+import com.prod.ui.components.AppSectionCard
+import com.prod.ui.components.AppSectionTitle
 import com.prod.ui.components.buttons.AppMediumButton
 import com.prod.ui.components.profile.ProfileImageCropDialog
 import com.prod.ui.components.profile.ProfileImageStyle
@@ -275,21 +276,15 @@ private fun ProfileHeader(
 	isLogoutEnabled: Boolean,
 	modifier: Modifier = Modifier
 ) {
-	Box(
+	AppScreenTopBar(
+		title = stringResource(R.string.profile_screen_title),
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(start = 20.dp, top = 8.dp, end = 12.dp, bottom = 4.dp)
-	) {
-		Text(
-			text = stringResource(R.string.profile_screen_title),
-			modifier = Modifier.align(Alignment.Center),
-			style = MaterialTheme.typography.titleLarge,
-			color = MaterialTheme.colorScheme.onBackground
-		)
-		IconButton(
-			modifier = Modifier.align(Alignment.CenterEnd),
-			enabled = isLogoutEnabled,
-			onClick = onLogoutClick
+			.padding(start = 8.dp, top = 8.dp, end = 12.dp, bottom = 4.dp),
+		actions = {
+			IconButton(
+				enabled = isLogoutEnabled,
+				onClick = onLogoutClick
 			) {
 				Icon(
 					painter = painterResource(R.drawable.logout),
@@ -299,23 +294,20 @@ private fun ProfileHeader(
 				)
 			}
 		}
-	}
+	)
+}
 
 @Composable
 internal fun ProfileAccountInfo(
 	profileCard: ProfileCardUiState,
 	modifier: Modifier = Modifier
 ) {
-	Surface(
+	AppSectionCard(
 		modifier = modifier,
-		shape = RoundedCornerShape(22.dp),
-		color = MaterialTheme.colorScheme.surface,
-		tonalElevation = 2.dp
+		containerColor = MaterialTheme.colorScheme.surface
 	) {
-		Column(
-			modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-			verticalArrangement = Arrangement.spacedBy(12.dp)
-		) {
+		Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+			AppSectionTitle(title = stringResource(R.string.profile_screen_details_title))
 			ProfileInfoRow(
 				label = stringResource(R.string.profile_screen_name_label),
 				value = profileCard.fullName
@@ -370,45 +362,36 @@ private fun StaticProfileCard(
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
-	val dim = LocalDimensions.current
-	val shapes = LocalShapes.current
+	val displayTitle = profileCard.age?.let {
+		stringResource(R.string.profile_display_title_with_age, profileCard.fullName, it)
+	} ?: profileCard.fullName
 	val extraColors = LocalTmatchExtraColors.current
-	val outerShape = RoundedCornerShape(shapes.veryBigRoundedValue)
-	val innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
 
-	CardFrame(
+	AppHeroCardFrame(
 		modifier = modifier.clickable(
 			enabled = !isSubmitting,
 			onClick = onClick
-		),
-		outerShape = outerShape,
-		innerShape = innerShape
+		)
 	) {
 		DatingPhotoSurface(
 			photoUrl = profileCard.datingPhotoUrls.firstOrNull(),
 			isUploading = isSubmitting,
-			title = profileCard.displayTitle(),
+			title = displayTitle,
 			modifier = Modifier.fillMaxSize()
 		)
-		ScrimInfoBlock {
+		AppBottomScrimInfo {
 			Text(
-				text = profileCard.displayTitle(),
+				text = displayTitle,
 				style = MaterialTheme.typography.titleLarge,
 				color = extraColors.onBaseScrim,
 				fontWeight = FontWeight.SemiBold
 			)
 			profileCard.region?.takeIf { it.isNotBlank() }?.let { region ->
-				Surface(
-					shape = CircleShape,
-					color = extraColors.accentGold
-				) {
-					Text(
-						text = region,
-						modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-						style = MaterialTheme.typography.labelLarge,
-						color = extraColors.onBaseScrim
-					)
-				}
+				com.prod.ui.components.AppInfoChip(
+					text = region,
+					containerColor = extraColors.accentGold,
+					contentColor = extraColors.onBaseScrim
+				)
 			}
 		}
 	}
@@ -462,7 +445,7 @@ private fun UploadingDatingPhotoState(
 	Column(
 		modifier = modifier
 			.fillMaxSize()
-			.background(Color(0xFF10131A))
+			.background(MaterialTheme.colorScheme.inverseSurface)
 			.padding(24.dp),
 		verticalArrangement = Arrangement.Center,
 		horizontalAlignment = Alignment.CenterHorizontally
@@ -481,58 +464,18 @@ private fun EmptyDatingPhotoSurface(
 	Box(
 		modifier = modifier
 			.fillMaxSize()
-			.background(Color(0xFF10131A)),
+			.background(MaterialTheme.colorScheme.inverseSurface),
 		contentAlignment = Alignment.Center
 	) {
 		prompt?.let {
 			Text(
 				text = it,
 				style = MaterialTheme.typography.titleMedium,
-				color = Color.White.copy(alpha = 0.9f),
+				color = MaterialTheme.colorScheme.inverseOnSurface,
 				modifier = Modifier.padding(horizontal = 24.dp)
 			)
 		}
 	}
-}
-
-@Composable
-private fun CardFrame(
-	modifier: Modifier = Modifier,
-	outerShape: RoundedCornerShape,
-	innerShape: RoundedCornerShape,
-	content: @Composable BoxScope.() -> Unit
-) {
-	val dim = LocalDimensions.current
-
-	Surface(
-		modifier = modifier,
-		shape = outerShape,
-		color = Color.White
-	) {
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(dim.cardOuterPadding)
-				.clip(innerShape),
-			content = content
-		)
-	}
-}
-
-@Composable
-private fun BoxScope.ScrimInfoBlock(content: @Composable ColumnScope.() -> Unit) {
-	val dim = LocalDimensions.current
-	val extraColors = LocalTmatchExtraColors.current
-
-	Column(
-		modifier = Modifier
-			.align(Alignment.BottomStart)
-			.fillMaxWidth()
-			.background(extraColors.baseScrim)
-			.padding(dim.medium),
-		verticalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),
-		content = content
-	)
 }
 
 @Composable
@@ -546,15 +489,15 @@ internal fun ProfileLoadingError(
 		verticalArrangement = Arrangement.spacedBy(12.dp),
 		horizontalAlignment = Alignment.CenterHorizontally
 	) {
-		Surface(
-			shape = RoundedCornerShape(18.dp),
-			color = MaterialTheme.colorScheme.errorContainer,
-			contentColor = MaterialTheme.colorScheme.onErrorContainer
+		AppSectionCard(
+			containerColor = MaterialTheme.colorScheme.errorContainer,
+			contentColor = MaterialTheme.colorScheme.onErrorContainer,
+			shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+			tonalElevation = 0.dp
 		) {
 			Text(
 				text = message,
-				style = MaterialTheme.typography.bodyMedium,
-				modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+				style = MaterialTheme.typography.bodyMedium
 			)
 		}
 		AppMediumButton(
@@ -563,10 +506,6 @@ internal fun ProfileLoadingError(
 			onClick = onRetry
 		)
 	}
-}
-
-private fun ProfileCardUiState.displayTitle(): String {
-	return age?.let { "$fullName, $it" } ?: fullName
 }
 
 private suspend fun clearProfileScreenCache(context: Context) {

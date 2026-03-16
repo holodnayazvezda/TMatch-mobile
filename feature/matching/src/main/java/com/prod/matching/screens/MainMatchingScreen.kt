@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -57,6 +56,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -67,10 +67,16 @@ import com.prod.common.api.model.UserProfileFeedAction
 import com.prod.core.ui.theme.LocalDimensions
 import com.prod.core.ui.theme.LocalShapes
 import com.prod.matching.R
-import com.prod.ui.R as UiR
 import com.prod.matching.domain.model.MatchAction
 import com.prod.matching.model.MatchProfile
 import com.prod.matching.presentation.MainMatchingViewModel
+import com.prod.ui.R as UiR
+import com.prod.ui.components.AppBottomScrimInfo
+import com.prod.ui.components.AppBottomSheetHandle
+import com.prod.ui.components.AppHeroCardFrame
+import com.prod.ui.components.AppInfoChip
+import com.prod.ui.components.AppOverlayIconBadge
+import com.prod.ui.components.AppScreenTopBar
 import com.prod.ui.theme.LocalTmatchExtraColors
 import com.prod.ui.theme.TmatchTheme
 import kotlinx.coroutines.async
@@ -343,7 +349,7 @@ private fun MainMatchingContent(
 	) {
 		if (isLoading) {
 			Text(
-				text = "Загрузка рекомендаций",
+				text = stringResource(R.string.matching_loading),
 				modifier = Modifier.align(Alignment.Center),
 				style = MaterialTheme.typography.titleMedium,
 				color = MaterialTheme.colorScheme.onBackground
@@ -403,26 +409,17 @@ private fun MainMatchingContent(
 private fun MatchingHeader() {
 	val dim = LocalDimensions.current
 	val colors = MaterialTheme.colorScheme
-	Row(
-		modifier = Modifier.fillMaxWidth(),
-		verticalAlignment = Alignment.CenterVertically
-	) {
-		Spacer(modifier = Modifier.size(dim.iconContainer))
-		Text(
-			text = "Лента",
-			modifier = Modifier
-				.weight(1f),
-			textAlign = TextAlign.Center,
-			style = MaterialTheme.typography.titleLarge,
-			color = colors.onBackground
-		)
-		Icon(
-			painter = painterResource(R.drawable.ic_history_24),
-			contentDescription = "История",
-			modifier = Modifier.size(dim.iconMedium),
-			tint = colors.onBackground
-		)
-	}
+	AppScreenTopBar(
+		title = stringResource(R.string.matching_title),
+		actions = {
+			Icon(
+				painter = painterResource(R.drawable.ic_history_24),
+				contentDescription = stringResource(R.string.matching_history),
+				modifier = Modifier.size(dim.iconMedium),
+				tint = colors.onBackground
+			)
+		}
+	)
 }
 
 @Composable
@@ -486,7 +483,7 @@ private fun SwipeCardDeck(
 			)
 		} else {
 			MatchingDeckPlaceholderCard(
-				message = "Вы просмотрели всех пользователей.\nНовые рекомендации появятся позже.",
+				message = stringResource(R.string.matching_empty_message),
 				modifier = Modifier
 					.fillMaxSize()
 					.padding(horizontal = dim.extraSmall / 2)
@@ -639,14 +636,7 @@ private fun MatchingDeckPlaceholderCard(
 	message: String,
 	modifier: Modifier = Modifier
 ) {
-	val dim = LocalDimensions.current
-	val shapes = LocalShapes.current
-
-	CardFrame(
-		modifier = modifier,
-		outerShape = RoundedCornerShape(shapes.veryBigRoundedValue),
-		innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
-	) {
+	AppHeroCardFrame(modifier = modifier) {
 		Box(
 			modifier = Modifier
 				.fillMaxSize()
@@ -739,24 +729,22 @@ private fun ProfileCard(
 	onMoreClick: (() -> Unit)? = null
 ) {
 	val dim = LocalDimensions.current
-	val shapes = LocalShapes.current
-	val extraColors = LocalTmatchExtraColors.current
 	val typo = MaterialTheme.typography
-	val outerShape = RoundedCornerShape(shapes.veryBigRoundedValue)
-	val innerShape = RoundedCornerShape(shapes.veryBigRoundedValue - dim.cardOuterPadding)
+	val extraColors = LocalTmatchExtraColors.current
+	val displayTitle = profile.age?.let {
+		stringResource(R.string.matching_profile_title_with_age, profile.name, it)
+	} ?: profile.name
 
-	CardFrame(
+	AppHeroCardFrame(
 		modifier = if (onClick != null) {
 			modifier.clickable(onClick = onClick)
 		} else {
 			modifier
-		},
-		outerShape = outerShape,
-		innerShape = innerShape
+		}
 	) {
 		AsyncImage(
 			model = profile.imageUrl,
-			contentDescription = "Фото ${profile.name}",
+			contentDescription = stringResource(R.string.matching_photo_description, profile.name),
 			contentScale = ContentScale.Crop,
 			placeholder = painterResource(R.drawable.match_user_placeholder),
 			error = painterResource(R.drawable.match_user_placeholder),
@@ -764,7 +752,7 @@ private fun ProfileCard(
 			modifier = Modifier.fillMaxSize()
 		)
 		if (onMoreClick != null) {
-			IconBadge(
+			AppOverlayIconBadge(
 				iconRes = UiR.drawable.ic_menu_24,
 				modifier = Modifier
 					.padding(dim.medium - dim.extraSmall)
@@ -774,9 +762,9 @@ private fun ProfileCard(
 					.clickable(onClick = onMoreClick)
 			)
 		}
-		ScrimInfoBlock {
+		AppBottomScrimInfo {
 			Text(
-				text = profile.age?.let { "${profile.name}, $it" } ?: profile.name,
+				text = displayTitle,
 				style = typo.titleLarge,
 				color = extraColors.onBaseScrim
 			)
@@ -786,20 +774,11 @@ private fun ProfileCard(
 				verticalArrangement = Arrangement.spacedBy(dim.extraSmall)
 			) {
 				profile.reasons.forEach { reason ->
-					Surface(
-						shape = CircleShape,
-						color = extraColors.accentGold
-					) {
-						Text(
-							text = reason.label,
-							modifier = Modifier.padding(
-								horizontal = dim.small + dim.extraSmall / 2,
-								vertical = dim.verySmall
-							),
-							style = typo.labelLarge,
-							color = extraColors.onBaseScrim
-						)
-					}
+					AppInfoChip(
+						text = reason.label,
+						containerColor = extraColors.accentGold,
+						contentColor = extraColors.onBaseScrim
+					)
 				}
 			}
 		}
@@ -828,21 +807,23 @@ private fun MatchingActionsBottomSheet(
 				.padding(horizontal = dim.medium, vertical = dim.small),
 			verticalArrangement = Arrangement.spacedBy(dim.small)
 		) {
-			BottomSheetHandle()
+			AppBottomSheetHandle(
+				modifier = Modifier.align(Alignment.CenterHorizontally)
+			)
 			ActionSheetButton(
-				text = "Открыть профиль",
+				text = stringResource(R.string.matching_open_profile),
 				onClick = onOpenProfile,
 				accent = colors.primaryContainer,
 				onAccent = colors.onPrimaryContainer
 			)
 			ActionSheetButton(
-				text = "Заблокировать",
+				text = stringResource(R.string.matching_block),
 				onClick = onDismiss,
 				accent = colors.errorContainer,
 				onAccent = colors.onErrorContainer
 			)
 			ActionSheetButton(
-				text = "Закрыть",
+				text = stringResource(R.string.matching_close),
 				onClick = onDismiss,
 				accent = colors.tertiaryContainer,
 				onAccent = colors.onTertiaryContainer
@@ -875,88 +856,6 @@ private fun ActionSheetButton(
 	}
 }
 
-@Composable
-private fun IconBadge(
-	iconRes: Int,
-	modifier: Modifier = Modifier
-) {
-	val dim = LocalDimensions.current
-	val extraColors = LocalTmatchExtraColors.current
-
-	Surface(
-		modifier = modifier,
-		shape = CircleShape,
-		color = extraColors.baseScrim,
-		border = BorderStroke(
-			width = dim.extraSmall / 4,
-			color = extraColors.onBaseScrim
-		)
-	) {
-		Box(contentAlignment = Alignment.Center) {
-			Icon(
-				painter = painterResource(iconRes),
-				contentDescription = null,
-				modifier = Modifier.size(dim.iconSmall),
-				tint = extraColors.onBaseScrim
-			)
-		}
-	}
-}
-
-@Composable
-private fun CardFrame(
-	modifier: Modifier = Modifier,
-	outerShape: RoundedCornerShape,
-	innerShape: RoundedCornerShape,
-	content: @Composable BoxScope.() -> Unit
-) {
-	val dim = LocalDimensions.current
-
-	Surface(
-		modifier = modifier,
-		shape = outerShape,
-		color = Color.White
-	) {
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(dim.cardOuterPadding)
-				.clip(innerShape),
-			content = content
-		)
-	}
-}
-
-@Composable
-private fun BoxScope.ScrimInfoBlock(content: @Composable ColumnScope.() -> Unit) {
-	val dim = LocalDimensions.current
-	val extraColors = LocalTmatchExtraColors.current
-
-	Column(
-		modifier = Modifier
-			.align(Alignment.BottomStart)
-			.fillMaxWidth()
-			.background(extraColors.baseScrim)
-			.padding(dim.medium),
-		verticalArrangement = Arrangement.spacedBy(dim.small - dim.extraSmall / 2),
-		content = content
-	)
-}
-
-@Composable
-private fun ColumnScope.BottomSheetHandle() {
-	val dim = LocalDimensions.current
-	val colors = MaterialTheme.colorScheme
-
-	Box(
-		modifier = Modifier
-			.align(Alignment.CenterHorizontally)
-			.fillMaxWidth(0.18f)
-			.height(dim.sheetHandleHeight)
-			.clip(CircleShape)
-			.background(colors.onSurface.copy(alpha = 0.28f))
-	)
-}
 @Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 390, heightDp = 844)
 @Composable
 private fun MainMatchingScreenPreview() {

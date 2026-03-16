@@ -1,15 +1,9 @@
 package com.prod.auth.presentation.signup
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -26,6 +20,8 @@ import com.prod.auth.presentation.signup.components.SignUpCredentialsForm
 import com.prod.auth.presentation.signup.components.SignUpJuryShortcutButton
 import com.prod.ui.components.buttons.AppBigButton
 import com.prod.ui.components.buttons.AppMediumButton
+import com.prod.ui.components.AppScrollableScreen
+import com.prod.ui.components.AppSectionCard
 import androidx.compose.ui.Alignment
 import org.koin.androidx.compose.koinViewModel
 
@@ -48,13 +44,9 @@ fun SignUpScreen(
 	Box(
 		modifier = modifier
 			.fillMaxSize()
-			.safeDrawingPadding()
 	) {
-		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.verticalScroll(rememberScrollState())
-				.padding(horizontal = 24.dp, vertical = 16.dp)
+		AppScrollableScreen(
+			modifier = Modifier.fillMaxSize()
 		) {
 			AuthScreenHeader(
 				title = stringResource(R.string.auth_sign_up_title),
@@ -62,47 +54,45 @@ fun SignUpScreen(
 				onBack = onBack,
 				modifier = Modifier.fillMaxWidth()
 			)
-			Spacer(modifier = Modifier.height(28.dp))
-			SignUpCredentialsForm(
-				email = uiState.email,
-				password = uiState.password,
-				confirmPassword = uiState.confirmPassword,
-				emailError = uiState.emailError.asStringOrNull(),
-				passwordError = uiState.passwordError.asStringOrNull(),
-				confirmPasswordError = uiState.confirmPasswordError.asStringOrNull(),
-				onEmailChange = viewModel::onEmailChange,
-				onPasswordChange = viewModel::onPasswordChange,
-				onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
-				onDone = {
-					viewModel.submit(
-						onSuccess = onAuthSuccess,
-						onNoInternet = onRequestNoInternet
-					)
+			AppSectionCard {
+				SignUpCredentialsForm(
+					email = uiState.email,
+					password = uiState.password,
+					confirmPassword = uiState.confirmPassword,
+					emailError = uiState.emailError.asStringOrNull(),
+					passwordError = uiState.passwordError.asStringOrNull(),
+					confirmPasswordError = uiState.confirmPasswordError.asStringOrNull(),
+					onEmailChange = viewModel::onEmailChange,
+					onPasswordChange = viewModel::onPasswordChange,
+					onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+					onDone = {
+						viewModel.submit(
+							onSuccess = onAuthSuccess,
+							onNoInternet = onRequestNoInternet
+						)
+					}
+				)
+				uiState.formError?.let { message ->
+					AuthFormErrorCard(message = message.asString())
 				}
-			)
-			uiState.formError?.let { message ->
-				Spacer(modifier = Modifier.height(20.dp))
-				AuthFormErrorCard(message = message.asString())
+				AppBigButton(
+					buttonText = stringResource(R.string.auth_sign_up_button),
+					isLoading = uiState.isLoading,
+					onClick = {
+						viewModel.submit(
+							onSuccess = onAuthSuccess,
+							onNoInternet = onRequestNoInternet
+						)
+					}
+				)
+				AppMediumButton(
+					buttonText = stringResource(R.string.auth_switch_to_sign_in),
+					isLoading = false,
+					onClick = {
+						onSwitchToSignIn(uiState.email)
+					}
+				)
 			}
-			Spacer(modifier = Modifier.height(24.dp))
-			AppBigButton(
-				buttonText = stringResource(R.string.auth_sign_up_button),
-				isLoading = uiState.isLoading,
-				onClick = {
-					viewModel.submit(
-						onSuccess = onAuthSuccess,
-						onNoInternet = onRequestNoInternet
-					)
-				}
-			)
-			Spacer(modifier = Modifier.height(12.dp))
-			AppMediumButton(
-				buttonText = stringResource(R.string.auth_switch_to_sign_in),
-				isLoading = false,
-				onClick = {
-					onSwitchToSignIn(uiState.email)
-				}
-			)
 		}
 
 		SignUpJuryShortcutButton(

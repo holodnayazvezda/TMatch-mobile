@@ -3,7 +3,6 @@ package com.prod.ui.components.buttons
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -11,7 +10,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.prod.core.ui.theme.LocalShapes
+import com.prod.core.ui.theme.LocalDimensions
 
 @Composable
 fun AppBigButton(
@@ -22,11 +22,13 @@ fun AppBigButton(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
+    val dim = LocalDimensions.current
+    val shapes = LocalShapes.current
     Button(
         modifier = modifier
             .fillMaxWidth()
-            .height(55.dp),
-        shape = RoundedCornerShape(10.dp),
+            .height(dim.actionButtonHeight),
+        shape = shapes.buttonRounded,
         onClick = onClick,
         enabled = !isLoading,
         colors = ButtonDefaults.buttonColors(
@@ -38,9 +40,9 @@ fun AppBigButton(
     ){
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(dim.iconSmall),
                 color = colorScheme.onPrimary,
-                strokeWidth = 2.5.dp
+                strokeWidth = dim.extraSmall / 2 + dim.extraSmall / 8
             )
         } else {
             Text(
