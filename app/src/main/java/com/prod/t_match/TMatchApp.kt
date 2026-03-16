@@ -99,7 +99,6 @@ fun TMatchApp() {
 			modifier = Modifier
 				.fillMaxSize()
 				.background(backgroundBrush),
-			contentWindowInsets = WindowInsets(0, 0, 0, 0),
 			bottomBar = {
 				if (appState.hasDatingProfileAccess && currentDestination.isMainTabDestination()) {
 					MainBottomBar(

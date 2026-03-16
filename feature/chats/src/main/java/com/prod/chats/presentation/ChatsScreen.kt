@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,22 +55,22 @@ fun ChatsScreen(
 		)
 	}
 
-	Column(
-		modifier = Modifier
-			.fillMaxSize()
-			.safeDrawingPadding()
-	) {
-		AppScreenTopBar(
-			title = stringResource(R.string.chats_screen_title),
-			applySafeDrawingPadding = false
-		)
-
+	Scaffold(
+		modifier = Modifier.fillMaxSize(),
+		topBar = {
+			AppScreenTopBar(
+				title = stringResource(R.string.chats_screen_title),
+				modifier = Modifier.fillMaxWidth()
+			)
+		},
+		containerColor = androidx.compose.ui.graphics.Color.Transparent
+	) { innerPadding ->
 		when {
 			uiState.isLoading -> {
 				Box(
 					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f),
+						.fillMaxSize()
+						.padding(innerPadding),
 					contentAlignment = Alignment.Center
 				) {
 					CircularProgressIndicator()
@@ -87,8 +87,8 @@ fun ChatsScreen(
 						)
 					},
 					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f)
+						.fillMaxSize()
+						.padding(innerPadding)
 						.padding(horizontal = LocalDimensions.current.large)
 				)
 			}
@@ -96,8 +96,8 @@ fun ChatsScreen(
 			uiState.items.isEmpty() -> {
 				ChatsEmptyState(
 					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f)
+						.fillMaxSize()
+						.padding(innerPadding)
 						.padding(horizontal = LocalDimensions.current.large)
 				)
 			}
@@ -107,8 +107,8 @@ fun ChatsScreen(
 					uiState = uiState,
 					onOpenChat = onOpenChat,
 					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f)
+						.fillMaxSize()
+						.padding(innerPadding)
 				)
 			}
 		}

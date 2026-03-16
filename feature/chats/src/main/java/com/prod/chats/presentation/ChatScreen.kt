@@ -1,34 +1,60 @@
 package com.prod.chats.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.prod.chats.R
 import com.prod.ui.components.AppScreenTopBar
 import com.prod.ui.components.AppSectionCard
@@ -37,8 +63,8 @@ import com.prod.ui.components.text_fields.AppTextField
 import com.prod.ui.theme.LocalDimensions
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
-import androidx.compose.ui.res.stringResource
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
 	chatId: String,
@@ -49,6 +75,10 @@ fun ChatScreen(
 ) {
 	val uiState = viewModel.uiState
 	val listState = rememberLazyListState()
+	val density = LocalDensity.current
+
+	var composerHeightPx by remember { mutableIntStateOf(0) }
+	val composerHeightDp = with(density) { composerHeightPx.toDp() }
 
 	LaunchedEffect(chatId) {
 		viewModel.initialize(
@@ -84,8 +114,7 @@ fun ChatScreen(
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.safeDrawingPadding()
-			.imePadding()
+			.imeNestedScroll()
 	) {
 		AppScreenTopBar(
 			title = uiState.title,
@@ -100,19 +129,22 @@ fun ChatScreen(
 			}
 		)
 
-		when {
-			uiState.isLoading && uiState.messages.isEmpty() -> {
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f),
-					contentAlignment = Alignment.Center
-				) {
-					CircularProgressIndicator()
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f)
+		) {
+			when {
+				uiState.isLoading && uiState.messages.isEmpty() -> {
+					Box(
+						modifier = Modifier.fillMaxSize(),
+						contentAlignment = Alignment.Center
+					) {
+						CircularProgressIndicator()
+					}
 				}
-			}
 
-			uiState.error != null && uiState.messages.isEmpty() -> {
+				uiState.error != null && uiState.messages.isEmpty() -> {
 					ChatErrorState(
 						message = uiState.error,
 						onRetry = {
@@ -120,46 +152,52 @@ fun ChatScreen(
 								chatId = chatId,
 								onUnauthorized = onUnauthorized,
 								onNoInternet = onRequestNoInternet
-						)
-					},
-					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f)
-						.padding(horizontal = LocalDimensions.current.large)
-				)
+							)
+						},
+						modifier = Modifier
+							.fillMaxSize()
+							.padding(horizontal = LocalDimensions.current.large)
+					)
+				}
+
+				else -> {
+					ChatMessagesList(
+						uiState = uiState,
+						listState = listState,
+						bottomContentPadding = composerHeightDp,
+						modifier = Modifier.fillMaxSize()
+					)
+				}
 			}
 
-			else -> {
-				ChatMessagesList(
-					uiState = uiState,
-					listState = listState,
-					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f)
-				)
-			}
+			ChatComposer(
+				value = uiState.draftMessage,
+				onValueChange = viewModel::onDraftChanged,
+				isSending = uiState.isSending,
+				onSend = {
+					viewModel.sendMessage(
+						chatId = chatId,
+						onUnauthorized = onUnauthorized,
+						onNoInternet = onRequestNoInternet
+					)
+				},
+				modifier = Modifier
+					.align(Alignment.BottomCenter)
+					.fillMaxWidth()
+					.onSizeChanged { composerHeightPx = it.height }
+					.imePadding()
+					.navigationBarsPadding()
+			)
 		}
-
-		ChatComposer(
-			value = uiState.draftMessage,
-			onValueChange = viewModel::onDraftChanged,
-			isSending = uiState.isSending,
-			onSend = {
-				viewModel.sendMessage(
-					chatId = chatId,
-					onUnauthorized = onUnauthorized,
-					onNoInternet = onRequestNoInternet
-				)
-			},
-			modifier = Modifier.padding(horizontal = LocalDimensions.current.medium)
-		)
 	}
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChatMessagesList(
 	uiState: ChatUiState,
-	listState: androidx.compose.foundation.lazy.LazyListState,
+	listState: LazyListState,
+	bottomContentPadding: androidx.compose.ui.unit.Dp,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -169,9 +207,9 @@ private fun ChatMessagesList(
 		modifier = modifier,
 		contentPadding = PaddingValues(
 			start = dim.medium,
-			top = dim.small,
+			top = dim.medium,
 			end = dim.medium,
-			bottom = dim.medium
+			bottom = bottomContentPadding + dim.medium
 		),
 		verticalArrangement = Arrangement.spacedBy(dim.small)
 	) {
@@ -218,9 +256,14 @@ private fun ChatMessageBubble(
 		contentAlignment = alignment
 	) {
 		Surface(
+			modifier = Modifier
+				.fillMaxWidth(0.82f)
+				.widthIn(max = 420.dp),
 			shape = MaterialTheme.shapes.large,
 			color = containerColor,
-			contentColor = contentColor
+			contentColor = contentColor,
+			tonalElevation = if (message.isOwn) 2.dp else 0.dp,
+			shadowElevation = if (message.isOwn) 0.dp else 1.dp
 		) {
 			Column(
 				modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -246,24 +289,58 @@ private fun ChatComposer(
 	onSend: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
-	Column(
-		modifier = modifier.padding(bottom = LocalDimensions.current.medium),
-		verticalArrangement = Arrangement.spacedBy(LocalDimensions.current.small)
+	val dim = LocalDimensions.current
+
+	Surface(
+		modifier = modifier,
+		color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+		tonalElevation = 6.dp,
+		shadowElevation = 8.dp
 	) {
-		AppTextField(
-			value = value,
-			onValueChange = onValueChange,
-			label = stringResource(R.string.chat_input_placeholder),
-			focusedPlaceholder = stringResource(R.string.chat_input_placeholder),
-			singleLine = false,
-			maxLines = 4,
-			onDone = onSend
-		)
-		AppMediumButton(
-			onClick = onSend,
-			buttonText = stringResource(R.string.chat_send),
-			isLoading = isSending
-		)
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(
+					start = dim.medium,
+					top = dim.small,
+					end = dim.medium,
+					bottom = dim.small
+				),
+			horizontalArrangement = Arrangement.spacedBy(dim.small),
+			verticalAlignment = Alignment.Bottom
+		) {
+			AppTextField(
+				modifier = Modifier.weight(1f),
+				value = value,
+				onValueChange = onValueChange,
+				label = stringResource(R.string.chat_input_placeholder),
+				focusedPlaceholder = stringResource(R.string.chat_input_placeholder),
+				singleLine = false,
+				maxLines = 6,
+				minHeight = 56.dp,
+				keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
+			)
+
+			FilledIconButton(
+				onClick = onSend,
+				enabled = value.isNotBlank() && !isSending,
+				modifier = Modifier
+					.size(56.dp)
+					.clip(CircleShape)
+			) {
+				if (isSending) {
+					CircularProgressIndicator(
+						modifier = Modifier.size(20.dp),
+						strokeWidth = 2.dp
+					)
+				} else {
+					Icon(
+						painter = painterResource(R.drawable.ic_send_24),
+						contentDescription = stringResource(R.string.chat_send_content_description)
+					)
+				}
+			}
+		}
 	}
 }
 

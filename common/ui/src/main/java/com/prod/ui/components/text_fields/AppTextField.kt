@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.prod.ui.theme.LocalDimensions
@@ -48,6 +50,7 @@ fun AppTextField(
     error: String? = null,
     singleLine: Boolean = true,
     maxLines: Int = 1,
+    minHeight: Dp? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions(
         keyboardType = KeyboardType.Text,
         imeAction = ImeAction.Next
@@ -61,6 +64,8 @@ fun AppTextField(
     val colorScheme = MaterialTheme.colorScheme
     val dim = LocalDimensions.current
     val shapes = LocalShapes.current
+    val textFieldMinHeight = minHeight ?: (dim.actionButtonHeight + dim.extraSmall)
+    val containerMinHeight = textFieldMinHeight + dim.medium - dim.verySmall + dim.extraSmall
 
     var isFocused by remember { mutableStateOf(false) }
 
@@ -76,12 +81,12 @@ fun AppTextField(
     }
 
     Box(
-        Modifier.height(dim.actionButtonHeight + dim.medium - dim.verySmall + dim.extraSmall),
+        modifier = Modifier.heightIn(min = containerMinHeight),
     ) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(dim.actionButtonHeight + dim.extraSmall)
+                .heightIn(min = textFieldMinHeight)
                 .offset(x = dim.extraSmall + dim.extraSmall / 4)
                 .background(
                     color = colorScheme.primaryContainer,
@@ -91,6 +96,7 @@ fun AppTextField(
         OutlinedTextField(
             modifier = modifier
                 .fillMaxWidth()
+                .heightIn(min = textFieldMinHeight)
                 .offset(y = dim.extraSmall + dim.extraSmall / 4)
                 .onFocusChanged { isFocused = it.isFocused },
             value = textFieldValue,
@@ -158,7 +164,7 @@ fun AppTextField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(dim.actionButtonHeight + dim.extraSmall)
+                    .heightIn(min = textFieldMinHeight)
                     .offset(y = dim.extraSmall + dim.extraSmall / 4)
                     .clip(shapes.buttonRounded)
                     .clickable {onClick()}
