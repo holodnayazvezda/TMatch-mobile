@@ -13,6 +13,8 @@ import com.prod.match.domain.model.TargetGender
 import com.prod.match.domain.model.TargetingPreferences
 import com.prod.match.domain.model.TargetingPreferencesDraft
 import com.prod.matching.domain.gateway.PendingMatchActionStore
+import com.prod.matching.domain.interactor.MatchingDeckCoordinator
+import com.prod.matching.domain.interactor.PendingMatchActionQueue
 import com.prod.matching.domain.model.PendingMatchAction
 import com.prod.matching.domain.usecase.GetMatchingFeedUseCase
 import com.prod.matching.domain.usecase.GetRecommendationsUseCase
@@ -277,7 +279,8 @@ class MainMatchingViewModelTest {
 			getRecommendationsUseCase = GetRecommendationsUseCase(matchGateway),
 			submitMatchActionUseCase = SubmitMatchActionUseCase(matchGateway),
 			recommendationUiMapper = RecommendationUiMapper(),
-			pendingMatchActionStore = FakePendingMatchActionStore()
+			deckCoordinator = MatchingDeckCoordinator(),
+			pendingActionQueue = PendingMatchActionQueue(FakePendingMatchActionStore())
 		)
 	}
 

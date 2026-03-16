@@ -8,7 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.prod.common.api.model.ApiErrorReason
 import com.prod.common.api.model.ApiOperationResult
 import com.prod.common.api.model.sanitizeUserFacingApiMessage
-import com.prod.matching.domain.gateway.PendingMatchActionStore
+import com.prod.matching.domain.interactor.DrainResult
+import com.prod.matching.domain.interactor.MatchingDeckCoordinator
+import com.prod.matching.domain.interactor.PendingMatchActionQueue
 import com.prod.matching.domain.model.MatchAction
 import com.prod.matching.domain.model.PendingMatchAction
 import com.prod.matching.domain.usecase.GetMatchingFeedUseCase
@@ -18,14 +20,14 @@ import com.prod.matching.model.MatchingDeckItem
 import com.prod.matching.model.MatchingDeckItem.Profile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import java.util.ArrayDeque
 
 class MainMatchingViewModel(
 	private val getMatchingFeedUseCase: GetMatchingFeedUseCase,
 	private val getRecommendationsUseCase: GetRecommendationsUseCase,
 	private val submitMatchActionUseCase: SubmitMatchActionUseCase,
 	private val recommendationUiMapper: RecommendationUiMapper,
-	private val pendingMatchActionStore: PendingMatchActionStore
+	private val deckCoordinator: MatchingDeckCoordinator,
+	private val pendingActionQueue: PendingMatchActionQueue
 ) : ViewModel() {
 
 	// Prevents parallel pagination requests when the user reaches the end of the current deck.
@@ -38,12 +40,6 @@ class MainMatchingViewModel(
 	// Navigation callback is injected from the screen because ViewModel must not own navigation.
 	private var unauthorizedHandler: (() -> Unit)? = null
 	private var noInternetHandler: (((() -> Unit)) -> Unit)? = null
-	// In-memory mirror of persisted optimistic reactions waiting to be sent to the backend.
-	private val pendingActions = ArrayDeque<PendingMatchAction>()
-	// Keeps all fetched recommendations in arrival order so every server item can be shown.
-	private val recommendationQueue = ArrayDeque<Profile>()
-	// Incoming likes are managed separately because they stay ahead of recommendations in the deck.
-	private var incomingLikeProfiles: List<Profile> = emptyList()
 	private var nextPendingDeckActionId = 0L
 
 	var uiState by mutableStateOf(MainMatchingUiState())
@@ -63,7 +59,7 @@ class MainMatchingViewModel(
 		isInitialized = true
 		lastAppliedReloadToken = reloadToken
 		// Recover optimistic actions from the previous process before talking to the network.
-		restorePendingActions()
+		pendingActionQueue.restore()
 		loadFeed()
 		// Start draining immediately so pending reactions are not stuck until the next swipe.
 		processPendingActions()
@@ -130,15 +126,7 @@ class MainMatchingViewModel(
 		}
 
 		lastAppliedReloadToken = reloadToken
-		incomingLikeProfiles = emptyList()
-		recommendationQueue.clear()
-		uiState = uiState.copy(
-			items = emptyList(),
-			currentIndex = 0,
-			isActionsSheetVisible = false,
-			pendingDeckAction = null,
-			error = null
-		)
+		resetDeckState()
 		loadFeed()
 	}
 
@@ -147,40 +135,25 @@ class MainMatchingViewModel(
 			return
 		}
 
-		incomingLikeProfiles = emptyList()
-		recommendationQueue.clear()
-		uiState = uiState.copy(
-			items = emptyList(),
-			currentIndex = 0,
-			isActionsSheetVisible = false,
-			pendingDeckAction = null,
-			error = null
-		)
+		resetDeckState()
 		loadFeed()
 	}
 
 	private fun loadFeed() {
 		viewModelScope.launch {
 			uiState = uiState.copy(isLoading = true, error = null)
-				when (val result = getMatchingFeedUseCase()) {
-					is ApiOperationResult.Success -> {
-						incomingLikeProfiles = recommendationUiMapper.mapIncomingLikes(result.data.incomingLikes)
-						val incomingLikeUserIds = incomingLikeProfiles.mapTo(hashSetOf(), Profile::id)
-						val recommendationProfiles = recommendationUiMapper
-							.mapRecommendations(result.data.recommendations)
-							.filterNot { it.id in incomingLikeUserIds }
-						recommendationQueue.clear()
-						recommendationQueue.addAll(recommendationProfiles)
-						uiState = uiState.copy(
-							isLoading = false,
-							error = null,
-							items = buildDeckItems(
-								incomingLikeProfiles = incomingLikeProfiles,
-								recommendationProfiles = recommendationQueue.toList()
-							),
-							currentIndex = 0
-						)
-					}
+			when (val result = getMatchingFeedUseCase()) {
+				is ApiOperationResult.Success -> {
+					uiState = uiState.copy(
+						isLoading = false,
+						error = null,
+						items = deckCoordinator.replaceFeed(
+							incomingLikes = recommendationUiMapper.mapIncomingLikes(result.data.incomingLikes),
+							recommendations = recommendationUiMapper.mapRecommendations(result.data.recommendations)
+						),
+						currentIndex = 0
+					)
+				}
 
 				is ApiOperationResult.ValidationError -> {
 					uiState = uiState.copy(
@@ -219,15 +192,13 @@ class MainMatchingViewModel(
 			return
 		}
 
-		pendingActions.addLast(
+		pendingActionQueue.enqueue(
 			PendingMatchAction(
 				profileId = currentProfile.id,
 				recommendationId = currentProfile.recommendationId,
 				action = action
 			)
 		)
-		// Persist before the UI advances so the swipe survives process death.
-		syncPendingActions()
 		if (action == MatchAction.Ban) {
 			removeProfileFromDeck(currentProfile.id)
 		} else {
@@ -247,16 +218,13 @@ class MainMatchingViewModel(
 	}
 
 	private fun removeProfileFromDeck(profileId: String) {
-		incomingLikeProfiles = incomingLikeProfiles.filterNot { it.id == profileId }
-		recommendationQueue.removeAll { it.id == profileId }
-		val updatedItems = buildDeckItems(
-			incomingLikeProfiles = incomingLikeProfiles,
-			recommendationProfiles = recommendationQueue.toList()
+		val deckUpdate = deckCoordinator.removeProfile(
+			profileId = profileId,
+			preferredStartIndex = uiState.currentIndex
 		)
-		val updatedIndex = updatedItems.findNextProfileIndex(preferredStart = uiState.currentIndex)
 		uiState = uiState.copy(
-			items = updatedItems,
-			currentIndex = updatedIndex,
+			items = deckUpdate.items,
+			currentIndex = deckUpdate.nextProfileIndex,
 			isActionsSheetVisible = false,
 			error = null
 		)
@@ -264,56 +232,38 @@ class MainMatchingViewModel(
 	}
 
 	private fun processPendingActions() {
-		if (pendingActions.isEmpty() || !pendingActionsMutex.tryLock()) {
+		if (pendingActionQueue.isEmpty() || !pendingActionsMutex.tryLock()) {
 			return
 		}
 
 		viewModelScope.launch {
 			try {
-				// Deliver reactions in order to avoid reordering user intent across retries.
-				while (pendingActions.isNotEmpty()) {
-					val pendingAction = pendingActions.first()
-					when (
-						val result = submitMatchActionUseCase(
+				when (
+					val result = pendingActionQueue.drain { pendingAction ->
+						submitMatchActionUseCase(
 							profileId = pendingAction.profileId,
 							action = pendingAction.action,
 							recommendationId = pendingAction.recommendationId
 						)
-					) {
-						null,
-						is ApiOperationResult.Success -> {
-							pendingActions.removeFirst()
-							syncPendingActions()
-						}
-
-						is ApiOperationResult.ValidationError -> {
-							pendingActions.removeFirst()
-							syncPendingActions()
-							uiState = uiState.copy(error = result.message.orDefaultErrorMessage())
-						}
-
-						is ApiOperationResult.ApiError -> {
-							if (result.reason == ApiErrorReason.Unauthorized) {
-								uiState = uiState.copy(error = null)
-								pendingActions.clear()
-								syncPendingActions()
-								handleUnauthorized()
-								break
-							}
-
-							uiState = uiState.copy(
-								error = "Не удалось синхронизировать реакцию"
-							)
-							// Keep the failed item in storage and retry later from the same queue head.
-							break
-						}
-
-						ApiOperationResult.NoInternet -> {
+					}
+				) {
+					DrainResult.Completed -> Unit
+					is DrainResult.ValidationError -> {
+						uiState = uiState.copy(error = result.message.orDefaultErrorMessage())
+					}
+					is DrainResult.ApiError -> {
+						if (result.result.reason == ApiErrorReason.Unauthorized) {
 							uiState = uiState.copy(error = null)
-							handleNoInternet {
-								processPendingActions()
-							}
-							break
+							pendingActionQueue.clear()
+							handleUnauthorized()
+						} else {
+							uiState = uiState.copy(error = "Не удалось синхронизировать реакцию")
+						}
+					}
+					DrainResult.NoInternet -> {
+						uiState = uiState.copy(error = null)
+						handleNoInternet {
+							processPendingActions()
 						}
 					}
 				}
@@ -334,11 +284,11 @@ class MainMatchingViewModel(
 				uiState = uiState.copy(isLoadingMore = true)
 				when (val result = getRecommendationsUseCase()) {
 					is ApiOperationResult.Success -> {
-						val appendedProfiles = recommendationUiMapper.mapRecommendations(result.data)
-						val newProfiles = appendedProfiles.filterNot(::isKnownProfile)
 						uiState = uiState.copy(
 							isLoadingMore = false,
-							items = mergeRecommendationProfiles(newProfiles)
+							items = deckCoordinator.appendRecommendations(
+								recommendationUiMapper.mapRecommendations(result.data)
+							)
 						)
 					}
 
@@ -383,21 +333,6 @@ class MainMatchingViewModel(
 		noInternetHandler?.invoke(retryAction)
 	}
 
-	private fun restorePendingActions() {
-		// The in-memory queue is reconstructed on every fresh ViewModel session from local storage.
-		pendingActions.clear()
-		pendingActions.addAll(pendingMatchActionStore.getAll())
-	}
-
-	private fun syncPendingActions() {
-		if (pendingActions.isEmpty()) {
-			pendingMatchActionStore.clear()
-			return
-		}
-
-		pendingMatchActionStore.saveAll(pendingActions.toList())
-	}
-
 	private fun ApiOperationResult.ApiError.toMessage(): String {
 		return message.orDefaultErrorMessage(
 			fallback = when (reason) {
@@ -414,63 +349,14 @@ class MainMatchingViewModel(
 		return sanitizeUserFacingApiMessage() ?: fallback
 	}
 
-	private fun buildDeckItems(
-		incomingLikeProfiles: List<Profile>,
-		recommendationProfiles: List<Profile>
-	): List<MatchingDeckItem> {
-		if (incomingLikeProfiles.isEmpty()) {
-			return recommendationProfiles
-		}
-
-		if (recommendationProfiles.isEmpty()) {
-			return incomingLikeProfiles
-		}
-
-		return incomingLikeProfiles + MatchingDeckItem.Transition() + recommendationProfiles
-	}
-
-	private fun isKnownProfile(profile: Profile): Boolean {
-		val knownUserIds = incomingLikeProfiles.mapTo(hashSetOf(), Profile::id)
-			.apply { addAll(recommendationQueue.map(Profile::id)) }
-		if (profile.id in knownUserIds) {
-			return true
-		}
-
-		val knownRecommendationIds = recommendationQueue
-			.mapNotNull(Profile::recommendationId)
-			.toHashSet()
-		return profile.recommendationId != null && profile.recommendationId in knownRecommendationIds
-	}
-
-	private fun mergeRecommendationProfiles(newProfiles: List<Profile>): List<MatchingDeckItem> {
-		if (newProfiles.isEmpty()) {
-			return uiState.items
-		}
-
-		recommendationQueue.addAll(newProfiles)
-		return buildDeckItems(
-			incomingLikeProfiles = incomingLikeProfiles,
-			recommendationProfiles = recommendationQueue.toList()
+	private fun resetDeckState() {
+		deckCoordinator.clear()
+		uiState = uiState.copy(
+			items = emptyList(),
+			currentIndex = 0,
+			isActionsSheetVisible = false,
+			pendingDeckAction = null,
+			error = null
 		)
-	}
-
-	private fun List<MatchingDeckItem>.findNextProfileIndex(preferredStart: Int): Int {
-		if (isEmpty()) {
-			return 0
-		}
-
-		for (index in preferredStart.coerceAtLeast(0)..lastIndex) {
-			if (this[index] is Profile) {
-				return index
-			}
-		}
-
-		for (index in lastIndex downTo 0) {
-			if (this[index] is Profile) {
-				return index
-			}
-		}
-
-		return 0
 	}
 }
