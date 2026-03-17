@@ -17,6 +17,77 @@
 - `data/tmatch_api` — работа с backend API и локальным хранением, включая регистрацию FCM device token.
 - `common/ui` — общие UI-компоненты и тема.
 
+## Зависимости модулей
+
+```mermaid
+graph TD
+    app["app"]
+
+    subgraph API
+        apiCommon["api:common"]
+        apiAuth["api:auth"]
+        apiChats["api:chats"]
+        apiProfile["api:profile"]
+        apiMatch["api:match"]
+    end
+
+    subgraph Features
+        featureAuth["feature:auth"]
+        featureChats["feature:chats"]
+        featureProfile["feature:profile"]
+        featureMatching["feature:matching"]
+    end
+
+    subgraph Shared
+        commonUi["common:ui"]
+    end
+
+    subgraph Data
+        dataApi["data:tmatch_api"]
+    end
+
+    apiAuth --> apiCommon
+    apiChats --> apiCommon
+    apiChats --> apiProfile
+    apiProfile --> apiCommon
+    apiMatch --> apiCommon
+
+    featureAuth --> apiAuth
+    featureAuth --> apiProfile
+    featureAuth --> commonUi
+
+    featureChats --> apiAuth
+    featureChats --> apiChats
+    featureChats --> apiCommon
+    featureChats --> apiProfile
+    featureChats --> commonUi
+
+    featureProfile --> apiAuth
+    featureProfile --> apiCommon
+    featureProfile --> apiProfile
+    featureProfile --> commonUi
+
+    featureMatching --> apiMatch
+    featureMatching --> commonUi
+
+    dataApi --> apiAuth
+    dataApi --> apiChats
+    dataApi --> apiMatch
+    dataApi --> apiProfile
+
+    app --> apiAuth
+    app --> apiChats
+    app --> apiCommon
+    app --> apiMatch
+    app --> apiProfile
+    app --> commonUi
+    app --> dataApi
+    app --> featureAuth
+    app --> featureChats
+    app --> featureProfile
+    app --> featureMatching
+```
+
 ## Реализованные MVP-экраны
 
 - `feature:matching` показывает ленту рекомендаций и входящие лайки.
@@ -30,6 +101,11 @@
 - Firebase Cloud Messaging используется для получения push-сообщений.
 - FCM device token регистрируется на backend через `POST /notifications/devices`.
 - Входящие push-сообщения логируются и отображаются как системные уведомления; на Android 13+ показ зависит от разрешения `POST_NOTIFICATIONS`.
+
+## APK
+
+- Debug APK: `app/debug/app-debug.apk`
+- Release APK: `app/release/app-release.apk`
 
 ## Архитектура
 
