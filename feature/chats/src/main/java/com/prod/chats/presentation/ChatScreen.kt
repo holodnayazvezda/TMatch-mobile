@@ -1,17 +1,20 @@
 package com.prod.chats.presentation
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.imePadding
@@ -19,8 +22,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,11 +29,15 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,7 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -55,8 +62,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.prod.chats.R
 import com.prod.ui.components.AppBackButton
+import com.prod.ui.components.AppInfoChip
 import com.prod.ui.components.AppSectionCard
 import com.prod.ui.components.buttons.AppMediumButton
 import com.prod.ui.components.text_fields.AppTextField
@@ -78,6 +87,7 @@ fun ChatScreen(
 	val listState = rememberLazyListState()
 	val density = LocalDensity.current
 	val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+	var isCompanionIdeasDialogVisible by rememberSaveable(chatId) { mutableStateOf(false) }
 
 	var composerHeightPx by remember { mutableIntStateOf(0) }
 	val composerHeightDp = with(density) { composerHeightPx.toDp() }
@@ -128,8 +138,10 @@ fun ChatScreen(
 			title = uiState.title,
 			avatarUrl = uiState.avatarUrl,
 			otherUserId = uiState.otherUserId,
+			otherUserGender = uiState.otherUserGender,
 			onBack = onBack,
-			onOpenProfile = onOpenProfile
+			onOpenProfile = onOpenProfile,
+			onOpenCompanionIdeas = { isCompanionIdeasDialogVisible = true }
 		)
 
 		Box(
@@ -159,6 +171,14 @@ fun ChatScreen(
 						},
 						modifier = Modifier
 							.fillMaxSize()
+							.padding(horizontal = LocalDimensions.current.large)
+					)
+				}
+
+				uiState.messages.isEmpty() -> {
+					ChatEmptyConversationHint(
+						modifier = Modifier
+							.align(Alignment.Center)
 							.padding(horizontal = LocalDimensions.current.large)
 					)
 				}
@@ -193,6 +213,13 @@ fun ChatScreen(
 			)
 		}
 	}
+
+	if (isCompanionIdeasDialogVisible) {
+		CompanionIdeasDialog(
+			gender = uiState.otherUserGender,
+			onDismiss = { isCompanionIdeasDialogVisible = false }
+		)
+	}
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -201,8 +228,10 @@ private fun ChatHeader(
 	title: String,
 	avatarUrl: String?,
 	otherUserId: String?,
+	otherUserGender: String?,
 	onBack: () -> Unit,
 	onOpenProfile: (userId: String) -> Unit,
+	onOpenCompanionIdeas: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val dim = LocalDimensions.current
@@ -229,7 +258,7 @@ private fun ChatHeader(
 				modifier = Modifier
 					.align(Alignment.Center)
 					.padding(horizontal = 124.dp),
-				style = MaterialTheme.typography.titleLarge,
+				style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
 				color = MaterialTheme.colorScheme.onBackground,
 				maxLines = 1,
 				overflow = TextOverflow.Ellipsis,
@@ -243,23 +272,134 @@ private fun ChatHeader(
 			)
 			Box(
 				modifier = Modifier
-					.fillMaxWidth()
+					.widthIn(max = 240.dp)
 					.height(48.dp)
-					.padding(start = 124.dp)
+					.align(Alignment.Center)
 					.then(
 						if (otherUserId != null) {
-							Modifier.clickable(
+							Modifier.combinedClickable(
 								interactionSource = headerInteractionSource,
-								indication = null
-							) {
-								onOpenProfile(otherUserId)
-							}
+								indication = null,
+								onClickLabel = stringResource(R.string.chat_header_open_profile),
+								onLongClickLabel = stringResource(R.string.chat_header_open_assistant),
+								onClick = { onOpenProfile(otherUserId) },
+								onLongClick = { onOpenCompanionIdeas() }
+							)
 						} else {
 							Modifier
 						}
 					)
 			)
 		}
+	}
+}
+
+@Composable
+private fun ChatEmptyConversationHint(
+	modifier: Modifier = Modifier
+) {
+	AppSectionCard(
+		modifier = modifier.widthIn(max = 340.dp),
+		shape = RoundedCornerShape(28.dp),
+		containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+	) {
+		Column(
+			verticalArrangement = Arrangement.spacedBy(12.dp),
+			horizontalAlignment = Alignment.CenterHorizontally
+		) {
+			Text(
+				text = stringResource(R.string.chat_empty_hint_title),
+				style = MaterialTheme.typography.titleMedium,
+				fontWeight = FontWeight.SemiBold,
+				color = MaterialTheme.colorScheme.onSurface,
+				textAlign = TextAlign.Center
+			)
+			Text(
+				text = stringResource(R.string.chat_empty_hint_description),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				textAlign = TextAlign.Center
+			)
+		}
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CompanionIdeasDialog(
+	gender: String?,
+	onDismiss: () -> Unit
+) {
+	val suggestions = companionIdeaOptions(gender)
+	val descriptionRes = when (gender?.lowercase()) {
+		"female" -> R.string.chat_assistant_dialog_description_female
+		"male" -> R.string.chat_assistant_dialog_description_male
+		else -> R.string.chat_assistant_dialog_description_unknown
+	}
+
+	AlertDialog(
+		onDismissRequest = onDismiss,
+		title = {
+			Text(
+				text = stringResource(R.string.chat_assistant_dialog_title),
+				style = MaterialTheme.typography.titleMedium,
+				fontWeight = FontWeight.SemiBold
+			)
+		},
+		text = {
+			Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+				Text(
+					text = stringResource(descriptionRes),
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+				FlowRow(
+					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					verticalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					suggestions.forEach { suggestionRes ->
+						AppInfoChip(
+							text = stringResource(suggestionRes),
+							containerColor = MaterialTheme.colorScheme.secondaryContainer,
+							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+						)
+					}
+				}
+			}
+		},
+		confirmButton = {
+			Button(
+				onClick = onDismiss,
+				colors = ButtonDefaults.buttonColors(
+					containerColor = MaterialTheme.colorScheme.primary,
+					contentColor = MaterialTheme.colorScheme.onPrimary
+				)
+			) {
+				Text(text = stringResource(R.string.chat_assistant_back))
+			}
+		}
+	)
+}
+
+private fun companionIdeaOptions(gender: String?): List<Int> {
+	return when (gender?.lowercase()) {
+		"female" -> listOf(
+			R.string.chat_assistant_female_option_flowers,
+			R.string.chat_assistant_female_option_sweets,
+			R.string.chat_assistant_female_option_coffee
+		)
+
+		"male" -> listOf(
+			R.string.chat_assistant_male_option_dinner,
+			R.string.chat_assistant_male_option_barber,
+			R.string.chat_assistant_male_option_activity
+		)
+
+		else -> listOf(
+			R.string.chat_assistant_unknown_option_walk,
+			R.string.chat_assistant_unknown_option_coffee,
+			R.string.chat_assistant_unknown_option_gift
+		)
 	}
 }
 

@@ -9,4 +9,22 @@
 	<string name="chat_send">Отправить</string>
 	<string name="chat_send_content_description">Отправить сообщение</string>
 	<string name="chat_error_title">Не удалось загрузить сообщения</string>
+	<string name="chat_header_open_profile">Открыть профиль</string>
+	<string name="chat_header_open_assistant">Открыть идеи для свидания</string>
+	<string name="chat_empty_hint_title">Диалог можно начать с заботы о собеседнике</string>
+	<string name="chat_empty_hint_description">Зажмите имя вверху экрана, чтобы открыть меню с идеями, что может быть удобно именно этому человеку.</string>
+	<string name="chat_assistant_dialog_title">Что может быть уместно для собеседника</string>
+	<string name="chat_assistant_dialog_description_female">Идеи для первого заботливого шага и небольшого знака внимания.</string>
+	<string name="chat_assistant_dialog_description_male">Идеи для первого уверенного шага и практичного знака внимания.</string>
+	<string name="chat_assistant_dialog_description_unknown">Идеи для вежливого начала диалога и ненавязчивого внимания.</string>
+	<string name="chat_assistant_back">Назад</string>
+	<string name="chat_assistant_female_option_flowers">Где купить красивые цветы рядом</string>
+	<string name="chat_assistant_female_option_sweets">Где выбрать хорошие конфеты или десерт</string>
+	<string name="chat_assistant_female_option_coffee">Где пригласить на кофе в спокойной атмосфере</string>
+	<string name="chat_assistant_male_option_dinner">Где позвать на плотный ужин или бранч</string>
+	<string name="chat_assistant_male_option_barber">Где найти хороший барбершоп или уход</string>
+	<string name="chat_assistant_male_option_activity">Где предложить активное свидание или совместный досуг</string>
+	<string name="chat_assistant_unknown_option_walk">Где можно приятно погулять и поговорить</string>
+	<string name="chat_assistant_unknown_option_coffee">Где взять кофе или десерт без лишнего пафоса</string>
+	<string name="chat_assistant_unknown_option_gift">Где выбрать небольшой нейтральный подарок</string>
 </resources>

@@ -100,6 +100,7 @@ class ChatViewModelTest {
 		assertEquals(1, gateway.refreshChatMessagesCalls.size)
 		assertEquals("Алиса Иванова", viewModel.uiState.title)
 		assertEquals("user-2", viewModel.uiState.otherUserId)
+		assertEquals("female", viewModel.uiState.otherUserGender)
 		assertEquals(1, viewModel.uiState.messages.size)
 		assertEquals("10:15", viewModel.uiState.messages.single().timestamp)
 		assertFalse(viewModel.uiState.messages.single().isOwn)

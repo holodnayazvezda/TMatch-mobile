@@ -212,7 +212,8 @@ class ChatViewModel(
 				uiState = uiState.copy(
 					title = chatMessageUiMapper.resolveTitle(chat),
 					otherUserId = chat?.otherUserId,
-					avatarUrl = chat?.otherUserCard?.profile?.avatarUrl
+					avatarUrl = chat?.otherUserCard?.profile?.avatarUrl,
+					otherUserGender = chat?.otherUserCard?.profile?.gender
 				)
 			}
 		}
