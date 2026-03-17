@@ -12,7 +12,7 @@
 	<string name="chat_header_open_profile">Открыть профиль</string>
 	<string name="chat_header_open_assistant">Открыть идеи для свидания</string>
 	<string name="chat_empty_hint_title">Диалог можно начать с заботы о собеседнике</string>
-	<string name="chat_empty_hint_description">Зажмите имя вверху экрана, чтобы открыть меню с идеями, что может быть удобно именно этому человеку.</string>
+	<string name="chat_empty_hint_description">Зажмите имя вверху экрана, чтобы открыть меню с идеями для этого собеседника.</string>
 	<string name="chat_assistant_dialog_title">Что может быть уместно для собеседника</string>
 	<string name="chat_assistant_dialog_description_female">Идеи для первого заботливого шага и небольшого знака внимания.</string>
 	<string name="chat_assistant_dialog_description_male">Идеи для первого уверенного шага и практичного знака внимания.</string>
@@ -27,4 +27,6 @@
 	<string name="chat_assistant_unknown_option_walk">Где можно приятно погулять и поговорить</string>
 	<string name="chat_assistant_unknown_option_coffee">Где взять кофе или десерт без лишнего пафоса</string>
 	<string name="chat_assistant_unknown_option_gift">Где выбрать небольшой нейтральный подарок</string>
+	<string name="chat_assistant_placeholder_title">Здесь мог бы быть сервис Т-Город</string>
+	<string name="chat_assistant_placeholder_description">Или подборка подходящих мест, удобных сервисов и классного кэшбэка по этой категории.</string>
 </resources>

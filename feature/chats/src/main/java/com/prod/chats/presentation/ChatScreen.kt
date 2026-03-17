@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -31,6 +32,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -88,6 +90,7 @@ fun ChatScreen(
 	val density = LocalDensity.current
 	val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
 	var isCompanionIdeasDialogVisible by rememberSaveable(chatId) { mutableStateOf(false) }
+	var selectedCompanionIdeaRes by rememberSaveable(chatId) { mutableStateOf<Int?>(null) }
 
 	var composerHeightPx by remember { mutableIntStateOf(0) }
 	val composerHeightDp = with(density) { composerHeightPx.toDp() }
@@ -217,7 +220,18 @@ fun ChatScreen(
 	if (isCompanionIdeasDialogVisible) {
 		CompanionIdeasDialog(
 			gender = uiState.otherUserGender,
+			onSelectSuggestion = { suggestionRes ->
+				isCompanionIdeasDialogVisible = false
+				selectedCompanionIdeaRes = suggestionRes
+			},
 			onDismiss = { isCompanionIdeasDialogVisible = false }
+		)
+	}
+
+	selectedCompanionIdeaRes?.let { selectedIdeaRes ->
+		CompanionCategoryPlaceholderScreen(
+			title = stringResource(selectedIdeaRes),
+			onBack = { selectedCompanionIdeaRes = null }
 		)
 	}
 }
@@ -328,6 +342,7 @@ private fun ChatEmptyConversationHint(
 @Composable
 private fun CompanionIdeasDialog(
 	gender: String?,
+	onSelectSuggestion: (Int) -> Unit,
 	onDismiss: () -> Unit
 ) {
 	val suggestions = companionIdeaOptions(gender)
@@ -359,6 +374,10 @@ private fun CompanionIdeasDialog(
 				) {
 					suggestions.forEach { suggestionRes ->
 						AppInfoChip(
+							modifier = Modifier.combinedClickable(
+								onClick = { onSelectSuggestion(suggestionRes) },
+								onLongClick = {}
+							),
 							text = stringResource(suggestionRes),
 							containerColor = MaterialTheme.colorScheme.secondaryContainer,
 							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -379,6 +398,71 @@ private fun CompanionIdeasDialog(
 			}
 		}
 	)
+}
+
+@Composable
+private fun CompanionCategoryPlaceholderScreen(
+	title: String,
+	onBack: () -> Unit
+) {
+	val dim = LocalDimensions.current
+
+	Surface(
+		modifier = Modifier.fillMaxSize(),
+		color = MaterialTheme.colorScheme.background
+	) {
+		Column(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(horizontal = dim.medium, vertical = dim.small)
+		) {
+			AppBackButton(
+				text = stringResource(R.string.chat_assistant_back),
+				onClick = onBack
+			)
+			Column(
+				modifier = Modifier
+					.fillMaxSize()
+					.verticalScroll(rememberScrollState()),
+				horizontalAlignment = Alignment.CenterHorizontally,
+				verticalArrangement = Arrangement.Center
+			) {
+				AppSectionCard(
+					modifier = Modifier.widthIn(max = 420.dp),
+					shape = RoundedCornerShape(28.dp),
+					containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+				) {
+					Text(
+						text = title,
+						style = MaterialTheme.typography.titleMedium,
+						fontWeight = FontWeight.SemiBold,
+						textAlign = TextAlign.Center
+					)
+					Text(
+						text = stringResource(R.string.chat_assistant_placeholder_title),
+						style = MaterialTheme.typography.bodyLarge,
+						color = MaterialTheme.colorScheme.onSurface,
+						textAlign = TextAlign.Center
+					)
+					Text(
+						text = stringResource(R.string.chat_assistant_placeholder_description),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						textAlign = TextAlign.Center
+					)
+					Button(
+						onClick = onBack,
+						colors = ButtonDefaults.buttonColors(
+							containerColor = MaterialTheme.colorScheme.primary,
+							contentColor = MaterialTheme.colorScheme.onPrimary
+						)
+					) {
+						Text(text = stringResource(R.string.chat_assistant_back))
+					}
+				}
+			}
+		}
+	}
 }
 
 private fun companionIdeaOptions(gender: String?): List<Int> {

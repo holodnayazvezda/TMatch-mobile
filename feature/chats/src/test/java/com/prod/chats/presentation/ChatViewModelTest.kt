@@ -29,6 +29,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
@@ -78,7 +79,7 @@ class ChatViewModelTest {
 					chatId = "chat-1",
 					senderUserId = "user-2",
 					text = "Привет",
-					createdAt = "2026-03-16T10:15:00+03:00"
+					createdAt = "2026-03-16T07:15:00Z"
 				)
 			)
 		)
@@ -148,7 +149,7 @@ class ChatViewModelTest {
 			refreshChatMessagesUseCase = RefreshChatMessagesUseCase(gateway),
 			sendChatMessageUseCase = SendChatMessageUseCase(gateway),
 			ensureChatStreamConnectedUseCase = EnsureChatStreamConnectedUseCase(gateway),
-			chatMessageUiMapper = ChatMessageUiMapper()
+			chatMessageUiMapper = ChatMessageUiMapper(deviceZoneId = ZoneId.of("Europe/Moscow"))
 		)
 	}
 

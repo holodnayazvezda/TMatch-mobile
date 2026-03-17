@@ -23,6 +23,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatsViewModelTest {
@@ -43,13 +44,13 @@ class ChatsViewModelTest {
 	fun `initialize renders chats from db flow and refreshes network`() = runTest(dispatcher) {
 		val cachedChats = MutableStateFlow(
 			listOf(
-				ChatPreview(
-					chatId = "chat-1",
-					otherUserId = "user-12345678",
-					lastMessageId = "message-1",
-					lastMessageText = "Привет",
-					lastMessageCreatedAt = "2026-03-16T10:15:00+03:00",
-					otherUserCard = UserCard(
+					ChatPreview(
+						chatId = "chat-1",
+						otherUserId = "user-12345678",
+						lastMessageId = "message-1",
+						lastMessageText = "Привет",
+						lastMessageCreatedAt = "2026-03-16T07:15:00Z",
+						otherUserCard = UserCard(
 						userId = "user-12345678",
 						profile = UserCardProfile(
 							firstName = "Алиса",
@@ -95,12 +96,12 @@ class ChatsViewModelTest {
 
 			override suspend fun clearLocalData() = Unit
 		}
-		val viewModel = ChatsViewModel(
-			observeOwnChatsUseCase = ObserveOwnChatsUseCase(gateway),
-			refreshOwnChatsUseCase = RefreshOwnChatsUseCase(gateway),
-			ensureChatStreamConnectedUseCase = EnsureChatStreamConnectedUseCase(gateway),
-			chatPreviewUiMapper = ChatPreviewUiMapper()
-		)
+			val viewModel = ChatsViewModel(
+				observeOwnChatsUseCase = ObserveOwnChatsUseCase(gateway),
+				refreshOwnChatsUseCase = RefreshOwnChatsUseCase(gateway),
+				ensureChatStreamConnectedUseCase = EnsureChatStreamConnectedUseCase(gateway),
+				chatPreviewUiMapper = ChatPreviewUiMapper(deviceZoneId = ZoneId.of("Europe/Moscow"))
+			)
 
 		viewModel.initialize(
 			onUnauthorized = {},
@@ -108,11 +109,12 @@ class ChatsViewModelTest {
 		)
 		dispatcher.scheduler.advanceUntilIdle()
 
-		assertEquals(1, refreshCalls)
-		assertEquals(1, viewModel.uiState.items.size)
-		assertEquals("Привет", viewModel.uiState.items.single().subtitle)
-		assertEquals("Алиса Иванова", viewModel.uiState.items.single().title)
-	}
+			assertEquals(1, refreshCalls)
+			assertEquals(1, viewModel.uiState.items.size)
+			assertEquals("Привет", viewModel.uiState.items.single().subtitle)
+			assertEquals("Алиса Иванова", viewModel.uiState.items.single().title)
+			assertEquals("16 мар., 10:15", viewModel.uiState.items.single().timestamp)
+		}
 
 	@Test
 	fun `refresh validation error is exposed when db is empty`() = runTest(dispatcher) {
@@ -142,12 +144,12 @@ class ChatsViewModelTest {
 
 			override suspend fun clearLocalData() = Unit
 		}
-		val viewModel = ChatsViewModel(
-			observeOwnChatsUseCase = ObserveOwnChatsUseCase(gateway),
-			refreshOwnChatsUseCase = RefreshOwnChatsUseCase(gateway),
-			ensureChatStreamConnectedUseCase = EnsureChatStreamConnectedUseCase(gateway),
-			chatPreviewUiMapper = ChatPreviewUiMapper()
-		)
+			val viewModel = ChatsViewModel(
+				observeOwnChatsUseCase = ObserveOwnChatsUseCase(gateway),
+				refreshOwnChatsUseCase = RefreshOwnChatsUseCase(gateway),
+				ensureChatStreamConnectedUseCase = EnsureChatStreamConnectedUseCase(gateway),
+				chatPreviewUiMapper = ChatPreviewUiMapper(deviceZoneId = ZoneId.of("Europe/Moscow"))
+			)
 
 		viewModel.initialize(
 			onUnauthorized = {},

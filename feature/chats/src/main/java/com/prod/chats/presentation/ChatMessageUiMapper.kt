@@ -3,9 +3,12 @@ package com.prod.chats.presentation
 import com.prod.chats.domain.model.ChatMessage
 import com.prod.chats.domain.model.ChatPreview
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeParseException
 
-class ChatMessageUiMapper {
+class ChatMessageUiMapper(
+	private val deviceZoneId: ZoneId = ZoneId.systemDefault()
+) {
 	fun mapMessage(
 		message: ChatMessage,
 		currentUserId: String?
@@ -33,8 +36,9 @@ class ChatMessageUiMapper {
 		} catch (_: DateTimeParseException) {
 			return value
 		}
-		val hour = timestamp.hour.toString().padStart(2, '0')
-		val minute = timestamp.minute.toString().padStart(2, '0')
+		val localTimestamp = timestamp.atZoneSameInstant(deviceZoneId)
+		val hour = localTimestamp.hour.toString().padStart(2, '0')
+		val minute = localTimestamp.minute.toString().padStart(2, '0')
 		return "$hour:$minute"
 	}
 }
