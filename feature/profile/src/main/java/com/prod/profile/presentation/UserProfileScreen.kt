@@ -41,7 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.AsyncImage
 import com.prod.common.api.model.RecommendationReasonSummary
 import com.prod.profile.R
 import com.prod.ui.components.AppBottomScrimInfo
@@ -466,21 +466,14 @@ private fun UserProfilePhoto(
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			} else {
-				SubcomposeAsyncImage(
+				AsyncImage(
 					model = imageUrl,
 					contentDescription = contentDescription,
 					contentScale = ContentScale.Crop,
+					placeholder = painterResource(R.drawable.match_user_placeholder),
+					error = painterResource(R.drawable.match_user_placeholder),
+					fallback = painterResource(R.drawable.match_user_placeholder),
 					modifier = Modifier.fillMaxSize(),
-					loading = {
-						CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-					},
-					error = {
-						Text(
-							text = stringResource(R.string.user_profile_photo_placeholder),
-							style = MaterialTheme.typography.bodyMedium,
-							color = MaterialTheme.colorScheme.onSurfaceVariant
-						)
-					}
 				)
 			}
 		}
