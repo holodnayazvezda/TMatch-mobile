@@ -53,6 +53,14 @@ class RecommendationUiMapperTest {
 			listOf("Вы понравились", "Рестораны", "Вечерняя активность"),
 			profiles.single().reasons.map { it.label }
 		)
+		assertEquals(
+			listOf(
+				"Этот пользователь уже лайкнул вас и ждёт вашего ответа.",
+				"У вас обоих часто встречаются траты в категории \"Рестораны\".",
+				"Вы часто бываете активны по вечерам."
+			),
+			profiles.single().reasons.map { it.description }
+		)
 	}
 
 	@Test
@@ -106,6 +114,13 @@ class RecommendationUiMapperTest {
 		assertEquals(
 			listOf("Рестораны", "Вечерняя активность"),
 			profiles.single().reasons.map { it.label }
+		)
+		assertEquals(
+			listOf(
+				"У вас обоих часто встречаются траты в категории \"Рестораны\".",
+				"Вы часто бываете активны по вечерам."
+			),
+			profiles.single().reasons.map { it.description }
 		)
 	}
 

@@ -1113,6 +1113,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/RecommendationCandidateCard'
           nullable: true
+        reasons:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: |
+            Optional ML reasons for this like: feature name → contribution to score.
 
     PreviewCardsResponse:
       type: object
