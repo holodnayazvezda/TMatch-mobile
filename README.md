@@ -102,6 +102,11 @@ graph TD
 - FCM device token регистрируется на backend через `POST /notifications/devices`.
 - Входящие push-сообщения логируются и отображаются как системные уведомления; на Android 13+ показ зависит от разрешения `POST_NOTIFICATIONS`.
 
+## APK
+
+- Debug APK: `app/debug/app-debug.apk`
+- Release APK: `app/release/app-release.apk`
+
 ## Архитектура
 
 Описание принятых архитектурных решений находится в [ADR.md](./ADR.md).
