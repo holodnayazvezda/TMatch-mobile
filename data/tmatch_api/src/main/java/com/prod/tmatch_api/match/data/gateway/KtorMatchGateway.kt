@@ -132,7 +132,7 @@ class KtorMatchGateway(
 				}
 				setBody(
 					UpsertTargetingRequestDto(
-						region = draft.region,
+						region = draft.region.toTargetingApiRegion(),
 						genderTarget = draft.genderTarget.toApiValue(),
 						ageFrom = draft.ageFrom,
 						ageTo = draft.ageTo
@@ -254,6 +254,13 @@ class KtorMatchGateway(
 
 	private fun String.toRecommendationReasonType(): RecommendationReasonType {
 		return RecommendationReasonType.fromServerKey(this)
+	}
+
+	private fun String?.toTargetingApiRegion(): String? {
+		return when (this) {
+			"Москва" -> "Moscow"
+			else -> this
+		}
 	}
 
 	private fun InteractionResponseDto.toDomainOrNull(): Interaction? {

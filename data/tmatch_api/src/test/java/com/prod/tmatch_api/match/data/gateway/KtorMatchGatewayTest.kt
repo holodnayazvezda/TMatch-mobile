@@ -7,15 +7,20 @@ import com.prod.common.api.model.UserSession
 import com.prod.match.domain.model.InteractionAction
 import com.prod.match.domain.model.RecommendationReasonType
 import com.prod.match.domain.model.TargetGender
+import com.prod.match.domain.model.TargetingPreferencesDraft
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.http.content.OutgoingContent
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -165,6 +170,42 @@ class KtorMatchGatewayTest {
 	}
 
 	@Test
+	fun `sends Moscow for Moscow targeting region`() = runBlocking {
+		var capturedBody: String? = null
+		val gateway = KtorMatchGateway(
+			httpClient = createHttpClient(
+				status = HttpStatusCode.OK,
+				body = """
+					{
+					  "region": "Moscow",
+					  "gender_target": "female",
+					  "age_from": 18,
+					  "age_to": 25
+					}
+				""".trimIndent(),
+				onRequest = { request ->
+					capturedBody = request.body.readBodyAsText()
+				}
+			),
+			authSessionStore = FakeAuthSessionStore()
+		)
+
+		gateway.upsertOwnTargeting(
+			TargetingPreferencesDraft(
+				region = "Москва",
+				genderTarget = TargetGender.Female,
+				ageFrom = 18,
+				ageTo = 25
+			)
+		)
+
+		assertEquals(
+			"""{"region":"Moscow","gender_target":"female","age_from":18,"age_to":25}""",
+			capturedBody
+		)
+	}
+
+	@Test
 	fun `returns request failed instead of crashing on unknown interaction action`() = runBlocking {
 		val gateway = KtorMatchGateway(
 			httpClient = createHttpClient(
@@ -230,10 +271,12 @@ class KtorMatchGatewayTest {
 
 	private fun createHttpClient(
 		status: HttpStatusCode,
-		body: String
+		body: String,
+		onRequest: suspend (HttpRequestData) -> Unit = {}
 	): HttpClient {
 		return HttpClient(
-			MockEngine {
+			MockEngine { request ->
+				onRequest(request)
 				respond(
 					content = body,
 					status = status,
@@ -252,6 +295,15 @@ class KtorMatchGatewayTest {
 					}
 				)
 			}
+		}
+	}
+
+	private suspend fun Any.readBodyAsText(): String {
+		return when (this) {
+			is OutgoingContent.ByteArrayContent -> bytes().decodeToString()
+			is OutgoingContent.ReadChannelContent -> readFrom().readRemaining().readText()
+			is OutgoingContent.WriteChannelContent -> error("Unsupported test body content")
+			else -> error("Unsupported test body type: ${this::class.qualifiedName}")
 		}
 	}
 

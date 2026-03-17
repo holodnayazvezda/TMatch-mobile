@@ -5,9 +5,11 @@
 ## Документация
 
 - [Описание функционала и статуса интеграции](./docs/functional-overview.md)
+- [Контракт с backend](./docs/mvp-backend-api-contracts.md)
 - [Тестовые сценарии](./docs/test-scenarios.md)
 - [Карта критериев](./docs/criteria-map.md)
 - [Архитектурные решения](./ADR.md)
+- 
 
 ## Структура проекта
 
