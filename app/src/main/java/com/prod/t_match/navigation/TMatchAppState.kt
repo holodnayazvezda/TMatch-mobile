@@ -30,6 +30,11 @@ class TMatchAppState(
 	chatGateway: ChatGateway,
 	pendingMatchActionStore: PendingMatchActionStore
 ) {
+	private data class PendingUserProfileFeedAction(
+		val userId: String,
+		val action: UserProfileFeedAction
+	)
+
 	val backStack: SnapshotStateList<Any> = mutableStateListOf(startDestination)
 
 	var hasDatingProfileAccess by mutableStateOf(authSessionStore.hasDatingProfile())
@@ -37,6 +42,8 @@ class TMatchAppState(
 
 	var userProfileFeedActionHandler by mutableStateOf<((userId: String, action: UserProfileFeedAction) -> Unit)?>(null)
 		private set
+
+	private var pendingUserProfileFeedAction by mutableStateOf<PendingUserProfileFeedAction?>(null)
 
 	val currentDestination: Any?
 		get() = backStack.lastOrNull()
@@ -81,8 +88,12 @@ class TMatchAppState(
 	}
 
 	fun onFeedAction(userId: String, action: UserProfileFeedAction) {
-		userProfileFeedActionHandler?.invoke(userId, action)
+		pendingUserProfileFeedAction = PendingUserProfileFeedAction(
+			userId = userId,
+			action = action
+		)
 		onBack()
+		dispatchPendingUserProfileFeedAction()
 	}
 
 	fun onOpenChatFromProfile(userId: String) {
@@ -119,6 +130,18 @@ class TMatchAppState(
 
 	fun registerUserProfileFeedActionHandler(handler: (userId: String, action: UserProfileFeedAction) -> Unit) {
 		userProfileFeedActionHandler = handler
+		dispatchPendingUserProfileFeedAction()
+	}
+
+	private fun dispatchPendingUserProfileFeedAction() {
+		val pendingAction = pendingUserProfileFeedAction ?: return
+		val handler = userProfileFeedActionHandler ?: return
+		if (currentDestination !is MatchingNavKey) {
+			return
+		}
+
+		handler(pendingAction.userId, pendingAction.action)
+		pendingUserProfileFeedAction = null
 	}
 }
 

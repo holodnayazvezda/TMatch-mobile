@@ -689,17 +689,7 @@ private fun SwipeCardDeck(
 			}
 		).awaitAll()
 
-		dismissedAffordance = affordanceByDirection[direction]
-		dismissedAffordanceProgress.snapTo(1f)
 		currentOnPendingDeckActionAnimated()
-		dismissedAffordanceProgress.animateTo(
-			targetValue = 0f,
-			animationSpec = tween(
-				durationMillis = SwipeAffordanceFadeOutDurationMillis,
-				easing = FastOutSlowInEasing
-			)
-		)
-		dismissedAffordance = null
 	}
 
 	Box(
