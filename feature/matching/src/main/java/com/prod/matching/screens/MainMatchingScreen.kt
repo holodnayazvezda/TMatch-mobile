@@ -549,11 +549,11 @@ private fun MatchingHeader(
 				contentDescription = stringResource(R.string.matching_preferences_open),
 				onClick = onOpenPreferences
 			)
-			AppTopBarIconAction(
-				iconRes = R.drawable.ic_history_24,
-				contentDescription = stringResource(R.string.matching_history),
-				onClick = {}
-			)
+//			AppTopBarIconAction(
+//				iconRes = R.drawable.ic_history_24,
+//				contentDescription = stringResource(R.string.matching_history),
+//				onClick = {}
+//			)
 		}
 	)
 }
