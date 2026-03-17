@@ -26,7 +26,6 @@
     <string name="matching_preferences_gender_field_title">Пол</string>
     <string name="matching_preferences_region_label">Регион</string>
     <string name="matching_preferences_region_field_title">Регион поиска</string>
-    <string name="matching_preferences_region_search_hint">Начните вводить регион</string>
     <string name="matching_preferences_region_reset">Любой регион</string>
     <string name="matching_preferences_age_title">Возрастной диапазон</string>
     <string name="matching_preferences_age_from">От</string>

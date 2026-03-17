@@ -12,11 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -29,14 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.prod.match.domain.model.TargetGender
 import com.prod.matching.R
@@ -60,6 +54,11 @@ private const val AgeRangeMax = 80f
 
 private data class GenderOption(
 	val gender: TargetGender,
+	val label: String
+)
+
+private data class RegionOption(
+	val value: String,
 	val label: String
 )
 
@@ -245,7 +244,7 @@ private fun TargetingPreferencesContent(
 		)
 	}
 	val regionOptions = remember {
-		RussianRegions.all
+		buildMatchingRegionOptions()
 	}
 	var sliderStart by remember(uiState.ageFrom) { mutableFloatStateOf(uiState.ageFrom.toFloat()) }
 	var sliderEnd by remember(uiState.ageTo) { mutableFloatStateOf(uiState.ageTo.toFloat()) }
@@ -295,11 +294,25 @@ private fun TargetingPreferencesContent(
 				fontWeight = FontWeight.SemiBold,
 				color = MaterialTheme.colorScheme.onSurface
 			)
-			SearchableRegionField(
-				selectedRegion = uiState.region,
-				regionOptions = regionOptions,
-				onRegionSelected = onRegionSelected
+			AppTextFieldWithDropdown(
+				value = uiState.region.toMatchingRegionLabel(),
+				label = androidx.compose.ui.res.stringResource(R.string.matching_preferences_region_label),
+				dropdownItems = regionOptions,
+				onDropdownItemSelected = { option ->
+					onRegionSelected(option.value)
+				},
+				dropDownItem = { option ->
+					Text(text = option.label)
+				}
 			)
+			if (uiState.region != null) {
+				AppMediumButton(
+					modifier = Modifier.padding(top = dim.extraSmall),
+					onClick = { onRegionSelected(null) },
+					buttonText = androidx.compose.ui.res.stringResource(R.string.matching_preferences_region_reset),
+					isLoading = false
+				)
+			}
 		}
 
 		AppSectionCard {
@@ -363,92 +376,37 @@ private fun TargetingPreferencesContent(
 	}
 }
 
-@Composable
-private fun SearchableRegionField(
-	selectedRegion: String?,
-	regionOptions: List<String>,
-	onRegionSelected: (String?) -> Unit
-) {
-	val dim = LocalDimensions.current
-	var query by remember(selectedRegion) { mutableStateOf(selectedRegion.orEmpty()) }
-	var expanded by remember { mutableStateOf(false) }
-
-	LaunchedEffect(selectedRegion) {
-		query = selectedRegion.orEmpty()
-	}
-
-	val normalizedQuery = query.trim()
-	val suggestions = remember(normalizedQuery, regionOptions) {
-		if (normalizedQuery.isBlank()) {
-			regionOptions.take(6)
-		} else {
-			regionOptions.filter {
-				it.contains(normalizedQuery, ignoreCase = true)
-			}.take(6)
-		}
-	}
-
-	Box(modifier = Modifier.fillMaxWidth()) {
-		AppTextField(
-			modifier = Modifier.fillMaxWidth(),
-			value = query,
-			onValueChange = { value ->
-				query = value
-				expanded = true
-				if (value.isBlank()) {
-					onRegionSelected(null)
-				}
-			},
-			label = androidx.compose.ui.res.stringResource(R.string.matching_preferences_region_label),
-			focusedPlaceholder = androidx.compose.ui.res.stringResource(R.string.matching_preferences_region_search_hint),
-			keyboardOptions = KeyboardOptions(
-				capitalization = KeyboardCapitalization.Words,
-				imeAction = ImeAction.Done
-			),
-			onDone = {
-				val exactMatch = regionOptions.firstOrNull {
-					it.equals(query.trim(), ignoreCase = true)
-				}
-				onRegionSelected(exactMatch)
-				expanded = false
-			}
-		)
-		DropdownMenu(
-			expanded = expanded && suggestions.isNotEmpty(),
-			onDismissRequest = { expanded = false }
-		) {
-			suggestions.forEach { region ->
-				DropdownMenuItem(
-					text = { Text(text = region) },
-					onClick = {
-						query = region
-						onRegionSelected(region)
-						expanded = false
-					}
-				)
-			}
-		}
-	}
-
-	if (selectedRegion != null || query.isNotBlank()) {
-		AppMediumButton(
-			modifier = Modifier.padding(top = dim.extraSmall),
-			onClick = {
-				query = ""
-				expanded = false
-				onRegionSelected(null)
-			},
-			buttonText = androidx.compose.ui.res.stringResource(R.string.matching_preferences_region_reset),
-			isLoading = false
-		)
-	}
-
-}
-
 private fun TargetGender.label(): String {
 	return when (this) {
 		TargetGender.Male -> "Мужчины"
 		TargetGender.Female -> "Женщины"
 		TargetGender.Both -> "Все"
+	}
+}
+
+private fun buildMatchingRegionOptions(): List<RegionOption> {
+	val priorityRegions = listOf("Москва", "Санкт-Петербург", "Севастополь")
+	val prioritized = priorityRegions.map { region ->
+		RegionOption(
+			value = region,
+			label = region.toMatchingRegionLabel()
+		)
+	}
+	val remaining = RussianRegions.all
+		.filterNot { it in priorityRegions }
+		.map { region ->
+			RegionOption(
+				value = region,
+				label = region.toMatchingRegionLabel()
+			)
+		}
+	return prioritized + remaining
+}
+
+private fun String?.toMatchingRegionLabel(): String {
+	return when (this) {
+		null -> ""
+		"Москва" -> "Moscow"
+		else -> this
 	}
 }
