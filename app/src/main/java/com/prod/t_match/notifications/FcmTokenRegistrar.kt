@@ -10,7 +10,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 class FcmTokenRegistrar(
 	private val authSessionStore: AuthSessionStore,
-	private val notificationGateway: NotificationGateway
+	private val notificationGateway: NotificationGateway,
+	private val logger: Logger = AndroidLogger
 ) {
 
 	suspend fun syncCurrentTokenIfAuthorized() {
@@ -34,19 +35,19 @@ class FcmTokenRegistrar(
 	suspend fun registerToken(token: String) {
 		when (val result = notificationGateway.registerDeviceToken(token)) {
 			is ApiOperationResult.Success -> {
-				Log.d(TAG, "FCM token registered")
+				logger.debug("FCM token registered")
 			}
 
 			is ApiOperationResult.ValidationError -> {
-				Log.w(TAG, "FCM token registration validation error: ${result.message}")
+				logger.warn("FCM token registration validation error: ${result.message}")
 			}
 
 			is ApiOperationResult.ApiError -> {
-				Log.w(TAG, "FCM token registration failed: ${result.reason} ${result.message.orEmpty()}")
+				logger.warn("FCM token registration failed: ${result.reason} ${result.message.orEmpty()}")
 			}
 
 			ApiOperationResult.NoInternet -> {
-				Log.w(TAG, "FCM token registration skipped: no internet")
+				logger.warn("FCM token registration skipped: no internet")
 			}
 		}
 	}
@@ -58,13 +59,32 @@ class FcmTokenRegistrar(
 					continuation.resume(token)
 				}
 				.addOnFailureListener { error ->
-					Log.w(TAG, "Failed to fetch FCM token", error)
+					logger.warn("Failed to fetch FCM token", error)
 					continuation.resume(null)
 				}
 		}
 	}
 
+	interface Logger {
+		fun debug(message: String)
+
+		fun warn(message: String) {
+			warn(message, null)
+		}
+
+		fun warn(message: String, error: Throwable?)
+	}
+
 	private companion object {
 		const val TAG = "FcmTokenRegistrar"
+		val AndroidLogger = object : Logger {
+			override fun debug(message: String) {
+				Log.d(TAG, message)
+			}
+
+			override fun warn(message: String, error: Throwable?) {
+				Log.w(TAG, message, error)
+			}
+		}
 	}
 }
